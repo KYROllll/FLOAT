@@ -7,7 +7,7 @@
 
   var STORAGE_KEY = 'float.canvas.v1';
   var SAVE_DELAY = 1200;
-  var COMPLETE_MS = 860;
+  var COMPLETE_MS = 940;
   var PULSE_MS = 2600;
   var PAD = 20;
   var MAX_MISSIONS = 80;
@@ -474,6 +474,40 @@
 
   /* ------------------------------- complete ------------------------------ */
 
+  /* Park the check beside the card, on whichever side has more room, and
+     clamp it into the viewport so it never gets cut off at a screen edge. */
+  function placeDone(m) {
+    var card = m.el && m.el.querySelector('.card');
+    var done = m.el && m.el.querySelector('.done');
+    if (!card || !done) return;
+
+    var rect = card.getBoundingClientRect();
+    var vw = window.innerWidth;
+    var vh = window.innerHeight;
+    var size = 44;
+    var gap = 12;
+    var spaceRight = vw - rect.right;
+    var spaceLeft = rect.left;
+    var offsetX =
+      spaceRight >= spaceLeft
+        ? rect.right + gap + size / 2 - rect.left
+        : -(gap + size / 2);
+
+    var centerX = clamp(
+      rect.left + offsetX,
+      PAD + size / 2,
+      vw - PAD - size / 2
+    );
+    var centerY = clamp(
+      rect.top + rect.height / 2,
+      PAD + size / 2,
+      vh - PAD - size / 2
+    );
+
+    done.style.left = centerX - rect.left + 'px';
+    done.style.top = centerY - rect.top + 'px';
+  }
+
   function complete(m) {
     if (m.completing) return;
     m.completing = true;
@@ -481,6 +515,7 @@
 
     var card = m.el.querySelector('.card');
     if (card) card.disabled = true;
+    placeDone(m);
 
     if (pendingId === m.id) clearPending();
 
