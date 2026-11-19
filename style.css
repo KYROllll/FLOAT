@@ -34,7 +34,15 @@ body {
   margin: 0;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  touch-action: manipulation;
+}
+
 body {
+  /* Stable through the iOS keyboard: dvh changes are deliberate, not layout jumps. */
+  height: 100vh;
   height: 100dvh;
   overflow: hidden;
   overscroll-behavior: none;
@@ -48,6 +56,7 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 /* Soft vignette for depth. */
@@ -405,6 +414,7 @@ body::after {
 
 .ctl {
   appearance: none;
+  touch-action: manipulation;
   display: grid;
   place-items: center;
   padding: 0;
@@ -536,8 +546,11 @@ body::after {
   color: var(--ink);
   caret-color: #ffffff;
   font: inherit;
-  font-size: 14px;
+  /* 16px minimum: anything smaller makes iOS Safari zoom on focus. */
+  font-size: 16px;
   letter-spacing: 0.005em;
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
 }
 
 .composer input::placeholder {
@@ -550,6 +563,7 @@ body::after {
   place-items: center;
   width: 34px;
   height: 34px;
+  touch-action: manipulation;
   border: 0;
   border-radius: 11px;
   background: rgba(255, 255, 255, 0.1);

@@ -606,6 +606,35 @@
 
   /* -------------------------------- events ------------------------------- */
 
+  /* iOS ignores user-scalable=no for accessibility, so close the gaps: the
+     proprietary gesture events and any two-finger touchmove. */
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (type) {
+    document.addEventListener(
+      type,
+      function (event) {
+        event.preventDefault();
+      },
+      { passive: false }
+    );
+  });
+
+  document.addEventListener(
+    'touchmove',
+    function (event) {
+      if (event.touches.length > 1) event.preventDefault();
+    },
+    { passive: false }
+  );
+
+  /* Double-tap zoom in older Safari. touch-action: manipulation covers the rest. */
+  document.addEventListener(
+    'dblclick',
+    function (event) {
+      event.preventDefault();
+    },
+    { passive: false }
+  );
+
   addBtn.addEventListener('click', function () {
     if (composer.hidden) openComposer();
     else closeComposer(true);
