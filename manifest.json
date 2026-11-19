@@ -1,0 +1,36 @@
+{
+  "name": "FLOAT",
+  "short_name": "FLOAT",
+  "description": "A quiet canvas for the things you mean to do. Tap a floating mission to let it go.",
+  "id": "./",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#07080a",
+  "theme_color": "#07080a",
+  "categories": ["productivity", "lifestyle"],
+  "lang": "en",
+  "dir": "auto",
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

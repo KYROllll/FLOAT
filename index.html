@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>FLOAT</title>
+  <meta name="description" content="A quiet canvas for the things you mean to do. Tap a floating mission to let it go." />
+  <meta name="theme-color" content="#07080a" />
+  <meta name="color-scheme" content="dark" />
+
+  <!-- iOS standalone / PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="FLOAT" />
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" href="./icons/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="./icons/icon-192.png" sizes="192x192" type="image/png" />
+
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <!-- ============================ CANVAS ============================ -->
+  <main class="canvas" id="canvas" aria-label="Floating mission canvas">
+    <svg class="links" id="links" aria-hidden="true"></svg>
+
+    <div class="missions" id="missions"></div>
+
+    <p class="empty" id="emptyState">a quiet canvas — tap <span>+</span> to float a mission</p>
+  </main>
+
+  <header class="brand">
+    <div class="brand-line">
+      <span class="brand-dot" aria-hidden="true"></span>
+      <span class="brand-name">FLOAT</span>
+    </div>
+    <span class="count" id="count"></span>
+  </header>
+
+  <p class="link-hint" id="linkHint" role="status" aria-live="polite">
+    tap two missions to link · tap a line to unlink
+  </p>
+
+  <!-- ========================== NEW MISSION ========================= -->
+  <div class="composer" id="composer" hidden>
+    <form id="composerForm" autocomplete="off" aria-label="New mission">
+      <input
+        id="missionInput"
+        type="text"
+        dir="auto"
+        maxlength="120"
+        placeholder="a mission…"
+        aria-label="Mission text"
+        enterkeyhint="done"
+      />
+      <button type="submit" aria-label="Place mission" title="Place mission">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+          <path d="M5 12h14M13 6l6 6-6 6" />
+        </svg>
+      </button>
+    </form>
+  </div>
+
+  <!-- ============================ CONTROLS ========================== -->
+  <div class="controls">
+    <button
+      class="ctl ctl-link"
+      id="linkBtn"
+      type="button"
+      aria-label="Toggle link mode"
+      aria-pressed="false"
+      title="Link missions"
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+        <path d="M10.2 13.8a4.2 4.2 0 0 1 0-5.9l2.2-2.2a4.2 4.2 0 0 1 5.9 5.9l-1.1 1.1" />
+        <path d="M13.8 10.2a4.2 4.2 0 0 1 0 5.9l-2.2 2.2a4.2 4.2 0 0 1-5.9-5.9l1.1-1.1" />
+      </svg>
+    </button>
+
+    <button class="ctl ctl-add" id="addBtn" type="button" aria-label="Add a mission" aria-expanded="false" title="Add a mission">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true">
+        <path d="M12 5v14M5 12h14" />
+      </svg>
+    </button>
+  </div>
+
+  <noscript>
+    <div class="noscript">FLOAT needs JavaScript to draw your canvas.</div>
+  </noscript>
+
+  <script src="./app.js"></script>
+</body>
+</html>
