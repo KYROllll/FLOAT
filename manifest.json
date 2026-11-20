@@ -1,7 +1,7 @@
 {
   "name": "FLOAT",
   "short_name": "FLOAT",
-  "description": "A quiet canvas for the things you mean to do. Tap a floating mission to let it go.",
+  "description": "A quiet canvas for what you mean to do, a week of completions, and a one-line calorie log.",
   "id": "./",
   "start_url": "./index.html",
   "scope": "./",

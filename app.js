@@ -36,14 +36,34 @@
   var focusClose = document.getElementById('focusClose');
   var focusText = document.getElementById('focusText');
   var focusAge = document.getElementById('focusAge');
-  var focusIn = document.getElementById('focusIn');
-  var focusOut = document.getElementById('focusOut');
-  var focusInNote = document.getElementById('focusInNote');
-  var focusOutNote = document.getElementById('focusOutNote');
 
   var slide = document.getElementById('slide');
   var slideHandle = document.getElementById('slideHandle');
   var slideLabel = document.getElementById('slideLabel');
+
+  var viewStats = document.getElementById('viewStats');
+  var viewCalories = document.getElementById('viewCalories');
+  var statToday = document.getElementById('statToday');
+  var statWeek = document.getElementById('statWeek');
+  var statActive = document.getElementById('statActive');
+  var statAll = document.getElementById('statAll');
+  var statChart = document.getElementById('statChart');
+
+  var kcalToday = document.getElementById('kcalToday');
+  var kcalBar = document.getElementById('kcalBar');
+  var kcalBarFill = document.getElementById('kcalBarFill');
+  var kcalTargetInput = document.getElementById('kcalTarget');
+  var kcalForm = document.getElementById('kcalForm');
+  var kcalValue = document.getElementById('kcalValue');
+  var kcalNote = document.getElementById('kcalNote');
+  var kcalList = document.getElementById('kcalList');
+  var kcalClear = document.getElementById('kcalClear');
+
+  var tabs = [
+    document.getElementById('tabCanvas'),
+    document.getElementById('tabStats'),
+    document.getElementById('tabCalories')
+  ];
 
   var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -51,7 +71,7 @@
   var HINT_SELECTED = 'now tap another mission';
 
   var missions = [];
-  var links = [];           // { a: sourceId, b: targetId, pulses: n, prevT }
+  var links = [];           // { a: sourceId, b: targetId }
   var linkViews = {};       // "a|b" -> { a, b, link, path, hit, arrow, pulse, ... }
   var pendingId = null;     // first mission chosen in link mode
   var linkMode = false;
@@ -65,6 +85,12 @@
   var lastFrame = 0;
   var saveTimer = 0;
   var dirty = false;
+
+  var currentView = '';     // 'canvas' | 'stats' | 'calories'
+  var doneLog = [];         // completion timestamps
+  var meals = [];           // { id, ts, kcal, note }
+  var kcalTarget = 0;
+  var clearArmed = 0;
 
   var slideState = {
     active: false,
@@ -132,10 +158,6 @@
     return d + 'd ' + (h % 24) + 'h';
   }
 
-  function plural(n, word) {
-    return n + ' ' + word + (n === 1 ? '' : 's');
-  }
-
   /* -------------------------------- state -------------------------------- */
 
   function serialize() {
@@ -148,7 +170,7 @@
     });
 
     return {
-      v: 2,
+      v: 3,
       missions: live.map(function (m) {
         return {
           id: m.id,
@@ -158,9 +180,7 @@
           vx: round(m.vx, 5),
           vy: round(m.vy, 5),
           phase: round(m.phase, 3),
-          createdAt: m.createdAt,
-          energyIn: m.energyIn,
-          energyOut: m.energyOut
+          createdAt: m.createdAt
         };
       }),
       links: links
@@ -168,8 +188,11 @@
           return ids[l.a] && ids[l.b];
         })
         .map(function (l) {
-          return [l.a, l.b, l.pulses || 0];
-        })
+          return [l.a, l.b];
+        }),
+      done: doneLog.slice(-3000),
+      meals: meals.slice(-400),
+      kcalTarget: kcalTarget || 0
     };
   }
 
@@ -314,18 +337,20 @@
     return moved;
   }
 
-  /* ------------------------------- energy -------------------------------- */
+  /* --------------------------------- days -------------------------------- */
 
-  /* A white pulse that just wrapped around has reached its target. */
-  function arrive(link) {
-    link.pulses = (link.pulses || 0) + 1;
+  function startOfDay(ts) {
+    var d = new Date(ts);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }
 
-    var source = getMission(link.a);
-    var target = getMission(link.b);
-    if (source && !source.completing) source.energyOut = (source.energyOut || 0) + 1;
-    if (target && !target.completing) target.energyIn = (target.energyIn || 0) + 1;
+  var DAY_MS = 86400000;
 
-    touchSave();
+  /* Calendar days back from today. Both ends are local midnight, so the
+     rounding absorbs daylight-saving hours. */
+  function dayOffset(ts) {
+    return Math.round((startOfDay(Date.now()) - startOfDay(ts)) / DAY_MS);
   }
 
   /* -------------------------------- render ------------------------------- */
@@ -384,7 +409,7 @@
         'translate(' + mx.toFixed(1) + ',' + my.toFixed(1) + ') rotate(' + ang.toFixed(1) + ')'
       );
 
-      /* A white pulse travels source -> target and books the energy on arrival. */
+      /* A white pulse travels source -> target, never stopping. */
       var t = ((now / PULSE_MS) + view.offset) % 1;
       var u = 1 - t;
       var px = u * u * ax + 2 * u * t * cx + t * t * bx;
@@ -393,10 +418,6 @@
       view.pulse.setAttribute('cx', px.toFixed(1));
       view.pulse.setAttribute('cy', py.toFixed(1));
       view.pulse.setAttribute('opacity', fade.toFixed(2));
-
-      var link = view.link;
-      if (link.prevT !== undefined && t < link.prevT - 0.003) arrive(link);
-      link.prevT = t;
     }
   }
 
@@ -466,7 +487,6 @@
       linkViews[key] = {
         a: link.a,
         b: link.b,
-        link: link,
         path: path,
         hit: hit,
         arrow: arrow,
@@ -508,8 +528,6 @@
       vy: clamp(Number(data.vy) || Math.sin(angle) * speed * 0.85, -0.02, 0.02),
       phase: Number(data.phase) || rand(0, Math.PI * 2),
       createdAt: Number(data.createdAt) || Date.now(),
-      energyIn: Math.max(0, Math.floor(Number(data.energyIn) || 0)),
-      energyOut: Math.max(0, Math.floor(Number(data.energyOut) || 0)),
       life: rand(0, 12),
       paused: false,
       completing: false,
@@ -653,7 +671,7 @@
       });
     } else {
       /* Direction runs from the first mission tapped to the second. */
-      links.push({ a: a, b: b, pulses: 0, prevT: undefined });
+      links.push({ a: a, b: b });
     }
 
     renderLinks();
@@ -711,36 +729,9 @@
     slideState.max = slideMax();
   }
 
-  function updateFocusTelemetry() {
+  function updateFocusAge() {
     var m = focusMission;
     if (!m) return;
-
-    var upstream = 0;
-    var downstream = 0;
-    var pulsesIn = 0;
-    var pulsesOut = 0;
-
-    links.forEach(function (link) {
-      if (link.b === m.id) {
-        upstream++;
-        pulsesIn += link.pulses || 0;
-      }
-      if (link.a === m.id) {
-        downstream++;
-        pulsesOut += link.pulses || 0;
-      }
-    });
-
-    /* Persisted totals count every pulse ever received, including links that
-       have since been removed; the live link sums are the floor. */
-    var received = Math.max(m.energyIn || 0, pulsesIn);
-    var sent = Math.max(m.energyOut || 0, pulsesOut);
-
-    focusIn.textContent = String(received);
-    focusOut.textContent = String(sent);
-    focusInNote.textContent = upstream ? plural(upstream, 'incoming link') : 'no links yet';
-    focusOutNote.textContent = downstream ? plural(downstream, 'outgoing link') : 'no links yet';
-
     focusAge.textContent = 'floating for ' + formatAge(Date.now() - (m.createdAt || Date.now()));
   }
 
@@ -754,7 +745,7 @@
 
     focusText.textContent = m.text;
     resetSlide();
-    updateFocusTelemetry();
+    updateFocusAge();
 
     if (focusHideTimer) {
       window.clearTimeout(focusHideTimer);
@@ -779,7 +770,7 @@
     });
 
     if (focusTimer) window.clearInterval(focusTimer);
-    focusTimer = window.setInterval(updateFocusTelemetry, 1000);
+    focusTimer = window.setInterval(updateFocusAge, 15000);
 
     focusClose.focus({ preventScroll: true });
   }
@@ -917,8 +908,8 @@
     var rect = card.getBoundingClientRect();
     var vw = window.innerWidth;
     var vh = window.innerHeight;
-    var size = 44;
-    var gap = 12;
+    var size = 26;
+    var gap = 10;
     var spaceRight = vw - rect.right;
     var spaceLeft = rect.left;
     var offsetX =
@@ -961,6 +952,9 @@
     });
     if (hadLinks) renderLinks();
 
+    doneLog.push(Date.now());
+    if (doneLog.length > 3000) doneLog = doneLog.slice(-3000);
+
     save();
 
     window.setTimeout(function () {
@@ -976,7 +970,7 @@
   /* -------------------------------- motion ------------------------------- */
 
   function step(dt) {
-    if (focusMission) return;
+    if (focusMission || currentView !== 'canvas') return;
 
     var moved = false;
 
@@ -1041,6 +1035,9 @@
       slowTimer = 0;
     }
 
+    /* Other views have nothing to animate; switching back restarts this. */
+    if (currentView !== 'canvas' || canvas.hidden) return;
+
     if (reduceMotion.matches) {
       paint();
       /* Pulses still arrive (and still book energy), just without drift. */
@@ -1084,6 +1081,238 @@
     input.value = '';
     closeComposer(false);
   }
+
+  /* -------------------------------- views -------------------------------- */
+
+  function setView(name) {
+    if (name !== 'stats' && name !== 'calories') name = 'canvas';
+    if (name === currentView) return;
+
+    if (linkMode) setLinkMode(false);
+    closeComposer(false);
+    if (focusMission) closeFocus({ immediate: true });
+
+    currentView = name;
+    canvas.hidden = name !== 'canvas';
+    viewStats.hidden = name !== 'stats';
+    viewCalories.hidden = name !== 'calories';
+
+    document.body.classList.remove('view-canvas', 'view-stats', 'view-calories');
+    document.body.classList.add('view-' + name);
+
+    tabs.forEach(function (tab) {
+      if (tab.dataset.view === name) tab.setAttribute('aria-current', 'page');
+      else tab.removeAttribute('aria-current');
+    });
+
+    if (name === 'stats') renderStats();
+    if (name === 'calories') openCalories();
+
+    if (name === 'canvas') {
+      measureCanvas();
+      missions.forEach(keepInside);
+      settleOverlaps();
+      paint();
+    }
+
+    startMotion();
+  }
+
+  /* -------------------------------- stats -------------------------------- */
+
+  function renderStats() {
+    var counts = [0, 0, 0, 0, 0, 0, 0];
+
+    doneLog.forEach(function (ts) {
+      var d = dayOffset(ts);
+      if (d >= 0 && d < 7) counts[6 - d] += 1;
+    });
+
+    var week = 0;
+    var max = 1;
+    counts.forEach(function (c) {
+      week += c;
+      if (c > max) max = c;
+    });
+
+    statToday.textContent = String(counts[6]);
+    statWeek.textContent = String(week);
+    statActive.textContent = String(missions.filter(isLive).length);
+    statAll.textContent = String(doneLog.length);
+
+    var today = startOfDay(Date.now());
+    statChart.textContent = '';
+
+    counts.forEach(function (c, idx) {
+      var col = document.createElement('div');
+      col.className = 'bar-col' + (idx === 6 ? ' is-today' : '');
+      col.title = c === 1 ? '1 mission' : c + ' missions';
+
+      var bar = document.createElement('span');
+      bar.className = 'bar';
+      bar.style.height = (c ? Math.max(8, Math.round((c / max) * 100)) : 3) + '%';
+
+      var day = document.createElement('span');
+      day.className = 'bar-day';
+      day.textContent = new Date(today - (6 - idx) * DAY_MS).toLocaleDateString(undefined, {
+        weekday: 'narrow'
+      });
+
+      col.appendChild(bar);
+      col.appendChild(day);
+      statChart.appendChild(col);
+    });
+  }
+
+  /* ------------------------------- calories ------------------------------ */
+
+  function todayMeals() {
+    var today = startOfDay(Date.now());
+    return meals.filter(function (m) {
+      return startOfDay(m.ts) === today;
+    });
+  }
+
+  function kcalTotalToday() {
+    var total = 0;
+    todayMeals().forEach(function (m) {
+      total += m.kcal;
+    });
+    return total;
+  }
+
+  function paintKcalBar(total) {
+    if (kcalTarget > 0) {
+      kcalBar.hidden = false;
+      kcalBarFill.style.transform = 'scaleX(' + clamp(total / kcalTarget, 0, 1).toFixed(3) + ')';
+    } else {
+      kcalBar.hidden = true;
+    }
+  }
+
+  function disarmClear() {
+    clearArmed = 0;
+    if (!kcalClear) return;
+    kcalClear.textContent = 'clear today';
+    kcalClear.classList.remove('is-armed');
+  }
+
+  function renderCalories() {
+    var list = todayMeals();
+    var total = kcalTotalToday();
+
+    kcalToday.textContent = String(total);
+    paintKcalBar(total);
+
+    /* Never overwrite the field while it has the caret. */
+    if (document.activeElement !== kcalTargetInput) {
+      kcalTargetInput.value = kcalTarget > 0 ? String(kcalTarget) : '';
+    }
+
+    kcalList.textContent = '';
+
+    list
+      .slice()
+      .reverse()
+      .forEach(function (entry) {
+        var li = document.createElement('li');
+        li.className = 'kcal-row';
+
+        if (entry.note) {
+          var note = document.createElement('span');
+          note.className = 'kcal-note';
+          note.dir = 'auto';
+          note.textContent = entry.note;
+          li.appendChild(note);
+        }
+
+        var num = document.createElement('span');
+        num.className = 'kcal-num';
+        num.textContent = String(entry.kcal);
+        li.appendChild(num);
+
+        var del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'kcal-del';
+        del.setAttribute('aria-label', 'Remove ' + entry.kcal + ' kcal');
+        del.innerHTML =
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" ' +
+          'stroke-linecap="round" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>';
+        del.addEventListener('click', function () {
+          meals = meals.filter(function (x) {
+            return x !== entry;
+          });
+          renderCalories();
+          save();
+        });
+        li.appendChild(del);
+
+        kcalList.appendChild(li);
+      });
+
+    kcalClear.hidden = list.length === 0;
+    if (!list.length) disarmClear();
+  }
+
+  function openCalories() {
+    disarmClear();
+    renderCalories();
+  }
+
+  kcalForm.addEventListener('submit', function (event) {
+    event.preventDefault();
+    var value = Math.round(Number(kcalValue.value));
+    if (!isFinite(value) || value <= 0) {
+      kcalValue.focus();
+      return;
+    }
+
+    meals.push({
+      id: makeId(),
+      ts: Date.now(),
+      kcal: clamp(value, 1, 9999),
+      note: kcalNote.value.trim().slice(0, 40)
+    });
+
+    kcalValue.value = '';
+    kcalNote.value = '';
+    renderCalories();
+    save();
+    kcalValue.focus();
+  });
+
+  kcalTargetInput.addEventListener('input', function () {
+    var value = Math.round(Number(kcalTargetInput.value));
+    kcalTarget = isFinite(value) && value > 0 ? clamp(value, 1, 20000) : 0;
+    paintKcalBar(kcalTotalToday());
+    touchSave();
+  });
+
+  kcalClear.addEventListener('click', function () {
+    if (!todayMeals().length) return;
+
+    if (!clearArmed) {
+      clearArmed = 1;
+      kcalClear.textContent = 'tap again';
+      kcalClear.classList.add('is-armed');
+      window.setTimeout(disarmClear, 2600);
+      return;
+    }
+
+    disarmClear();
+    var today = startOfDay(Date.now());
+    meals = meals.filter(function (m) {
+      return startOfDay(m.ts) !== today;
+    });
+    renderCalories();
+    save();
+  });
+
+  tabs.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      setView(tab.dataset.view);
+    });
+  });
 
   /* -------------------------------- events ------------------------------- */
 
@@ -1157,6 +1386,7 @@
     /* "/" jumps straight into the composer. */
     if (
       event.key === '/' &&
+      currentView === 'canvas' &&
       composer.hidden &&
       !focusMission &&
       !event.metaKey &&
@@ -1238,9 +1468,7 @@
         vx: item.vx,
         vy: item.vy,
         phase: item.phase,
-        createdAt: item.createdAt,
-        energyIn: item.energyIn,
-        energyOut: item.energyOut
+        createdAt: item.createdAt
       });
     });
 
@@ -1260,21 +1488,33 @@
       });
       if (dup) return;
 
-      var pulses = Math.max(0, Math.floor(Number(pair[2]) || 0));
-      links.push({ a: a, b: b, pulses: pulses, prevT: undefined });
+      links.push({ a: a, b: b });
     });
 
-    /* Older saves had no energy fields: derive a floor from per-link counts. */
-    missions.forEach(function (m) {
-      var pulsesIn = 0;
-      var pulsesOut = 0;
-      links.forEach(function (l) {
-        if (l.b === m.id) pulsesIn += l.pulses;
-        if (l.a === m.id) pulsesOut += l.pulses;
+    doneLog = (Array.isArray(data.done) ? data.done : [])
+      .map(function (ts) {
+        return Number(ts);
+      })
+      .filter(function (ts) {
+        return isFinite(ts) && ts > 0;
+      })
+      .slice(-3000);
+
+    meals = [];
+    (Array.isArray(data.meals) ? data.meals : []).slice(-400).forEach(function (item) {
+      if (!item) return;
+      var kcal = Math.round(Number(item.kcal));
+      var ts = Number(item.ts);
+      if (!isFinite(kcal) || kcal <= 0 || !isFinite(ts) || ts <= 0) return;
+      meals.push({
+        id: typeof item.id === 'string' && item.id ? item.id : makeId(),
+        ts: ts,
+        kcal: clamp(kcal, 1, 9999),
+        note: String(item.note == null ? '' : item.note).trim().slice(0, 40)
       });
-      if (m.energyIn < pulsesIn) m.energyIn = pulsesIn;
-      if (m.energyOut < pulsesOut) m.energyOut = pulsesOut;
     });
+
+    kcalTarget = clamp(Math.round(Number(data.kcalTarget) || 0), 0, 20000);
 
     renderLinks();
   }
@@ -1285,5 +1525,6 @@
   settleOverlaps();
   updateMeta();
   paint();
+  setView('canvas');
   startMotion();
 })();

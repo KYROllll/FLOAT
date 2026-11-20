@@ -106,19 +106,6 @@
       <h2 class="focus-text" id="focusText" dir="auto"></h2>
       <p class="focus-age" id="focusAge">floating for a moment</p>
 
-      <div class="focus-stats">
-        <div class="stat">
-          <span class="stat-label">incoming</span>
-          <span class="stat-value" id="focusIn">0</span>
-          <span class="stat-note" id="focusInNote">no links yet</span>
-        </div>
-        <div class="stat">
-          <span class="stat-label">outgoing</span>
-          <span class="stat-value" id="focusOut">0</span>
-          <span class="stat-note" id="focusOutNote">no links yet</span>
-        </div>
-      </div>
-
       <div
         class="slide"
         id="slide"
@@ -139,10 +126,75 @@
           <svg class="slide-icon slide-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
             <path d="M5 12h13M13 6.5l5.5 5.5-5.5 5.5" />
           </svg>
+          <svg class="slide-icon slide-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5.5 12.6 9.8 16.9 18.5 7.4" />
+          </svg>
         </span>
       </div>
     </section>
   </div>
+
+  <!-- ============================== STATS ============================ -->
+  <section class="view view-stats" id="viewStats" aria-label="Statistics" hidden>
+    <div class="view-inner">
+      <p class="view-kicker">stats</p>
+      <p class="view-figure"><span id="statToday">0</span><span class="view-unit">today</span></p>
+
+      <div class="chart" id="statChart" dir="ltr"></div>
+
+      <dl class="view-facts">
+        <div>
+          <dt>7 days</dt>
+          <dd id="statWeek">0</dd>
+        </div>
+        <div>
+          <dt>floating</dt>
+          <dd id="statActive">0</dd>
+        </div>
+        <div>
+          <dt>all time</dt>
+          <dd id="statAll">0</dd>
+        </div>
+      </dl>
+    </div>
+  </section>
+
+  <!-- ============================ CALORIES =========================== -->
+  <section class="view view-calories" id="viewCalories" aria-label="Calories" hidden>
+    <div class="view-inner">
+      <p class="view-kicker">calories</p>
+      <p class="view-figure"><span id="kcalToday">0</span><span class="view-unit">kcal</span></p>
+
+      <div class="kcal-bar" id="kcalBar" hidden>
+        <span class="kcal-bar-fill" id="kcalBarFill"></span>
+      </div>
+
+      <div class="kcal-target">
+        <label for="kcalTarget">target</label>
+        <input id="kcalTarget" type="number" inputmode="numeric" min="0" step="50" placeholder="—" aria-label="Daily calorie target" />
+      </div>
+
+      <form class="kcal-form" id="kcalForm" autocomplete="off">
+        <input id="kcalValue" type="number" inputmode="numeric" min="1" max="9999" step="1" placeholder="kcal" aria-label="Calories" />
+        <input id="kcalNote" type="text" dir="auto" maxlength="40" placeholder="note" aria-label="Note" />
+        <button type="submit" aria-label="Add calories" title="Add">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        </button>
+      </form>
+
+      <ul class="kcal-list" id="kcalList"></ul>
+      <button class="kcal-clear" id="kcalClear" type="button" hidden>clear today</button>
+    </div>
+  </section>
+
+  <!-- ============================== TABS ============================= -->
+  <nav class="tabs" aria-label="Views">
+    <button class="tab" id="tabCanvas" type="button" data-view="canvas" aria-current="page">Missions</button>
+    <button class="tab" id="tabStats" type="button" data-view="stats">Stats</button>
+    <button class="tab" id="tabCalories" type="button" data-view="calories">Calories</button>
+  </nav>
 
   <noscript>
     <div class="noscript">FLOAT needs JavaScript to draw your canvas.</div>

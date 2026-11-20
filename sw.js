@@ -1,5 +1,5 @@
 /* FLOAT — offline cache */
-const CACHE_NAME = 'float-v5';
+const CACHE_NAME = 'float-v6';
 const CORE_ASSETS = [
   './',
   './index.html',
