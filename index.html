@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>FLOAT</title>
-  <meta name="description" content="A quiet canvas for the things you mean to do. Tap a floating mission to let it go." />
+  <meta name="description" content="A quiet canvas for the things you mean to do. Tap a floating mission to focus, then slide to let it go." />
   <meta name="theme-color" content="#07080a" />
   <meta name="color-scheme" content="dark" />
 
@@ -83,6 +83,65 @@
         <path d="M12 5v14M5 12h14" />
       </svg>
     </button>
+  </div>
+
+  <!-- =========================== MISSION FOCUS ======================= -->
+  <div class="focus" id="focus" hidden>
+    <div class="focus-veil" id="focusVeil"></div>
+
+    <section
+      class="focus-sheet"
+      id="focusSheet"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="focusText"
+    >
+      <button class="focus-close" id="focusClose" type="button" aria-label="Close mission">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
+          <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" />
+        </svg>
+      </button>
+
+      <p class="focus-kicker">mission</p>
+      <h2 class="focus-text" id="focusText" dir="auto"></h2>
+      <p class="focus-age" id="focusAge">floating for a moment</p>
+
+      <div class="focus-stats">
+        <div class="stat">
+          <span class="stat-label">incoming</span>
+          <span class="stat-value" id="focusIn">0</span>
+          <span class="stat-note" id="focusInNote">no links yet</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">outgoing</span>
+          <span class="stat-value" id="focusOut">0</span>
+          <span class="stat-note" id="focusOutNote">no links yet</span>
+        </div>
+      </div>
+
+      <div
+        class="slide"
+        id="slide"
+        role="slider"
+        tabindex="0"
+        aria-label="Slide to complete this mission"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        aria-valuenow="0"
+      >
+        <span class="slide-fill" aria-hidden="true"></span>
+        <span class="slide-label" id="slideLabel" aria-hidden="true">slide to complete</span>
+        <span class="slide-handle" id="slideHandle" aria-hidden="true">
+          <svg class="slide-icon slide-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="5" y="10.5" width="14" height="9.5" rx="2.6" />
+            <path d="M8.4 10.5V8a3.6 3.6 0 0 1 7.2 0v2.5" />
+          </svg>
+          <svg class="slide-icon slide-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h13M13 6.5l5.5 5.5-5.5 5.5" />
+          </svg>
+        </span>
+      </div>
+    </section>
   </div>
 
   <noscript>
