@@ -143,6 +143,7 @@
   var newRecurring = false;
   var toastTimer = 0;
   var audioCtx = null;
+  var logDayPick = {};
 
   var focus = {
     open: false,
@@ -306,7 +307,7 @@
       v: 3,
       view: 'today',
       tasks: seedTasks(),
-      history: {},
+      days: {},
       challenges: seedChallenges(),
       programs: seedPrograms(),
       focus: { sessions: 0, date: keyOf(new Date()), minutes: 25, seconds: 0 }
@@ -328,6 +329,24 @@
       createdAt: Number(raw.createdAt) || Date.now(),
       programId: typeof raw.programId === 'string' ? raw.programId : '',
       programItem: trimText(raw.programItem, MAX_TITLE)
+    };
+  }
+
+  /* A day keeps its own frozen copy of what was scheduled, so adding, editing
+     or deleting a task later can never rewrite a day that already happened. */
+  function normalizeDayItem(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    var title = trimText(raw.title, MAX_TITLE);
+    if (!title) return null;
+    return {
+      id: typeof raw.id === 'string' && raw.id ? raw.id : uid(),
+      title: title,
+      why: trimText(raw.why, MAX_WHY),
+      time: normalizeTime(raw.time),
+      recurring: !!raw.recurring,
+      programId: typeof raw.programId === 'string' ? raw.programId : '',
+      programItem: trimText(raw.programItem, MAX_TITLE),
+      programTitle: trimText(raw.programTitle, MAX_TITLE)
     };
   }
 
@@ -432,20 +451,6 @@
       tasks.push(task);
     });
 
-    var history = {};
-    if (raw.history && typeof raw.history === 'object') {
-      Object.keys(raw.history).forEach(function (key) {
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) return;
-        var list = raw.history[key];
-        if (!Array.isArray(list)) return;
-        var ids = [];
-        list.forEach(function (id) {
-          if (typeof id === 'string' && seen[id] && ids.indexOf(id) === -1) ids.push(id);
-        });
-        if (ids.length) history[key] = ids;
-      });
-    }
-
     var challenges = [];
     if (Array.isArray(raw.challenges)) {
       raw.challenges.forEach(function (item) {
@@ -477,6 +482,73 @@
       }
     });
 
+    var days = {};
+    if (raw.days && typeof raw.days === 'object') {
+      Object.keys(raw.days).forEach(function (key) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) return;
+        var record = raw.days[key];
+        if (!record || typeof record !== 'object' || !Array.isArray(record.items)) return;
+        var items = [];
+        var ids = {};
+        record.items.forEach(function (rawItem) {
+          var item = normalizeDayItem(rawItem);
+          if (!item) return;
+          if (ids[item.id]) item.id = uid();
+          ids[item.id] = true;
+          items.push(item);
+        });
+        var done = [];
+        if (Array.isArray(record.done)) {
+          record.done.forEach(function (id) {
+            if (typeof id === 'string' && ids[id] && done.indexOf(id) === -1) done.push(id);
+          });
+        }
+        days[key] = { items: items, done: done };
+      });
+    }
+
+    /* Older builds only stored the completed ids. Rebuild a best-effort
+       snapshot for each of those days from the tasks that existed then, so no
+       logged tick disappears in the upgrade. */
+    if (!Object.keys(days).length && raw.history && typeof raw.history === 'object') {
+      function coversThen(task, key) {
+        if (!task.programId) return true;
+        for (var i = 0; i < programs.length; i += 1) {
+          var pg = programs[i];
+          if (pg.id !== task.programId) continue;
+          if (!pg.startedAt) return false;
+          return key >= pg.startedAt && key <= shiftKey(pg.startedAt, pg.duration - 1);
+        }
+        return false;
+      }
+
+      Object.keys(raw.history).forEach(function (key) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) return;
+        var logged = raw.history[key];
+        if (!Array.isArray(logged) || !logged.length) return;
+        var end = fromKey(key).getTime() + 86399999;
+        var byId = {};
+        var items = [];
+        tasks.forEach(function (task) {
+          if (task.createdAt > end || !coversThen(task, key)) return;
+          var item = {
+            id: task.id,
+            title: task.title,
+            why: task.why,
+            time: task.time,
+            recurring: !!task.recurring,
+            programId: task.programId,
+            programItem: task.programItem,
+            programTitle: ''
+          };
+          byId[item.id] = true;
+          items.push(item);
+        });
+        var done = logged.filter(function (id) { return typeof id === 'string' && byId[id]; });
+        if (items.length) days[key] = { items: items, done: done };
+      });
+    }
+
     var focusRaw = raw.focus && typeof raw.focus === 'object' ? raw.focus : {};
     var minutes = Math.round(Number(focusRaw.minutes));
     var seconds = Math.round(Number(focusRaw.seconds));
@@ -494,7 +566,7 @@
       v: 3,
       view: raw.view === 'challenges' || raw.view === 'programs' ? raw.view : 'today',
       tasks: tasks,
-      history: history,
+      days: days,
       challenges: challenges,
       programs: programs,
       focus: {
@@ -537,19 +609,19 @@
     } catch (err) {
       return;
     }
-    var sameHistory = JSON.stringify(stored.history) === JSON.stringify(state.history);
+    var sameDays = JSON.stringify(stored.days) === JSON.stringify(state.days);
     var sameTasks = JSON.stringify(stored.tasks) === JSON.stringify(state.tasks);
-    if (sameHistory && sameTasks) return;
+    if (sameDays && sameTasks) return;
     state.tasks = stored.tasks;
-    state.history = stored.history;
+    state.days = stored.days;
     renderAll();
   }
 
   /* ------------------------------- progress ------------------------------ */
 
   function completionsFor(key) {
-    var list = state.history[key];
-    return Array.isArray(list) ? list : [];
+    var record = state.days[key];
+    return record && Array.isArray(record.done) ? record.done : [];
   }
 
   function isDone(id, key) {
@@ -576,8 +648,52 @@
     return programCoversDay(programById(task.programId), key);
   }
 
+  /* Freeze a task into a day's own record, naming its program now so a past
+     day still reads correctly after that program is deleted. */
+  function frozenTask(task) {
+    var p = task.programId ? programById(task.programId) : null;
+    return {
+      id: task.id,
+      title: task.title,
+      why: task.why,
+      time: task.time,
+      recurring: !!task.recurring,
+      programId: task.programId || '',
+      programItem: task.programItem || '',
+      programTitle: p ? p.title : (task.programTitle || '')
+    };
+  }
+
+  /* Today is the only day that follows live edits: its snapshot is rebuilt
+     from the task list on every render, while every past day stays sealed. */
+  function syncTodaySnapshot() {
+    var record = state.days[todayKey];
+    if (!record) record = state.days[todayKey] = { items: [], done: [] };
+
+    var ids = {};
+    var items = [];
+    state.tasks.forEach(function (task) {
+      if (!taskActiveOn(task, todayKey)) return;
+      ids[task.id] = true;
+      items.push(frozenTask(task));
+    });
+
+    if (JSON.stringify(record.items) !== JSON.stringify(items)) record.items = items;
+    /* A program that just ended leaves its items behind, not their ticks. */
+    record.done = (Array.isArray(record.done) ? record.done : []).filter(function (id) {
+      return ids[id];
+    });
+    return record;
+  }
+
+  function dayItems(key) {
+    if (key === todayKey) return syncTodaySnapshot().items;
+    var record = state.days[key];
+    return record && Array.isArray(record.items) ? record.items : [];
+  }
+
   function activeTasksOn(key) {
-    return state.tasks.filter(function (task) { return taskActiveOn(task, key); });
+    return dayItems(key);
   }
 
   function doneCount(key) {
@@ -629,16 +745,22 @@
 
   function toggleTask(id, dayKey) {
     var key = dayKey || selectedKey;
-    var list = completionsFor(key).slice();
+    var record = state.days[key];
+    if (!record && key === todayKey) record = syncTodaySnapshot();
+    if (!record) return;
+
+    /* Only a task that belongs to this day can be ticked on it. */
+    var onDay = record.items.some(function (item) { return item.id === id; });
+    if (!onDay) return;
+
+    var list = record.done.slice();
     var index = list.indexOf(id);
     var adding = index === -1;
 
     if (adding) list.push(id);
     else list.splice(index, 1);
 
-    if (list.length) state.history[key] = list;
-    else delete state.history[key];
-
+    record.done = list;
     save();
     renderAll(adding ? id : null);
 
@@ -695,6 +817,8 @@
       if (key <= todayKey && result.total) {
         label += ' — ' + (result.perfect ? 'perfect day' : result.won ? 'WIN' : 'LOSS') +
           ', ' + result.done + ' of ' + result.total;
+      } else if (key <= todayKey) {
+        label += ' — nothing scheduled';
       }
       btn.setAttribute('aria-label', label);
       btn.setAttribute('aria-pressed', key === selectedKey ? 'true' : 'false');
@@ -725,6 +849,8 @@
       total: total,
       done: done,
       pct: pct,
+      /* No items at all is not a failure: the day simply carries no score. */
+      empty: total === 0,
       won: total > 0 && pct >= WON_AT,
       perfect: total > 0 && done === total
     };
@@ -735,10 +861,13 @@
     var total = result.total;
     var done = result.done;
     var pct = result.pct;
-    var color = pct >= WON_AT ? '#34d399' : pct >= 34 ? '#fbbf24' : '#ff6b6b';
-    var glow = pct >= WON_AT
-      ? 'rgba(34, 197, 94, 0.24)'
-      : pct >= 34 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)';
+    var empty = result.empty;
+    var color = empty ? '#8d879b'
+      : pct >= WON_AT ? '#34d399' : pct >= 34 ? '#fbbf24' : '#ff6b6b';
+    var glow = empty ? 'rgba(141, 135, 155, 0.14)'
+      : pct >= WON_AT
+        ? 'rgba(34, 197, 94, 0.24)'
+        : pct >= 34 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)';
 
     els.progressDone.textContent = String(done);
     els.progressTotal.textContent = String(total);
@@ -759,29 +888,35 @@
 
     var won = result.won;
 
-    if (won) {
+    if (empty) {
+      els.scaleStatus.textContent = 'Nothing scheduled · neutral day';
+      els.scaleStatus.classList.remove('is-win');
+    } else if (won) {
       els.scaleStatus.textContent = 'Win zone · threshold cleared';
       els.scaleStatus.classList.add('is-win');
     } else {
-      var need = total ? Math.max(0, winTarget(total) - done) : 0;
-      els.scaleStatus.textContent = total
-        ? need + ' to win · ' + WON_AT + '% threshold'
-        : 'Win at ' + WON_AT + '%';
+      var need = Math.max(0, winTarget(total) - done);
+      els.scaleStatus.textContent = need + ' to win · ' + WON_AT + '% threshold';
       els.scaleStatus.classList.remove('is-win');
     }
 
-    els.progressVerdict.textContent = won ? 'WIN' : 'LOSS';
-    els.progressVerdict.dataset.state = won ? 'win' : 'loss';
+    /* An empty day is neither won nor lost, so it never wears the LOSS badge. */
+    els.progressVerdict.textContent = empty ? 'CLEAR' : won ? 'WIN' : 'LOSS';
+    els.progressVerdict.dataset.state = empty ? 'clear' : won ? 'win' : 'loss';
     els.progressVerdict.setAttribute(
       'aria-label',
-      'Day status: ' + (won ? 'WIN' : 'LOSS') + ' — ' + done + ' of ' + total +
-        ' tasks done, ' + WON_AT + '% needed to win'
+      empty
+        ? 'Day status: nothing scheduled'
+        : 'Day status: ' + (won ? 'WIN' : 'LOSS') + ' — ' + done + ' of ' + total +
+            ' tasks done, ' + WON_AT + '% needed to win'
     );
 
     if (selectedKey !== todayKey) {
-      els.topMeta.textContent = 'Reviewing an earlier day.';
-    } else if (!total) {
-      els.topMeta.textContent = 'Add tasks and set the standard.';
+      els.topMeta.textContent = total
+        ? 'Reviewing an earlier day.'
+        : 'Nothing was scheduled on this day.';
+    } else if (empty) {
+      els.topMeta.textContent = 'Nothing scheduled. Add a task when you are ready.';
     } else if (done === total) {
       els.topMeta.textContent = 'Perfect day. Every box closed.';
     } else {
@@ -800,12 +935,17 @@
   function buildCard(task, flash) {
     var done = isDone(task.id, selectedKey);
     var program = programOf(task);
+    /* A frozen past day can name a program that has since been deleted. */
+    var programTitle = program ? program.title : (task.programTitle || '');
+    var isProgram = !!task.programId;
+    /* Past days are a record: they can be ticked, never edited or deleted. */
+    var editable = selectedKey === todayKey;
 
     var li = document.createElement('li');
     li.className = 'task-card';
     li.dataset.id = task.id;
     if (done) li.classList.add('is-done');
-    if (program) li.classList.add('is-program');
+    if (isProgram) li.classList.add('is-program');
     if (flash && flash === task.id) li.classList.add('just-done');
 
     var check = document.createElement('button');
@@ -822,7 +962,7 @@
     /* A program task keeps its structure: it is checked off here but never
        opened as a standalone ad-hoc task. */
     var body;
-    if (program) {
+    if (isProgram || !editable) {
       body = document.createElement('div');
       body.className = 'task-body is-locked';
     } else {
@@ -842,10 +982,10 @@
       top.appendChild(makeEl('span', 'task-time', task.time));
     }
 
-    if (program) {
-      var tag = makeEl('span', 'task-prog', '◆ ' + program.title);
+    if (isProgram && programTitle) {
+      var tag = makeEl('span', 'task-prog', '◆ ' + programTitle);
       tag.dir = 'auto';
-      tag.setAttribute('title', 'Part of the ' + program.title + ' program');
+      tag.setAttribute('title', 'Part of the ' + programTitle + ' program');
       top.appendChild(tag);
     }
 
@@ -875,7 +1015,7 @@
 
     /* Deleting a linked task alone would leave the program short an item;
        it leaves with the program instead. */
-    if (!program) {
+    if (!isProgram && editable) {
       var del = document.createElement('button');
       del.type = 'button';
       del.className = 'task-del';
@@ -905,10 +1045,12 @@
   }
 
   function renderLists(flash) {
-    /* Program items are not personal habits: they never enter Ideal Day or
-       Non-Negotiables, so starting a track cannot blur the user's own list. */
-    var plan = state.tasks.filter(function (t) { return !t.recurring && !t.programId; });
-    var habits = state.tasks.filter(function (t) { return t.recurring && !t.programId; });
+    /* Read the selected day's own snapshot: a past day shows what it held,
+       not whatever the list happens to contain today. Program items are not
+       personal habits, so they never enter Ideal Day or Non-Negotiables. */
+    var items = dayItems(selectedKey);
+    var plan = items.filter(function (t) { return !t.recurring && !t.programId; });
+    var habits = items.filter(function (t) { return t.recurring && !t.programId; });
 
     fillList(els.planList, plan, els.planEmpty, flash);
     fillList(els.nnList, habits, els.nnEmpty, flash);
@@ -923,18 +1065,28 @@
     els.nnCount.textContent = countLabel(habits, 'habit');
   }
 
-  /* Program items get their own Today block, grouped by track, instead of
-     being mixed into the user's Non-Negotiables. */
+  /* Program items get their own block, grouped by track, instead of being
+     mixed into the user's Non-Negotiables. Reading the selected day's record
+     means a past day still shows the routine it actually carried. */
   function renderProgramToday(flash) {
+    var items = dayItems(selectedKey);
     var groups = [];
-    if (selectedKey === todayKey) {
-      state.programs.forEach(function (p) {
-        if (!programCoversDay(p, todayKey)) return;
-        var tasks = state.tasks.filter(function (t) { return t.programId === p.id; });
-        if (!tasks.length) return;
-        groups.push({ program: p, tasks: tasks });
-      });
-    }
+    var byId = {};
+
+    items.forEach(function (item) {
+      if (!item.programId) return;
+      var group = byId[item.programId];
+      if (!group) {
+        group = byId[item.programId] = {
+          program: programById(item.programId),
+          title: item.programTitle || '',
+          tasks: []
+        };
+        if (!group.title && group.program) group.title = group.program.title;
+        groups.push(group);
+      }
+      group.tasks.push(item);
+    });
 
     els.progTodaySection.hidden = groups.length === 0;
     els.progTodayList.textContent = '';
@@ -943,7 +1095,7 @@
     var doneTotal = 0;
 
     groups.forEach(function (group) {
-      var st = programStatus(group.program);
+      var p = group.program;
       var done = group.tasks.filter(function (t) {
         return isDone(t.id, selectedKey);
       }).length;
@@ -952,9 +1104,11 @@
 
       /* Creation unshifts newest first; show the program's own item order. */
       var order = {};
-      group.program.items.forEach(function (title, i) {
-        order[String(title).toLowerCase()] = i;
-      });
+      if (p) {
+        p.items.forEach(function (title, i) {
+          order[String(title).toLowerCase()] = i;
+        });
+      }
       group.tasks.sort(function (a, b) {
         var ai = order[String(a.programItem || a.title).toLowerCase()];
         var bi = order[String(b.programItem || b.title).toLowerCase()];
@@ -965,11 +1119,13 @@
 
       var box = makeEl('div', 'prog-today-group');
       var head = makeEl('div', 'prog-today-head');
-      var name = makeEl('span', 'prog-today-name', '◆ ' + group.program.title);
+      var name = makeEl('span', 'prog-today-name', '◆ ' + (group.title || 'Program'));
       name.dir = 'auto';
-      var meta = makeEl('span', 'prog-today-meta',
-        'Day ' + st.day + ' of ' + group.program.duration + ' · ' +
-        done + ' of ' + group.tasks.length + ' done');
+      var dayNo = p && p.startedAt ? daysBetween(p.startedAt, selectedKey) + 1 : 0;
+      var metaText = dayNo > 0
+        ? 'Day ' + dayNo + ' of ' + p.duration + ' · ' + done + ' of ' + group.tasks.length + ' done'
+        : done + ' of ' + group.tasks.length + ' done';
+      var meta = makeEl('span', 'prog-today-meta', metaText);
       meta.dir = 'ltr';
       head.appendChild(name);
       head.appendChild(meta);
@@ -1237,6 +1393,131 @@
     return { kind: 'live', label: 'Day ' + day, day: day, pct: pct };
   }
 
+  /* Every elapsed day of the track, with each item's tick from that day's own
+     record. A day without a record counts as missed — nothing was logged. */
+  function programLogDays(p) {
+    var out = [];
+    if (!p.startedAt) return out;
+    var elapsed = Math.min(p.duration, daysBetween(p.startedAt, todayKey) + 1);
+
+    for (var i = 0; i < elapsed; i += 1) {
+      var key = shiftKey(p.startedAt, i);
+      var record = state.days[key];
+      var doneIds = record ? completionsFor(key) : [];
+
+      var items = p.items.map(function (title) {
+        var row = { title: title, done: false };
+        if (!record) return row;
+        var wanted = String(title).toLowerCase();
+        for (var j = 0; j < record.items.length; j += 1) {
+          var item = record.items[j];
+          if (item.programId !== p.id) continue;
+          if (String(item.programItem || item.title).toLowerCase() !== wanted) continue;
+          row.done = doneIds.indexOf(item.id) !== -1;
+          break;
+        }
+        return row;
+      });
+
+      var done = items.filter(function (item) { return item.done; }).length;
+      out.push({ day: i + 1, key: key, items: items, done: done, total: items.length });
+    }
+
+    return out;
+  }
+
+  function logStatus(entry) {
+    if (entry.done === entry.total) return 'done';
+    if (entry.done > 0) return 'partial';
+    return entry.key === todayKey ? 'open' : 'missed';
+  }
+
+  function logStatusLabel(entry) {
+    var status = logStatus(entry);
+    if (status === 'done') return entry.key === todayKey ? 'Today · cleared' : 'Cleared';
+    if (status === 'partial') return entry.done + ' of ' + entry.total;
+    if (status === 'open') return 'Today · open';
+    return 'Missed';
+  }
+
+  /* Day 1, Day 2, … in a compact rail: green cleared, amber partial, red
+     missed, gold today. Picking a day shows exactly which routine items were
+     ticked on it, straight from that day's snapshot. */
+  function buildProgramLog(p) {
+    var log = programLogDays(p);
+    if (!log.length) return null;
+
+    var cleared = log.filter(function (e) { return e.total && e.done === e.total; }).length;
+    var missed = log.filter(function (e) { return e.key < todayKey && e.done === 0; }).length;
+
+    var picked = logDayPick[p.id];
+    if (!picked || picked > log.length) picked = log.length;
+
+    var box = makeEl('div', 'prog-log');
+    var head = makeEl('div', 'prog-log-head');
+    head.appendChild(makeEl('p', 'track-check-label', 'Day by day'));
+    head.appendChild(makeEl('span', 'prog-log-tally',
+      cleared + ' of ' + log.length + ' cleared' + (missed ? ' · ' + missed + ' missed' : '')));
+    box.appendChild(head);
+
+    var rail = makeEl('div', 'prog-log-rail');
+    rail.setAttribute('role', 'group');
+    rail.setAttribute('aria-label', 'Day log for ' + p.title);
+    var tiles = [];
+    var panel = makeEl('div', 'prog-log-panel');
+
+    function paint(entry) {
+      tiles.forEach(function (tile) {
+        var on = Number(tile.dataset.day) === entry.day;
+        tile.classList.toggle('is-picked', on);
+        tile.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+      panel.textContent = '';
+      var panelHead = makeEl('div', 'prog-log-panel-head');
+      panelHead.appendChild(makeEl('span', 'prog-log-date',
+        'Day ' + entry.day + ' · ' + fromKey(entry.key).toLocaleDateString(undefined, {
+          weekday: 'short', month: 'short', day: 'numeric'
+        })));
+      panelHead.appendChild(makeEl('span', 'prog-log-state is-' + logStatus(entry),
+        logStatusLabel(entry)));
+      panel.appendChild(panelHead);
+
+      var list = makeEl('ul', 'prog-log-items');
+      entry.items.forEach(function (item) {
+        var li = makeEl('li', 'prog-log-item' + (item.done ? ' is-done' : ''));
+        var mark = makeEl('span', 'prog-log-mark', item.done ? '✓' : '–');
+        mark.setAttribute('aria-hidden', 'true');
+        var text = makeEl('span', 'prog-log-text', item.title);
+        text.dir = 'auto';
+        li.appendChild(mark);
+        li.appendChild(text);
+        list.appendChild(li);
+      });
+      panel.appendChild(list);
+    }
+
+    log.forEach(function (entry) {
+      var tile = makeEl('button', 'prog-log-day is-' + logStatus(entry),
+        String(entry.day));
+      tile.type = 'button';
+      tile.dataset.day = String(entry.day);
+      tile.setAttribute('aria-label',
+        'Day ' + entry.day + ', ' + logStatusLabel(entry) + ', ' +
+        entry.done + ' of ' + entry.total + ' items done');
+      tile.addEventListener('click', function () {
+        logDayPick[p.id] = entry.day;
+        paint(entry);
+      });
+      tiles.push(tile);
+      rail.appendChild(tile);
+    });
+
+    box.appendChild(rail);
+    box.appendChild(panel);
+    paint(log[picked - 1]);
+    return box;
+  }
+
   /* The task that carries a program item. Matched on the item title the task
      was created with, so the link survives even if the title is re-rendered. */
   function linkedTaskFor(p, title) {
@@ -1294,6 +1575,16 @@
     });
 
     p.startedAt = todayKey;
+
+    /* A fresh run opens on day 1 with nothing carried over, even when the
+       previous run ended today and left ticks on the same date. */
+    var record = syncTodaySnapshot();
+    var programTaskIds = {};
+    state.tasks.forEach(function (task) {
+      if (task.programId === p.id) programTaskIds[task.id] = true;
+    });
+    record.done = record.done.filter(function (id) { return !programTaskIds[id]; });
+
     save();
     renderAll();
 
@@ -1505,6 +1796,9 @@
       plan.appendChild(steps);
       card.appendChild(plan);
     }
+
+    var log = buildProgramLog(p);
+    if (log) card.appendChild(log);
 
     /* A live program has no one-tap reset: restarting it would wipe the day
        count, so the only action left is the managed delete. */
@@ -2039,11 +2333,11 @@
   var CONFIRM_COPY = {
     task: {
       title: 'Delete this task?',
-      note: 'It leaves today’s plan and its streak history is cleared.'
+      note: 'It leaves today’s plan; earlier days keep their own record.'
     },
     habit: {
       title: 'Delete this non-negotiable?',
-      note: 'Its daily ticks and streak are cleared with it.'
+      note: 'It leaves today’s list; earlier days keep their own ticks.'
     },
     challenge: {
       title: 'Delete this challenge?',
@@ -2132,17 +2426,18 @@
     if (run) run();
   }
 
-  /* Drop tasks and every completion that pointed at them, so no stale ids
-     keep a day's count or a streak alive after the task is gone. */
+  /* Remove a task today without rewriting history: the day it is deleted on
+     drops it, while earlier days keep the copy and ticks they were lived with. */
   function purgeTasks(ids) {
     if (!ids.length) return;
     state.tasks = state.tasks.filter(function (t) { return ids.indexOf(t.id) === -1; });
-    Object.keys(state.history).forEach(function (key) {
-      var list = state.history[key].filter(function (taskId) {
-        return ids.indexOf(taskId) === -1;
-      });
-      if (list.length) state.history[key] = list;
-      else delete state.history[key];
+    var record = state.days[todayKey];
+    if (!record) return;
+    record.items = (record.items || []).filter(function (item) {
+      return ids.indexOf(item.id) === -1;
+    });
+    record.done = (record.done || []).filter(function (id) {
+      return ids.indexOf(id) === -1;
     });
   }
 
@@ -2462,6 +2757,8 @@
     if (followingToday) selectedKey = key;
     ensureFocusDay();
     renderAll();
+    /* The new day's snapshot is born empty, so every routine starts fresh. */
+    save();
   }
 
   window.setInterval(rollover, 60000);
