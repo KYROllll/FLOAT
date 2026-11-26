@@ -29,6 +29,21 @@
 <body>
   <a class="skip" href="#plan">Skip to today's plan</a>
 
+  <!-- Reload veil: covers the first paint (and every reload) with the AURA
+       surface instead of a blank/grey frame. Fades itself out. -->
+  <div class="boot" id="boot" aria-hidden="true">
+    <div class="boot-inner">
+      <img class="boot-mark" src="./assets/aura-mark.png" alt="" width="720" height="150" />
+      <span class="aura-spinner"></span>
+    </div>
+  </div>
+
+  <!-- AURA's own pull-to-refresh, in place of the browser's grey sheet. -->
+  <div class="ptr" id="ptr" aria-hidden="true">
+    <span class="aura-spinner ptr-spinner"></span>
+    <span class="ptr-text" id="ptrText">Pull to refresh</span>
+  </div>
+
   <!-- Slow indigo + gold light behind the UI. Purely decorative. -->
   <div class="ambient" aria-hidden="true">
     <span class="aura-a"></span>
@@ -295,7 +310,7 @@
     <div class="focus-aura" aria-hidden="true"></div>
 
     <header class="focus-top">
-      <span class="focus-brand">AURA <span>//</span> SUPERFOCUS</span>
+      <img class="focus-mark" src="./assets/aura-mark.png" alt="AURA Superfocus" width="720" height="150" />
       <button class="focus-exit" id="focusExit" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
           <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" />
@@ -332,8 +347,76 @@
 
     <footer class="focus-foot">
       <span id="focusFootSessions">0 sessions today</span>
-      <button class="focus-mini" id="focusChange" type="button">Change length</button>
+      <button
+        class="focus-mini"
+        id="focusChange"
+        type="button"
+        aria-expanded="false"
+        aria-controls="focusLength"
+      >Change length</button>
     </footer>
+
+    <!-- Exact focus length: quick presets plus minute/second steppers. -->
+    <section class="focus-length" id="focusLength" hidden aria-label="Session length">
+      <div class="length-head">
+        <p class="length-title">Session length</p>
+        <button class="length-close" id="lengthClose" type="button" aria-label="Close length picker">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
+            <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="length-presets" role="group" aria-label="Quick lengths">
+        <button type="button" data-preset="15" aria-pressed="false">15m</button>
+        <button type="button" data-preset="25" aria-pressed="false">25m</button>
+        <button type="button" data-preset="45" aria-pressed="false">45m</button>
+        <button type="button" data-preset="60" aria-pressed="false">60m</button>
+      </div>
+
+      <div class="length-row">
+        <span class="length-label" id="lengthMinLabel">Minutes</span>
+        <div class="stepper">
+          <button type="button" data-step="min-down" aria-label="Fewer minutes">−</button>
+          <input
+            id="lengthMinutes"
+            type="number"
+            inputmode="numeric"
+            min="0"
+            max="600"
+            step="1"
+            value="25"
+            aria-labelledby="lengthMinLabel"
+          />
+          <button type="button" data-step="min-up" aria-label="More minutes">+</button>
+        </div>
+      </div>
+
+      <div class="length-row">
+        <span class="length-label" id="lengthSecLabel">Seconds</span>
+        <div class="stepper">
+          <button type="button" data-step="sec-down" aria-label="Fewer seconds">−</button>
+          <input
+            id="lengthSeconds"
+            type="number"
+            inputmode="numeric"
+            min="0"
+            max="59"
+            step="1"
+            value="0"
+            aria-labelledby="lengthSecLabel"
+          />
+          <button type="button" data-step="sec-up" aria-label="More seconds">+</button>
+        </div>
+      </div>
+
+      <p class="length-error" id="lengthError" role="alert" hidden>Set at least 10 seconds.</p>
+
+      <div class="length-actions">
+        <button class="focus-btn focus-btn-ghost" id="lengthCancel" type="button">Cancel</button>
+        <button class="focus-btn focus-btn-main" id="lengthSet" type="button">Set timer</button>
+      </div>
+    </section>
   </div>
 
   <!-- ============================ EDIT SHEET ============================ -->

@@ -16,7 +16,8 @@
   var MAX_DAYS = 90;
   var RING_LEN = 552.92;
   var WON_AT = 67;
-  var FOCUS_LENGTHS = [15, 25, 45, 60];
+  var MAX_FOCUS_MINUTES = 600;
+  var MIN_FOCUS_TOTAL = 10;
   var ACCENTS = [
     ['#8b5cf6', '#f5c94e'],
     ['#f5c94e', '#ff9f1c'],
@@ -86,6 +87,16 @@
     focusReset: document.getElementById('focusReset'),
     focusChange: document.getElementById('focusChange'),
     focusFootSessions: document.getElementById('focusFootSessions'),
+    focusLength: document.getElementById('focusLength'),
+    lengthClose: document.getElementById('lengthClose'),
+    lengthCancel: document.getElementById('lengthCancel'),
+    lengthSet: document.getElementById('lengthSet'),
+    lengthMinutes: document.getElementById('lengthMinutes'),
+    lengthSeconds: document.getElementById('lengthSeconds'),
+    lengthError: document.getElementById('lengthError'),
+    boot: document.getElementById('boot'),
+    ptr: document.getElementById('ptr'),
+    ptrText: document.getElementById('ptrText'),
     sheet: document.getElementById('sheet'),
     sheetVeil: document.getElementById('sheetVeil'),
     sheetPanel: document.getElementById('sheetPanel'),
@@ -125,8 +136,8 @@
   var focus = {
     open: false,
     running: false,
-    total: (state.focus.minutes || 25) * 60,
-    left: (state.focus.minutes || 25) * 60,
+    total: focusDuration(),
+    left: focusDuration(),
     endAt: 0,
     timer: 0
   };
@@ -277,7 +288,7 @@
       history: {},
       challenges: seedChallenges(),
       programs: seedPrograms(),
-      focus: { sessions: 0, date: keyOf(new Date()), minutes: 25 }
+      focus: { sessions: 0, date: keyOf(new Date()), minutes: 25, seconds: 0 }
     };
   }
 
@@ -433,8 +444,17 @@
     }
 
     var focusRaw = raw.focus && typeof raw.focus === 'object' ? raw.focus : {};
-    var minutes = Number(focusRaw.minutes);
-    if (FOCUS_LENGTHS.indexOf(minutes) === -1) minutes = 25;
+    var minutes = Math.round(Number(focusRaw.minutes));
+    var seconds = Math.round(Number(focusRaw.seconds));
+    if (!isFinite(minutes)) minutes = 25;
+    if (!isFinite(seconds)) seconds = 0;
+    minutes = Math.max(0, Math.min(MAX_FOCUS_MINUTES, minutes));
+    seconds = Math.max(0, Math.min(59, seconds));
+    /* An exact length is allowed; a zero (or nonsense) one is not. */
+    if (minutes * 60 + seconds < MIN_FOCUS_TOTAL) {
+      minutes = 25;
+      seconds = 0;
+    }
 
     return {
       v: 3,
@@ -446,7 +466,8 @@
       focus: {
         sessions: Math.max(0, Math.min(999, Number(focusRaw.sessions) || 0)),
         date: /^\d{4}-\d{2}-\d{2}$/.test(focusRaw.date) ? focusRaw.date : keyOf(new Date()),
-        minutes: minutes
+        minutes: minutes,
+        seconds: seconds
       }
     };
   }
@@ -1176,12 +1197,29 @@
     save();
   }
 
+  /* The timer supports an exact length, not just the four presets: minutes
+     0–600 plus 0–59 seconds, stored alongside the legacy minutes field. */
+  function focusDuration() {
+    var total = (state.focus.minutes * 60) + (state.focus.seconds || 0);
+    return total >= MIN_FOCUS_TOTAL ? total : 25 * 60;
+  }
+
+  function durationLabel(long) {
+    var minutes = state.focus.minutes;
+    var seconds = state.focus.seconds || 0;
+    if (!seconds) {
+      return long ? minutes + ' minute' + (minutes === 1 ? '' : 's') : minutes + ' min';
+    }
+    if (!minutes) return seconds + ' sec';
+    return minutes + ' min ' + seconds + ' sec';
+  }
+
   function updateFocusCard() {
-    els.focusSub.textContent = state.focus.minutes +
-      ' minutes of unbroken work · then a clean break.';
+    els.focusSub.textContent = durationLabel(false) +
+      ' of unbroken work · then a clean break.';
     els.focusSessions.textContent = sessionsLabel();
     els.focusFootSessions.textContent = sessionsLabel();
-    els.focusMinutesLabel.textContent = state.focus.minutes + ' min';
+    els.focusMinutesLabel.textContent = durationLabel(false);
   }
 
   function focusGoalText() {
@@ -1212,10 +1250,11 @@
       (!focus.running && focus.left <= 0 ? ' is-done' : '');
     els.focusSessions.textContent = sessionsLabel();
     els.focusFootSessions.textContent = sessionsLabel();
-    els.focusMinutesLabel.textContent = state.focus.minutes + ' min';
+    els.focusMinutesLabel.textContent = durationLabel(false);
   }
 
   function openFocus() {
+    closeLengthPanel();
     focus.open = true;
     els.focusView.hidden = false;
     document.body.classList.add('focus-open');
@@ -1229,6 +1268,7 @@
 
   function exitFocus() {
     pauseFocus();
+    closeLengthPanel();
     focus.open = false;
     els.focusView.hidden = true;
     document.body.classList.remove('focus-open');
@@ -1262,7 +1302,7 @@
     focus.timer = 0;
     focus.running = false;
     focus.endAt = 0;
-    focus.total = state.focus.minutes * 60;
+    focus.total = focusDuration();
     focus.left = focus.total;
     updateFocus();
   }
@@ -1291,26 +1331,98 @@
     chime();
     window.setTimeout(chime, 420);
     vibrate(22);
-    toast('Session complete — ' + state.focus.minutes + ' minutes banked');
+    toast('Session complete — ' + durationLabel(true) + ' banked');
     updateFocus();
     els.focusState.textContent = 'Session complete';
     els.focusState.className = 'focus-state is-done';
   }
 
-  function cycleFocusLength() {
-    var index = FOCUS_LENGTHS.indexOf(state.focus.minutes);
-    var next = FOCUS_LENGTHS[(index + 1) % FOCUS_LENGTHS.length];
-    state.focus.minutes = next;
-    save();
-    focus.total = next * 60;
-    focus.left = focus.total;
-    focus.running = false;
+  function stopFocusClock() {
     window.clearInterval(focus.timer);
     focus.timer = 0;
+    focus.running = false;
     focus.endAt = 0;
+  }
+
+  function clampInt(value, min, max, fallback) {
+    var n = Math.round(Number(value));
+    if (!isFinite(n)) return fallback;
+    return Math.max(min, Math.min(max, n));
+  }
+
+  function readLengthInputs() {
+    return {
+      minutes: clampInt(els.lengthMinutes.value, 0, MAX_FOCUS_MINUTES, state.focus.minutes),
+      seconds: clampInt(els.lengthSeconds.value, 0, 59, state.focus.seconds)
+    };
+  }
+
+  function syncPresetMarks(picked) {
+    var minutes = picked ? picked.minutes : state.focus.minutes;
+    var seconds = picked ? picked.seconds : (state.focus.seconds || 0);
+    var presets = els.focusLength.querySelectorAll('[data-preset]');
+    Array.prototype.forEach.call(presets, function (btn) {
+      var on = !seconds && Number(btn.dataset.preset) === minutes;
+      btn.classList.toggle('is-current', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
+  function openLengthPanel() {
+    els.focusLength.hidden = false;
+    els.focusChange.setAttribute('aria-expanded', 'true');
+    els.lengthMinutes.value = String(state.focus.minutes);
+    els.lengthSeconds.value = String(state.focus.seconds);
+    els.lengthError.hidden = true;
+    syncPresetMarks();
+  }
+
+  function closeLengthPanel() {
+    if (els.focusLength.hidden) return;
+    els.focusLength.hidden = true;
+    els.focusChange.setAttribute('aria-expanded', 'false');
+  }
+
+  function applyFocusLength(minutes, seconds) {
+    stopFocusClock();
+    state.focus.minutes = minutes;
+    state.focus.seconds = seconds;
+    save();
+    focus.total = focusDuration();
+    focus.left = focus.total;
     updateFocus();
     updateFocusCard();
-    toast(next + ' minute session ready');
+    closeLengthPanel();
+    toast(durationLabel(false) + ' session ready');
+  }
+
+  function commitLengthInputs() {
+    var picked = readLengthInputs();
+    if (picked.minutes * 60 + picked.seconds < MIN_FOCUS_TOTAL) {
+      els.lengthError.hidden = false;
+      return;
+    }
+    els.lengthError.hidden = true;
+    applyFocusLength(picked.minutes, picked.seconds);
+  }
+
+  function stepLength(step) {
+    var picked = readLengthInputs();
+    if (step === 'min-up') picked.minutes = clampInt(picked.minutes + 1, 0, MAX_FOCUS_MINUTES, picked.minutes);
+    else if (step === 'min-down') picked.minutes = clampInt(picked.minutes - 1, 0, MAX_FOCUS_MINUTES, picked.minutes);
+    else if (step === 'sec-up') picked.seconds = clampInt(picked.seconds + 5, 0, 59, picked.seconds);
+    else if (step === 'sec-down') picked.seconds = clampInt(picked.seconds - 5, 0, 59, picked.seconds);
+    else return;
+
+    els.lengthMinutes.value = String(picked.minutes);
+    els.lengthSeconds.value = String(picked.seconds);
+    els.lengthError.hidden = true;
+    syncPresetMarks(picked);
+  }
+
+  function onLengthInput() {
+    els.lengthError.hidden = true;
+    syncPresetMarks(readLengthInputs());
   }
 
   /* -------------------------------- render all ---------------------------- */
@@ -1666,11 +1778,32 @@
   });
 
   els.focusReset.addEventListener('click', resetFocus);
-  els.focusChange.addEventListener('click', cycleFocusLength);
+
+  els.focusChange.addEventListener('click', function () {
+    if (els.focusLength.hidden) openLengthPanel();
+    else closeLengthPanel();
+  });
+
+  els.lengthClose.addEventListener('click', closeLengthPanel);
+  els.lengthCancel.addEventListener('click', closeLengthPanel);
+  els.lengthSet.addEventListener('click', commitLengthInputs);
+  els.lengthMinutes.addEventListener('input', onLengthInput);
+  els.lengthSeconds.addEventListener('input', onLengthInput);
+
+  els.focusLength.addEventListener('click', function (event) {
+    var preset = event.target.closest('[data-preset]');
+    if (preset) {
+      applyFocusLength(Number(preset.dataset.preset), 0);
+      return;
+    }
+    var step = event.target.closest('[data-step]');
+    if (step) stepLength(step.dataset.step);
+  });
 
   document.addEventListener('keydown', function (event) {
     if (event.key !== 'Escape') return;
     if (!els.sheet.hidden) closeSheet();
+    else if (!els.focusLength.hidden) closeLengthPanel();
     else if (focus.open) exitFocus();
   });
 
@@ -1685,9 +1818,99 @@
      from storage so the day's ticks are never lost on the way back. */
   window.addEventListener('pageshow', function (event) {
     if (!event.persisted) return;
+    resetPull();
     syncFromStorage();
     renderAll();
   });
+
+  /* ------------------------ pull to refresh + veil ------------------------ */
+
+  /* There is no native pull-to-refresh here (overscroll is contained), so this
+     replaces the grey sheet with AURA's own: dark glass, indigo/gold glow and a
+     gold → violet spinner. Releasing past the trigger reloads the shell. */
+
+  var PULL_MAX = 76;
+  var PULL_TRIGGER = 52;
+  var PULL_SLIDE = 64;
+  var pull = { startY: 0, active: false, armed: false, loading: false };
+
+  function setPull(distance) {
+    if (!els.ptr) return;
+    var d = Math.max(0, Math.min(PULL_MAX, distance));
+    els.ptr.style.setProperty('--ptr', Math.min(d, PULL_SLIDE) + 'px');
+    els.ptr.style.setProperty('--ptr-o', (d / PULL_MAX).toFixed(3));
+    pull.armed = d >= PULL_TRIGGER;
+    els.ptr.classList.toggle('is-armed', pull.armed);
+    if (!pull.loading) els.ptrText.textContent = pull.armed ? 'Release to refresh' : 'Pull to refresh';
+  }
+
+  function canPull() {
+    if (pull.loading || focus.open || !els.sheet.hidden) return false;
+    return (window.scrollY || document.documentElement.scrollTop || 0) <= 0;
+  }
+
+  function resetPull() {
+    pull.active = false;
+    pull.loading = false;
+    if (!els.ptr) return;
+    els.ptr.classList.remove('is-loading', 'is-armed');
+    setPull(0);
+  }
+
+  function beginReload() {
+    if (!els.ptr) {
+      window.location.reload();
+      return;
+    }
+    setPull(PULL_MAX);
+    pull.loading = true;
+    els.ptr.classList.add('is-loading');
+    els.ptrText.textContent = 'Refreshing';
+    window.setTimeout(function () {
+      window.location.reload();
+    }, 420);
+  }
+
+  document.addEventListener('touchstart', function (event) {
+    if (event.touches.length !== 1 || !canPull()) return;
+    pull.startY = event.touches[0].clientY;
+    pull.active = true;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', function (event) {
+    if (!pull.active) return;
+    var dy = event.touches[0].clientY - pull.startY;
+    if (dy <= 0) {
+      setPull(0);
+      if (dy < -8) pull.active = false;
+      return;
+    }
+    if (!canPull()) {
+      pull.active = false;
+      setPull(0);
+      return;
+    }
+    if (event.cancelable) event.preventDefault();
+    setPull(dy * 0.55);
+  }, { passive: false });
+
+  document.addEventListener('touchend', function () {
+    if (!pull.active) return;
+    pull.active = false;
+    if (pull.armed && !pull.loading) beginReload();
+    else if (!pull.loading) setPull(0);
+  }, { passive: true });
+
+  document.addEventListener('touchcancel', function () {
+    pull.active = false;
+    if (!pull.loading) setPull(0);
+  }, { passive: true });
+
+  if (els.boot) {
+    var dismissBoot = function () { els.boot.classList.add('is-gone'); };
+    window.addEventListener('load', dismissBoot);
+    window.setTimeout(dismissBoot, 900);
+  }
 
   /* --------------------------------- boot -------------------------------- */
 

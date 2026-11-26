@@ -58,6 +58,10 @@ html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
   touch-action: manipulation;
+  /* The rubber-band area past the top/bottom of the page paints this, never
+     a plain white or grey sheet. */
+  background-color: #08070b;
+  overscroll-behavior-y: none;
 }
 
 body {
@@ -84,6 +88,137 @@ body::before {
   pointer-events: none;
   background: radial-gradient(120% 100% at 50% 40%, transparent 58%, rgba(0, 0, 0, 0.42) 100%);
   z-index: 0;
+}
+
+/* ============================ RELOAD VEIL =============================== */
+
+/* Covers the first paint of every load (including a reload) so the app never
+   flashes an empty frame. Fades out on its own even without JS. */
+
+.boot {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  background:
+    radial-gradient(62% 44% at 50% 32%, rgba(124, 74, 214, 0.3) 0%, transparent 70%),
+    radial-gradient(58% 36% at 50% 80%, rgba(245, 201, 78, 0.13) 0%, transparent 72%),
+    #08070b;
+  animation: bootOut 0.45s var(--ease) 0.34s forwards;
+}
+
+.boot.is-gone {
+  display: none;
+}
+
+@keyframes bootOut {
+  to { opacity: 0; visibility: hidden; }
+}
+
+.boot-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.boot-mark {
+  width: min(46vw, 168px);
+  height: auto;
+  opacity: 0.94;
+  filter: drop-shadow(0 0 22px rgba(245, 201, 78, 0.22));
+}
+
+.boot .aura-spinner {
+  width: 22px;
+  height: 22px;
+}
+
+/* Shared gold → violet spinner used by the veil and pull-to-refresh. */
+.aura-spinner {
+  display: block;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0turn,
+    rgba(245, 201, 78, 0) 0deg 42deg,
+    rgba(245, 201, 78, 0.85) 108deg,
+    #f5c94e 170deg,
+    #ffe49a 214deg,
+    #8b5cf6 296deg,
+    rgba(139, 92, 246, 0) 352deg 360deg
+  );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px));
+  filter: drop-shadow(0 0 8px rgba(245, 201, 78, 0.45));
+  animation: auraSpin 0.9s linear infinite;
+}
+
+@keyframes auraSpin {
+  to { transform: rotate(1turn); }
+}
+
+/* =========================== PULL TO REFRESH ============================ */
+
+/* AURA's replacement for the browser's unstyled grey pull sheet: dark glass,
+   indigo/gold glow and a gold → violet spinner. Positioned by --ptr / --ptr-o. */
+
+/* Anchored below the notch (safe-area top), then slid out of view. */
+.ptr {
+  position: fixed;
+  top: var(--safe-t);
+  left: 0;
+  right: 0;
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 64px;
+  padding: 0 16px;
+  transform: translate3d(0, calc(-64px + var(--ptr, 0px)), 0);
+  opacity: var(--ptr-o, 0);
+  pointer-events: none;
+  will-change: transform, opacity;
+  background:
+    radial-gradient(70% 130% at 50% 0%, rgba(124, 74, 214, 0.34) 0%, transparent 72%),
+    linear-gradient(
+      180deg,
+      rgba(8, 7, 11, 0.98) 0%,
+      rgba(8, 7, 11, 0.88) 72%,
+      rgba(8, 7, 11, 0) 100%
+    );
+}
+
+.ptr-spinner {
+  width: 22px;
+  height: 22px;
+  transform: rotate(calc(var(--ptr-o, 0) * 260deg));
+  animation: none;
+}
+
+.ptr.is-loading .ptr-spinner {
+  animation: auraSpin 0.9s linear infinite;
+}
+
+.ptr-text {
+  font-size: 10.5px;
+  font-weight: 750;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-shadow: 0 0 14px rgba(245, 201, 78, 0.25);
+}
+
+.ptr.is-armed .ptr-text {
+  color: var(--gold-bright);
+}
+
+.ptr.is-loading .ptr-text {
+  color: var(--gold);
 }
 
 /* ============================ AMBIENT AURA ============================== */
@@ -1784,15 +1919,11 @@ body.focus-open {
   gap: 12px;
 }
 
-.focus-brand {
-  font-size: 10px;
-  font-weight: 750;
-  letter-spacing: 0.16em;
-  color: #d7cffb;
-}
-
-.focus-brand span {
-  color: var(--gold);
+.focus-mark {
+  width: min(44vw, 136px);
+  height: auto;
+  opacity: 0.94;
+  filter: drop-shadow(0 0 14px rgba(245, 201, 78, 0.22));
 }
 
 .focus-exit {
@@ -1972,6 +2103,7 @@ body.focus-open {
 }
 
 .focus-mini {
+  min-height: 34px;
   padding: 7px 11px;
   border-radius: 999px;
   border: 1px solid rgba(168, 162, 180, 0.18);
@@ -1979,6 +2111,170 @@ body.focus-open {
   color: var(--muted);
   font-size: 10.5px;
   font-weight: 600;
+}
+
+/* Exact session length — a dark glass panel over the focus view. */
+
+.focus-length {
+  position: absolute;
+  left: max(16px, var(--safe-l));
+  right: max(16px, var(--safe-r));
+  bottom: calc(var(--safe-b) + 60px);
+  z-index: 2;
+  max-height: calc(100% - 120px);
+  overflow-y: auto;
+  padding: 16px;
+  border-radius: 22px;
+  border: 1px solid rgba(245, 201, 78, 0.22);
+  background:
+    radial-gradient(90% 70% at 50% 0%, rgba(124, 74, 214, 0.26) 0%, transparent 70%),
+    linear-gradient(180deg, rgba(20, 18, 25, 0.98) 0%, rgba(8, 7, 11, 0.99) 100%);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.72),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  animation: lengthIn 0.22s var(--ease);
+}
+
+.focus-length[hidden] {
+  display: none;
+}
+
+@keyframes lengthIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.length-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.length-title {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.length-close {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid rgba(168, 162, 180, 0.18);
+  background: transparent;
+  color: var(--muted);
+}
+
+.length-close svg {
+  width: 13px;
+  height: 13px;
+}
+
+.length-presets {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 13px;
+}
+
+.length-presets button {
+  min-height: 42px;
+  border-radius: 13px;
+  border: 1px solid rgba(245, 201, 78, 0.24);
+  background: rgba(245, 201, 78, 0.07);
+  color: #ffe9b0;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.length-presets button.is-current {
+  border-color: transparent;
+  background: linear-gradient(180deg, var(--gold-bright), var(--gold));
+  color: var(--gold-ink);
+  box-shadow: 0 8px 22px rgba(245, 201, 78, 0.22);
+}
+
+.length-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.length-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-dim);
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stepper button {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  border: 1px solid rgba(168, 162, 180, 0.2);
+  background: rgba(168, 162, 180, 0.07);
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.stepper input {
+  width: 68px;
+  height: 38px;
+  padding: 0 4px;
+  border-radius: 11px;
+  border: 1px solid rgba(245, 201, 78, 0.26);
+  background: rgba(8, 7, 11, 0.82);
+  color: var(--gold-bright);
+  font-size: 16px;
+  font-weight: 700;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.stepper input::-webkit-outer-spin-button,
+.stepper input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.length-error {
+  margin: 10px 0 0;
+  font-size: 11px;
+  color: #ff9b9b;
+}
+
+.length-error[hidden] {
+  display: none;
+}
+
+.length-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.length-actions .focus-btn {
+  min-height: 46px;
+  border-radius: 14px;
+  font-size: 13.5px;
 }
 
 /* =============================== TAB BAR ================================ */
@@ -1996,6 +2292,8 @@ body.focus-open {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 3px;
   padding: 6px 5px;
+  /* Nothing in the bar may clip a label's descender. */
+  overflow: visible;
   border-radius: 23px;
   background: rgba(12, 11, 16, 0.86);
   border: 1px solid rgba(255, 255, 255, 0.16);
@@ -2015,7 +2313,8 @@ body.focus-open .tabbar {
   align-items: center;
   min-width: 0;
   gap: 4px;
-  padding: 8px 2px 9px;
+  padding: 7px 2px 10px;
+  overflow: visible;
   border: 0;
   border-radius: 17px;
   background: transparent;
@@ -2040,15 +2339,18 @@ body.focus-open .tabbar {
 }
 
 /* Room for the descenders: a tight line box put the tail of the g right on the
-   pill's edge, which read as a clipped letter. */
+   pill's edge, which read as a clipped letter. The line box is 1.5 × 10px, plus
+   its own padding, plus 10px of pill padding below it — no overflow rule in the
+   chain clips it, at any viewport width. */
 .tab-label {
   display: block;
   max-width: 100%;
+  overflow: visible;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0;
-  line-height: 1.35;
-  padding-bottom: 1px;
+  line-height: 1.5;
+  padding-bottom: 2px;
   white-space: nowrap;
 }
 
