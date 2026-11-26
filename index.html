@@ -1,203 +1,246 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="auto">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>FLOAT</title>
-  <meta name="description" content="A quiet canvas for the things you mean to do. Tap a floating mission to focus, then slide to let it go." />
-  <meta name="theme-color" content="#07080a" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+  />
+  <title>ARENA // DAILY OS</title>
+  <meta
+    name="description"
+    content="ARENA is a daily discipline OS: your plan, your non-negotiables, your streaks — in one calm dark screen."
+  />
+  <meta name="theme-color" content="#070b14" />
   <meta name="color-scheme" content="dark" />
 
   <!-- iOS standalone / PWA -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="FLOAT" />
+  <meta name="apple-mobile-web-app-title" content="ARENA" />
+  <meta name="format-detection" content="telephone=no" />
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" href="./icons/favicon.svg" type="image/svg+xml" />
   <link rel="icon" href="./icons/icon-192.png" sizes="192x192" type="image/png" />
-
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
-  <!-- ============================ CANVAS ============================ -->
-  <main class="canvas" id="canvas" aria-label="Floating mission canvas">
-    <svg class="links" id="links" aria-hidden="true"></svg>
+  <a class="skip" href="#plan">Skip to today's plan</a>
 
-    <div class="missions" id="missions"></div>
+  <div class="app" id="app">
+    <!-- ============================== HEADER ============================= -->
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+            <path d="M10.5 22.5 16 9.5l5.5 13" />
+            <path d="M12.8 18h6.4" />
+          </svg>
+        </span>
+        <div class="brand-text">
+          <h1>ARENA <span class="brand-slash">//</span> <span class="brand-daily">DAILY OS</span></h1>
+          <p class="top-meta" id="topMeta">Today’s standard, executed.</p>
+        </div>
+      </div>
 
-    <p class="empty" id="emptyState">a quiet canvas — tap <span>+</span> to float a mission</p>
-  </main>
+      <div class="perfect-pill" id="perfectPill" title="Consecutive perfect days">
+        <span class="perfect-flame" aria-hidden="true">🔥</span>
+        <b id="perfectCount">0</b>
+        <span class="perfect-label">perfect&nbsp;streak</span>
+      </div>
+    </header>
 
-  <header class="brand">
-    <div class="brand-line">
-      <span class="brand-dot" aria-hidden="true"></span>
-      <span class="brand-name">FLOAT</span>
-    </div>
-    <span class="count" id="count"></span>
-  </header>
+    <!-- ============================ WEEK STRIP =========================== -->
+    <nav class="weekstrip" id="weekStrip" aria-label="Week selector"></nav>
 
-  <p class="link-hint" id="linkHint" role="status" aria-live="polite">
-    tap two missions to link · tap a line to unlink
-  </p>
+    <!-- ========================== PROGRESS CARD ========================== -->
+    <section class="progress-card" aria-labelledby="progressCount">
+      <div class="progress-glow" aria-hidden="true"></div>
 
-  <!-- ========================== NEW MISSION ========================= -->
-  <div class="composer" id="composer" hidden>
-    <form id="composerForm" autocomplete="off" aria-label="New mission">
-      <input
-        id="missionInput"
-        type="text"
-        dir="auto"
-        maxlength="120"
-        placeholder="a mission…"
-        aria-label="Mission text"
-        enterkeyhint="done"
-      />
-      <button type="submit" aria-label="Place mission" title="Place mission">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
-          <path d="M5 12h14M13 6l6 6-6 6" />
-        </svg>
-      </button>
-    </form>
-  </div>
-
-  <!-- ============================ CONTROLS ========================== -->
-  <div class="controls">
-    <button
-      class="ctl ctl-link"
-      id="linkBtn"
-      type="button"
-      aria-label="Toggle link mode"
-      aria-pressed="false"
-      title="Link missions"
-    >
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
-        <path d="M10.2 13.8a4.2 4.2 0 0 1 0-5.9l2.2-2.2a4.2 4.2 0 0 1 5.9 5.9l-1.1 1.1" />
-        <path d="M13.8 10.2a4.2 4.2 0 0 1 0 5.9l-2.2 2.2a4.2 4.2 0 0 1-5.9-5.9l1.1-1.1" />
-      </svg>
-    </button>
-
-    <button class="ctl ctl-add" id="addBtn" type="button" aria-label="Add a mission" aria-expanded="false" title="Add a mission">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true">
-        <path d="M12 5v14M5 12h14" />
-      </svg>
-    </button>
-  </div>
-
-  <!-- =========================== MISSION FOCUS ======================= -->
-  <div class="focus" id="focus" hidden>
-    <div class="focus-veil" id="focusVeil"></div>
-
-    <section
-      class="focus-sheet"
-      id="focusSheet"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="focusText"
-    >
-      <button class="focus-close" id="focusClose" type="button" aria-label="Close mission">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
-          <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" />
-        </svg>
-      </button>
-
-      <p class="focus-kicker">mission</p>
-      <h2 class="focus-text" id="focusText" dir="auto"></h2>
-      <p class="focus-age" id="focusAge">floating for a moment</p>
+      <div class="progress-head">
+        <div class="progress-copy">
+          <p class="progress-date" id="progressDate">Today</p>
+          <p class="progress-count" id="progressCount">
+            <span id="progressDone">0</span>
+            <span class="progress-of">of</span>
+            <span id="progressTotal">0</span>
+            <span class="progress-word">completed</span>
+          </p>
+        </div>
+        <div class="progress-pct" id="progressPct">
+          <span id="progressPctNum">0</span><span class="pct-sign">%</span>
+        </div>
+      </div>
 
       <div
-        class="slide"
-        id="slide"
-        role="slider"
-        tabindex="0"
-        aria-label="Slide to complete this mission"
+        class="scale"
+        id="scale"
+        dir="ltr"
+        role="progressbar"
         aria-valuemin="0"
         aria-valuemax="100"
         aria-valuenow="0"
+        aria-label="Daily progress"
       >
-        <span class="slide-fill" aria-hidden="true"></span>
-        <span class="slide-label" id="slideLabel" aria-hidden="true">slide to complete</span>
-        <span class="slide-handle" id="slideHandle" aria-hidden="true">
-          <svg class="slide-icon slide-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="5" y="10.5" width="14" height="9.5" rx="2.6" />
-            <path d="M8.4 10.5V8a3.6 3.6 0 0 1 7.2 0v2.5" />
-          </svg>
-          <svg class="slide-icon slide-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M5 12h13M13 6.5l5.5 5.5-5.5 5.5" />
-          </svg>
-          <svg class="slide-icon slide-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M5.5 12.6 9.8 16.9 18.5 7.4" />
-          </svg>
-        </span>
+        <div class="scale-track" aria-hidden="true"></div>
+        <div class="scale-fill" id="scaleFill" aria-hidden="true"></div>
+        <div class="scale-ticks" aria-hidden="true">
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <div class="scale-marker" id="scaleMarker" aria-hidden="true">
+          <span class="scale-marker-glow"></span>
+          <span class="scale-marker-dot"></span>
+        </div>
       </div>
+
+      <div class="scale-caption" aria-hidden="true">
+        <span>Start</span>
+        <span>Momentum</span>
+        <span>Green</span>
+      </div>
+    </section>
+
+    <!-- ============================ TODAY PLAN =========================== -->
+    <section class="section" id="plan" aria-labelledby="planTitle">
+      <header class="section-head">
+        <div>
+          <h2 class="section-title" id="planTitle">Today’s Plan</h2>
+          <p class="section-sub" id="planCount">0 tasks</p>
+        </div>
+        <div class="section-actions">
+          <button class="icon-btn edit-btn" id="editBtn" type="button" aria-pressed="false" title="Edit list">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 20h4.2L19 9.2a2.1 2.1 0 0 0 0-3l-1.2-1.2a2.1 2.1 0 0 0-3 0L4 15.8V20Z" />
+              <path d="m13.6 6.4 4 4" />
+            </svg>
+            <span class="sr-only">Edit tasks</span>
+          </button>
+          <button class="icon-btn add-btn" id="addBtn" type="button" title="Add a task">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            <span class="sr-only">Add a task</span>
+          </button>
+        </div>
+      </header>
+
+      <ul class="task-list" id="planList"></ul>
+      <p class="empty" id="planEmpty" hidden>No tasks yet. Add one to set today’s standard.</p>
+    </section>
+
+    <!-- ========================= NON-NEGOTIABLES ========================= -->
+    <section class="section section-nn" aria-labelledby="nnTitle">
+      <header class="section-head">
+        <div>
+          <h2 class="section-title" id="nnTitle">
+            <span class="nn-shield" aria-hidden="true">◆</span> Non-Negotiables
+          </h2>
+          <p class="section-sub" id="nnCount">0 habits</p>
+        </div>
+        <div class="section-actions">
+          <button class="icon-btn add-btn" id="addHabitBtn" type="button" title="Add a non-negotiable">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            <span class="sr-only">Add a non-negotiable</span>
+          </button>
+        </div>
+      </header>
+
+      <ul class="task-list task-list-nn" id="nnList"></ul>
+      <p class="empty" id="nnEmpty" hidden>
+        Nothing is non-negotiable yet. Add the habits that hold everything else up.
+      </p>
+    </section>
+
+    <footer class="foot">
+      <p><span class="dot-live" aria-hidden="true"></span> Saved on this device</p>
+      <p class="foot-note">ARENA // DAILY OS</p>
+    </footer>
+  </div>
+
+  <!-- ============================ EDIT SHEET ============================ -->
+  <div class="sheet" id="sheet" hidden>
+    <div class="sheet-veil" id="sheetVeil"></div>
+
+    <section
+      class="sheet-panel"
+      id="sheetPanel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="sheetTitle"
+    >
+      <div class="sheet-grabber" aria-hidden="true"></div>
+
+      <header class="sheet-head">
+        <h2 id="sheetTitle">New task</h2>
+        <button class="sheet-close" id="sheetClose" type="button" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+            <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" />
+          </svg>
+        </button>
+      </header>
+
+      <form class="sheet-form" id="taskForm" autocomplete="off" novalidate>
+        <label class="field">
+          <span class="field-label">Task</span>
+          <input
+            id="fieldTitle"
+            type="text"
+            dir="auto"
+            maxlength="80"
+            placeholder="What are you doing?"
+            enterkeyhint="next"
+            required
+          />
+        </label>
+
+        <label class="field">
+          <span class="field-label">Why it matters</span>
+          <input
+            id="fieldWhy"
+            type="text"
+            dir="auto"
+            maxlength="120"
+            placeholder="Where does this take you?"
+            enterkeyhint="next"
+          />
+        </label>
+
+        <div class="field-row">
+          <label class="field field-time">
+            <span class="field-label">Time <span class="optional">optional</span></span>
+            <input id="fieldTime" type="time" />
+          </label>
+
+          <div class="field field-toggle">
+            <span class="field-label">Recurring</span>
+            <label class="switch">
+              <input id="fieldRecurring" type="checkbox" />
+              <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+              <span class="switch-text">Non-negotiable</span>
+            </label>
+          </div>
+        </div>
+
+        <p class="form-error" id="formError" role="alert" hidden>Give the task a name first.</p>
+
+        <div class="sheet-actions">
+          <button class="btn btn-ghost" id="sheetCancel" type="button">Cancel</button>
+          <button class="btn btn-primary" type="submit">Save</button>
+        </div>
+
+        <button class="btn btn-danger" id="sheetDelete" type="button" hidden>Delete task</button>
+      </form>
     </section>
   </div>
 
-  <!-- ============================== STATS ============================ -->
-  <section class="view view-stats" id="viewStats" aria-label="Statistics" hidden>
-    <div class="view-inner">
-      <p class="view-kicker">stats</p>
-      <p class="view-figure"><span id="statToday">0</span><span class="view-unit">today</span></p>
-
-      <div class="chart" id="statChart" dir="ltr"></div>
-
-      <dl class="view-facts">
-        <div>
-          <dt>7 days</dt>
-          <dd id="statWeek">0</dd>
-        </div>
-        <div>
-          <dt>floating</dt>
-          <dd id="statActive">0</dd>
-        </div>
-        <div>
-          <dt>all time</dt>
-          <dd id="statAll">0</dd>
-        </div>
-      </dl>
-    </div>
-  </section>
-
-  <!-- ============================ CALORIES =========================== -->
-  <section class="view view-calories" id="viewCalories" aria-label="Calories" hidden>
-    <div class="view-inner">
-      <p class="view-kicker">calories</p>
-      <p class="view-figure"><span id="kcalToday">0</span><span class="view-unit">kcal</span></p>
-
-      <div class="kcal-bar" id="kcalBar" hidden>
-        <span class="kcal-bar-fill" id="kcalBarFill"></span>
-      </div>
-
-      <div class="kcal-target">
-        <label for="kcalTarget">target</label>
-        <input id="kcalTarget" type="number" inputmode="numeric" min="0" step="50" placeholder="—" aria-label="Daily calorie target" />
-      </div>
-
-      <form class="kcal-form" id="kcalForm" autocomplete="off">
-        <input id="kcalValue" type="number" inputmode="numeric" min="1" max="9999" step="1" placeholder="kcal" aria-label="Calories" />
-        <input id="kcalNote" type="text" dir="auto" maxlength="40" placeholder="note" aria-label="Note" />
-        <button type="submit" aria-label="Add calories" title="Add">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
-            <path d="M12 5v14M5 12h14" />
-          </svg>
-        </button>
-      </form>
-
-      <ul class="kcal-list" id="kcalList"></ul>
-      <button class="kcal-clear" id="kcalClear" type="button" hidden>clear today</button>
-    </div>
-  </section>
-
-  <!-- ============================== TABS ============================= -->
-  <nav class="tabs" aria-label="Views">
-    <button class="tab" id="tabCanvas" type="button" data-view="canvas" aria-current="page">Missions</button>
-    <button class="tab" id="tabStats" type="button" data-view="stats">Stats</button>
-    <button class="tab" id="tabCalories" type="button" data-view="calories">Calories</button>
-  </nav>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
   <noscript>
-    <div class="noscript">FLOAT needs JavaScript to draw your canvas.</div>
+    <div class="noscript">ARENA needs JavaScript to run your day.</div>
   </noscript>
 
   <script src="./app.js"></script>

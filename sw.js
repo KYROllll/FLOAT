@@ -1,5 +1,5 @@
-/* FLOAT — offline cache */
-const CACHE_NAME = 'float-v6';
+/* ARENA // DAILY OS — offline shell */
+const CACHE_NAME = 'arena-v1';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -40,13 +40,13 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  /* Navigations: network first, cached shell as fallback. */
+  /* Navigations: fresh shell when online, cached shell offline. */
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
         .then((response) => {
           const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          caches.open(CACHE_NAME).then((cache) => cache.put('./index.html', copy));
           return response;
         })
         .catch(() => caches.match('./index.html').then((cached) => cached || caches.match('./')))
