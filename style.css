@@ -1714,6 +1714,7 @@ body.editing .task-del {
   justify-content: space-between;
   gap: 12px;
   padding: 14px 2px 20px;
+  overflow: visible;
 }
 
 .view-kicker {
@@ -1730,7 +1731,9 @@ body.editing .task-del {
   font-size: 30px;
   font-weight: 780;
   letter-spacing: -0.04em;
-  line-height: 1;
+  line-height: 1.28;
+  padding-bottom: 6px;
+  overflow: visible;
   background: linear-gradient(100deg, #ffffff 10%, #d3cddd 60%, #9a93a8 100%);
   -webkit-background-clip: text;
   background-clip: text;
@@ -2442,6 +2445,8 @@ body.focus-open .tabbar {
   letter-spacing: -0.015em;
   line-height: 1.25;
   overflow-wrap: anywhere;
+  text-align: start;
+  unicode-bidi: plaintext;
 }
 
 .track-why {
@@ -2450,6 +2455,8 @@ body.focus-open .tabbar {
   line-height: 1.42;
   color: var(--muted);
   overflow-wrap: anywhere;
+  text-align: start;
+  unicode-bidi: plaintext;
 }
 
 .track-status {
@@ -2641,6 +2648,8 @@ body.focus-open .tabbar {
 .mini-text {
   min-width: 0;
   overflow-wrap: anywhere;
+  text-align: start;
+  unicode-bidi: plaintext;
 }
 
 .track-actions {
@@ -2723,6 +2732,8 @@ body.focus-open .tabbar {
   color: #d8ccff;
   font-size: 10.5px;
   line-height: 1.2;
+  text-align: start;
+  unicode-bidi: plaintext;
 }
 
 .prog-step i {

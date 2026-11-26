@@ -890,6 +890,7 @@
 
       var top = makeEl('div', 'track-top');
       var wrap = makeEl('div', 'track-title-wrap');
+      wrap.dir = 'auto';
       var heading = makeEl('h3', 'track-title', ch.title);
       heading.dir = 'auto';
       wrap.appendChild(heading);
@@ -899,7 +900,9 @@
         wrap.appendChild(why);
       }
       top.appendChild(wrap);
-      top.appendChild(makeEl('span', 'track-status is-' + st.kind, st.label));
+      var statusEl = makeEl('span', 'track-status is-' + st.kind, st.label);
+      statusEl.dir = 'auto';
+      top.appendChild(statusEl);
       card.appendChild(top);
 
       var meter = makeEl('div', 'track-meter');
@@ -909,6 +912,7 @@
       card.appendChild(meter);
 
       var meta = makeEl('div', 'track-meta');
+      meta.dir = 'ltr';
       meta.appendChild(makeEl('span', null,
         st.kind === 'idle'
           ? ch.duration + ' days · ' + ch.daily.length + ' daily actions'
@@ -1117,6 +1121,7 @@
 
       var top = makeEl('div', 'track-top');
       var wrap = makeEl('div', 'track-title-wrap');
+      wrap.dir = 'auto';
       var heading = makeEl('h3', 'track-title', p.title);
       heading.dir = 'auto';
       wrap.appendChild(heading);
@@ -1126,7 +1131,9 @@
         wrap.appendChild(why);
       }
       top.appendChild(wrap);
-      top.appendChild(makeEl('span', 'track-status is-' + st.kind, st.label));
+      var statusEl = makeEl('span', 'track-status is-' + st.kind, st.label);
+      statusEl.dir = 'auto';
+      top.appendChild(statusEl);
       card.appendChild(top);
 
       var meter = makeEl('div', 'track-meter');
@@ -1136,6 +1143,7 @@
       card.appendChild(meter);
 
       var meta = makeEl('div', 'track-meta');
+      meta.dir = 'ltr';
       meta.appendChild(makeEl('span', null,
         st.kind === 'idle'
           ? p.duration + ' days · ' + p.items.length + ' routine items'
@@ -1150,6 +1158,7 @@
       var steps = makeEl('div', 'prog-steps');
       p.items.forEach(function (item, i) {
         var chip = makeEl('span', 'prog-step');
+        chip.dir = 'auto';
         chip.appendChild(makeEl('i', null, pad(i + 1)));
         var text = makeEl('span', null, item);
         text.dir = 'auto';
