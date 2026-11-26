@@ -61,6 +61,9 @@
     nnList: document.getElementById('nnList'),
     nnEmpty: document.getElementById('nnEmpty'),
     nnCount: document.getElementById('nnCount'),
+    progTodaySection: document.getElementById('programTodaySection'),
+    progTodayList: document.getElementById('progTodayList'),
+    progTodayCount: document.getElementById('progTodayCount'),
     addBtn: document.getElementById('addBtn'),
     addHabitBtn: document.getElementById('addHabitBtn'),
     editBtn: document.getElementById('editBtn'),
@@ -553,18 +556,43 @@
     return completionsFor(key).indexOf(id) !== -1;
   }
 
+  /* A program item belongs to its program, not to the user's everyday
+     habits. It only counts while the track covers that day; once the program
+     ends it retires from Today and the day's math without being deleted. */
+  function programCoversDay(p, key) {
+    if (!p || !p.startedAt) return false;
+    return key >= p.startedAt && key <= shiftKey(p.startedAt, p.duration - 1);
+  }
+
+  function programById(id) {
+    for (var i = 0; i < state.programs.length; i++) {
+      if (state.programs[i].id === id) return state.programs[i];
+    }
+    return null;
+  }
+
+  function taskActiveOn(task, key) {
+    if (!task.programId) return true;
+    return programCoversDay(programById(task.programId), key);
+  }
+
+  function activeTasksOn(key) {
+    return state.tasks.filter(function (task) { return taskActiveOn(task, key); });
+  }
+
   function doneCount(key) {
     var ids = completionsFor(key);
     var n = 0;
-    state.tasks.forEach(function (task) {
+    activeTasksOn(key).forEach(function (task) {
       if (ids.indexOf(task.id) !== -1) n += 1;
     });
     return n;
   }
 
   function allDone(key) {
-    if (!state.tasks.length) return false;
-    return doneCount(key) === state.tasks.length;
+    var tasks = activeTasksOn(key);
+    if (!tasks.length) return false;
+    return doneCount(key) === tasks.length;
   }
 
   function streakFor(taskId, key) {
@@ -579,7 +607,7 @@
   }
 
   function perfectStreak() {
-    if (!state.tasks.length) return 0;
+    if (!activeTasksOn(todayKey).length) return 0;
     var cursor = todayKey;
     if (!allDone(cursor)) cursor = shiftKey(cursor, -1);
     var n = 0;
@@ -690,7 +718,7 @@
   /* One verdict for a day, shared by the scale and the week strip, so both
      always agree on WIN vs LOSS. */
   function dayResult(key) {
-    var total = state.tasks.length;
+    var total = activeTasksOn(key).length;
     var done = doneCount(key);
     var pct = total ? Math.round((done / total) * 100) : 0;
     return {
@@ -766,11 +794,7 @@
   }
 
   function programOf(task) {
-    if (!task.programId) return null;
-    for (var i = 0; i < state.programs.length; i++) {
-      if (state.programs[i].id === task.programId) return state.programs[i];
-    }
-    return null;
+    return task.programId ? programById(task.programId) : null;
   }
 
   function buildCard(task, flash) {
@@ -830,7 +854,10 @@
     top.appendChild(title);
     body.appendChild(top);
 
-    if (task.why) {
+    /* A program task repeats the track's purpose on every card; the program
+       card already says it once, so keep the routine rows quiet. */
+    var repeatWhy = program && task.why === program.why;
+    if (task.why && !repeatWhy) {
       var why = makeEl('span', 'task-why', task.why);
       why.dir = 'auto';
       body.appendChild(why);
@@ -878,8 +905,10 @@
   }
 
   function renderLists(flash) {
-    var plan = state.tasks.filter(function (t) { return !t.recurring; });
-    var habits = state.tasks.filter(function (t) { return t.recurring; });
+    /* Program items are not personal habits: they never enter Ideal Day or
+       Non-Negotiables, so starting a track cannot blur the user's own list. */
+    var plan = state.tasks.filter(function (t) { return !t.recurring && !t.programId; });
+    var habits = state.tasks.filter(function (t) { return t.recurring && !t.programId; });
 
     fillList(els.planList, plan, els.planEmpty, flash);
     fillList(els.nnList, habits, els.nnEmpty, flash);
@@ -892,6 +921,71 @@
 
     els.planCount.textContent = countLabel(plan, 'task');
     els.nnCount.textContent = countLabel(habits, 'habit');
+  }
+
+  /* Program items get their own Today block, grouped by track, instead of
+     being mixed into the user's Non-Negotiables. */
+  function renderProgramToday(flash) {
+    var groups = [];
+    if (selectedKey === todayKey) {
+      state.programs.forEach(function (p) {
+        if (!programCoversDay(p, todayKey)) return;
+        var tasks = state.tasks.filter(function (t) { return t.programId === p.id; });
+        if (!tasks.length) return;
+        groups.push({ program: p, tasks: tasks });
+      });
+    }
+
+    els.progTodaySection.hidden = groups.length === 0;
+    els.progTodayList.textContent = '';
+
+    var total = 0;
+    var doneTotal = 0;
+
+    groups.forEach(function (group) {
+      var st = programStatus(group.program);
+      var done = group.tasks.filter(function (t) {
+        return isDone(t.id, selectedKey);
+      }).length;
+      total += group.tasks.length;
+      doneTotal += done;
+
+      /* Creation unshifts newest first; show the program's own item order. */
+      var order = {};
+      group.program.items.forEach(function (title, i) {
+        order[String(title).toLowerCase()] = i;
+      });
+      group.tasks.sort(function (a, b) {
+        var ai = order[String(a.programItem || a.title).toLowerCase()];
+        var bi = order[String(b.programItem || b.title).toLowerCase()];
+        if (ai === undefined) ai = 999;
+        if (bi === undefined) bi = 999;
+        return ai - bi;
+      });
+
+      var box = makeEl('div', 'prog-today-group');
+      var head = makeEl('div', 'prog-today-head');
+      var name = makeEl('span', 'prog-today-name', '◆ ' + group.program.title);
+      name.dir = 'auto';
+      var meta = makeEl('span', 'prog-today-meta',
+        'Day ' + st.day + ' of ' + group.program.duration + ' · ' +
+        done + ' of ' + group.tasks.length + ' done');
+      meta.dir = 'ltr';
+      head.appendChild(name);
+      head.appendChild(meta);
+      box.appendChild(head);
+
+      var list = makeEl('ul', 'task-list task-list-prog');
+      group.tasks.forEach(function (task) {
+        list.appendChild(buildCard(task, flash));
+      });
+      box.appendChild(list);
+      els.progTodayList.appendChild(box);
+    });
+
+    els.progTodayCount.textContent = total
+      ? total + ' program item' + (total === 1 ? '' : 's') + ' · ' + doneTotal + ' done'
+      : '0 program items';
   }
 
   /* ------------------------------ challenges ----------------------------- */
@@ -1158,8 +1252,8 @@
   function linkTaskToProgram(task, p, title) {
     task.programId = p.id;
     task.programItem = title;
-    /* Program items are daily routine, so they always live in the
-       Non-Negotiables section rather than today's ad-hoc plan. */
+    /* Program items are owned by the track: they appear only in Today's
+       Program Routine block, never among the user's Non-Negotiables. */
     task.recurring = true;
   }
 
@@ -1230,129 +1324,221 @@
     if (changed) save();
   }
 
+  var PROGRAM_PHASES = ['Foundation', 'Build', 'Peak'];
+
+  function programPhases(p) {
+    var count = Math.min(3, p.duration);
+    var names = count >= 3 ? PROGRAM_PHASES : ['Foundation', 'Finish'];
+    var base = Math.floor(p.duration / count);
+    var extra = p.duration % count;
+    var out = [];
+    var start = 1;
+    for (var i = 0; i < count; i++) {
+      var len = base + (i < extra ? 1 : 0);
+      out.push({
+        index: i + 1,
+        name: names[i],
+        start: start,
+        end: start + len - 1,
+        len: len
+      });
+      start += len;
+    }
+    return out;
+  }
+
+  function programPhaseAt(p, day) {
+    var list = programPhases(p);
+    var active = list[0];
+    for (var i = 0; i < list.length; i++) {
+      if (day <= list[i].end) { active = list[i]; break; }
+      active = list[i];
+    }
+    return { list: list, active: active };
+  }
+
+  /* Roadmap rail: one segment per phase, filled by the days covered so far. */
+  function buildProgramRail(p, st) {
+    var info = programPhaseAt(p, st.day);
+    var rail = makeEl('div', 'prog-rail');
+    rail.setAttribute('aria-hidden', 'true');
+
+    info.list.forEach(function (phase) {
+      var seg = makeEl('span', 'prog-seg');
+      seg.style.flex = String(phase.len);
+      if (st.kind === 'live' && phase.index === info.active.index) seg.classList.add('is-now');
+      var covered = st.kind === 'won'
+        ? phase.len
+        : Math.max(0, Math.min(phase.len, st.day - phase.start + 1));
+      var fill = makeEl('i');
+      fill.style.width = Math.round((covered / phase.len) * 100) + '%';
+      seg.appendChild(fill);
+      rail.appendChild(seg);
+    });
+
+    return rail;
+  }
+
+  /* Programs are a track with a timeline, not a checklist card: the day and
+     phase are the headline, completion is the score, and today's items sit in
+     their own labelled block. */
+  function buildProgramCard(p, index) {
+    var st = programStatus(p);
+    var info = programPhaseAt(p, st.day);
+    var accent = ACCENTS[(index + 2) % ACCENTS.length];
+    var card = makeEl('article', 'track-card program-card' +
+      (st.kind === 'won' ? ' is-won' : '') +
+      (st.kind === 'live' ? ' is-live' : ''));
+    card.style.setProperty('--track-a', accent[0]);
+    card.style.setProperty('--track-b', accent[1]);
+
+    var top = makeEl('div', 'track-top');
+    top.dir = textDir(p.title);
+    var wrap = makeEl('div', 'track-title-wrap');
+    wrap.dir = 'auto';
+    wrap.appendChild(makeEl('span', 'program-kicker', 'Program track'));
+    var heading = makeEl('h3', 'track-title', p.title);
+    heading.dir = 'auto';
+    wrap.appendChild(heading);
+    if (p.why) {
+      var why = makeEl('p', 'track-why', p.why);
+      why.dir = 'auto';
+      wrap.appendChild(why);
+    }
+    top.appendChild(wrap);
+    var statusEl = makeEl('span', 'track-status is-' + st.kind, st.label);
+    statusEl.dir = 'auto';
+    top.appendChild(statusEl);
+    card.appendChild(top);
+
+    var road = makeEl('div', 'prog-road');
+    var dayBox = makeEl('div', 'prog-day');
+    dayBox.appendChild(makeEl('span', 'prog-day-num',
+      st.kind === 'idle' ? String(p.duration) : String(st.day)));
+    dayBox.appendChild(makeEl('span', 'prog-day-of',
+      st.kind === 'idle' ? 'days' : '/ ' + p.duration + ' days'));
+    dayBox.appendChild(makeEl('span', 'prog-phase',
+      st.kind === 'idle'
+        ? info.list.length + ' phases · ' + p.items.length + ' daily items'
+        : 'Phase ' + info.active.index + ' of ' + info.list.length + ' · ' + info.active.name));
+    road.appendChild(dayBox);
+
+    var overall = makeEl('div', 'prog-overall');
+    overall.appendChild(makeEl('b', null, st.pct + '%'));
+    overall.appendChild(makeEl('span', null, 'of track'));
+    road.appendChild(overall);
+    card.appendChild(road);
+    card.appendChild(buildProgramRail(p, st));
+
+    var legend = makeEl('div', 'prog-legend');
+    info.list.forEach(function (phase) {
+      var chip = makeEl('span', 'prog-legend-chip' +
+        (st.kind === 'live' && phase.index === info.active.index ? ' is-now' : ''));
+      chip.appendChild(makeEl('i', null, 'P' + phase.index));
+      chip.appendChild(document.createTextNode(phase.name + ' · ' + phase.len + 'd'));
+      legend.appendChild(chip);
+    });
+    card.appendChild(legend);
+
+    if (st.kind === 'live') {
+      /* Today's scheduled items. Each row checks the linked task, so the
+         Program card and the Today view stay in step in both directions. */
+      var block = makeEl('div', 'track-check prog-today-block');
+      var labelRow = makeEl('div', 'prog-today-row');
+      labelRow.appendChild(makeEl('p', 'track-check-label', 'Today in Program'));
+      var doneNow = 0;
+      p.items.forEach(function (item) {
+        var linked = linkedTaskFor(p, item);
+        if (linked && isDone(linked.id, todayKey)) doneNow += 1;
+      });
+      labelRow.appendChild(makeEl('span', 'prog-today-tally',
+        doneNow + ' of ' + p.items.length));
+      block.appendChild(labelRow);
+
+      var listEl = makeEl('ul', 'mini-list');
+      p.items.forEach(function (item) {
+        var task = linkedTaskFor(p, item);
+        var done = task ? isDone(task.id, todayKey) : false;
+        var li = makeEl('li', 'mini-item' + (done ? ' is-done' : ''));
+        li.dir = textDir(item);
+
+        var btn;
+        if (task) {
+          btn = makeEl('button', 'mini-check');
+          btn.type = 'button';
+          btn.setAttribute('role', 'checkbox');
+          btn.setAttribute('aria-checked', done ? 'true' : 'false');
+          btn.setAttribute('aria-label', (done ? 'Undo: ' : 'Complete: ') + item);
+          btn.innerHTML = CHECK_SVG;
+          btn.addEventListener('click', function () {
+            toggleTask(task.id, todayKey);
+          });
+        } else {
+          btn = makeEl('span', 'mini-check');
+          btn.setAttribute('aria-hidden', 'true');
+        }
+
+        var text = makeEl('span', 'mini-text', item);
+        text.dir = 'auto';
+        li.appendChild(btn);
+        li.appendChild(text);
+        listEl.appendChild(li);
+      });
+      block.appendChild(listEl);
+      card.appendChild(block);
+    } else {
+      var plan = makeEl('div', 'prog-plan');
+      plan.appendChild(makeEl('p', 'track-check-label',
+        st.kind === 'won'
+          ? 'Track complete · daily routine'
+          : 'Daily routine · ' + p.items.length + ' items'));
+      var steps = makeEl('div', 'prog-steps');
+      p.items.forEach(function (item, i) {
+        var chip = makeEl('span', 'prog-step');
+        chip.dir = 'auto';
+        chip.appendChild(makeEl('i', null, pad(i + 1)));
+        var text = makeEl('span', null, item);
+        text.dir = 'auto';
+        chip.appendChild(text);
+        steps.appendChild(chip);
+      });
+      plan.appendChild(steps);
+      card.appendChild(plan);
+    }
+
+    /* A live program has no one-tap reset: restarting it would wipe the day
+       count, so the only action left is the managed delete. */
+    if (st.kind !== 'live' || managePrograms) {
+      var actions = makeEl('div', 'track-actions');
+      if (st.kind !== 'live') {
+        var start = makeEl('button', 'track-btn is-primary',
+          st.kind === 'idle' ? 'Start program' : 'Start again');
+        start.type = 'button';
+        start.addEventListener('click', function () {
+          startProgram(p);
+        });
+        actions.appendChild(start);
+      }
+
+      if (managePrograms) {
+        actions.appendChild(deleteButton('Delete ' + p.title, function () {
+          askDelete('program', p.title, function () {
+            removeProgram(p);
+          });
+        }));
+      }
+      card.appendChild(actions);
+    }
+
+    return card;
+  }
+
   function renderPrograms() {
     els.programList.textContent = '';
     els.programList.classList.toggle('is-managing', managePrograms);
 
     state.programs.forEach(function (p, index) {
-      var st = programStatus(p);
-      var accent = ACCENTS[(index + 2) % ACCENTS.length];
-      var card = makeEl('article', 'track-card' + (st.kind === 'won' ? ' is-won' : ''));
-      card.style.setProperty('--track-a', accent[0]);
-      card.style.setProperty('--track-b', accent[1]);
-
-      var top = makeEl('div', 'track-top');
-      top.dir = textDir(p.title);
-      var wrap = makeEl('div', 'track-title-wrap');
-      wrap.dir = 'auto';
-      var heading = makeEl('h3', 'track-title', p.title);
-      heading.dir = 'auto';
-      wrap.appendChild(heading);
-      if (p.why) {
-        var why = makeEl('p', 'track-why', p.why);
-        why.dir = 'auto';
-        wrap.appendChild(why);
-      }
-      top.appendChild(wrap);
-      var statusEl = makeEl('span', 'track-status is-' + st.kind, st.label);
-      statusEl.dir = 'auto';
-      top.appendChild(statusEl);
-      card.appendChild(top);
-
-      var meter = makeEl('div', 'track-meter');
-      var fill = makeEl('span');
-      fill.style.width = st.pct + '%';
-      meter.appendChild(fill);
-      card.appendChild(meter);
-
-      var meta = makeEl('div', 'track-meta');
-      meta.dir = 'ltr';
-      meta.appendChild(makeEl('span', null,
-        st.kind === 'idle'
-          ? p.duration + ' days · ' + p.items.length + ' routine items'
-          : 'Day ' + st.day + ' / ' + p.duration));
-      var pctText = makeEl('span');
-      var pctNum = makeEl('b', null, st.pct + '%');
-      pctText.appendChild(pctNum);
-      pctText.appendChild(document.createTextNode(' complete'));
-      meta.appendChild(pctText);
-      card.appendChild(meta);
-
-      if (st.kind === 'live') {
-        /* Same today's-checklist language as a live challenge, but each row
-           checks the linked task in Non-Negotiables — the two stay in step. */
-        var block = makeEl('div', 'track-check');
-        block.appendChild(makeEl('p', 'track-check-label', 'Today · day ' + st.day));
-        var listEl = makeEl('ul', 'mini-list');
-        p.items.forEach(function (item) {
-          var task = linkedTaskFor(p, item);
-          var done = task ? isDone(task.id, todayKey) : false;
-          var li = makeEl('li', 'mini-item' + (done ? ' is-done' : ''));
-          li.dir = textDir(item);
-
-          var btn;
-          if (task) {
-            btn = makeEl('button', 'mini-check');
-            btn.type = 'button';
-            btn.setAttribute('role', 'checkbox');
-            btn.setAttribute('aria-checked', done ? 'true' : 'false');
-            btn.setAttribute('aria-label', (done ? 'Undo: ' : 'Complete: ') + item);
-            btn.innerHTML = CHECK_SVG;
-            btn.addEventListener('click', function () {
-              toggleTask(task.id, todayKey);
-            });
-          } else {
-            btn = makeEl('span', 'mini-check');
-            btn.setAttribute('aria-hidden', 'true');
-          }
-
-          var text = makeEl('span', 'mini-text', item);
-          text.dir = 'auto';
-          li.appendChild(btn);
-          li.appendChild(text);
-          listEl.appendChild(li);
-        });
-        block.appendChild(listEl);
-        card.appendChild(block);
-      } else {
-        var steps = makeEl('div', 'prog-steps');
-        p.items.forEach(function (item, i) {
-          var chip = makeEl('span', 'prog-step');
-          chip.dir = 'auto';
-          chip.appendChild(makeEl('i', null, pad(i + 1)));
-          var text = makeEl('span', null, item);
-          text.dir = 'auto';
-          chip.appendChild(text);
-          steps.appendChild(chip);
-        });
-        card.appendChild(steps);
-      }
-
-      /* A live program has no one-tap reset: restarting it would wipe the day
-         count, so the only action left is the managed delete. */
-      if (st.kind !== 'live' || managePrograms) {
-        var actions = makeEl('div', 'track-actions');
-        if (st.kind !== 'live') {
-          var start = makeEl('button', 'track-btn is-primary',
-            st.kind === 'idle' ? 'Start program' : 'Start again');
-          start.type = 'button';
-          start.addEventListener('click', function () {
-            startProgram(p);
-          });
-          actions.appendChild(start);
-        }
-
-        if (managePrograms) {
-          actions.appendChild(deleteButton('Delete ' + p.title, function () {
-            askDelete('program', p.title, function () {
-              removeProgram(p);
-            });
-          }));
-        }
-        card.appendChild(actions);
-      }
-
-      els.programList.appendChild(card);
+      els.programList.appendChild(buildProgramCard(p, index));
     });
 
     els.programsEmpty.hidden = state.programs.length > 0;
@@ -1399,8 +1585,9 @@
 
   function focusGoalText() {
     if (selectedKey === todayKey) {
-      for (var i = 0; i < state.tasks.length; i++) {
-        if (!isDone(state.tasks[i].id, todayKey)) return state.tasks[i].title;
+      var tasks = activeTasksOn(todayKey);
+      for (var i = 0; i < tasks.length; i++) {
+        if (!isDone(tasks[i].id, todayKey)) return tasks[i].title;
       }
     }
     return 'Clear the next thing.';
@@ -1624,6 +1811,7 @@
     renderWeek();
     renderProgress();
     renderLists(flash);
+    renderProgramToday(flash);
     renderChallenges();
     renderPrograms();
     updateFocusCard();
