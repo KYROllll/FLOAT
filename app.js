@@ -322,7 +322,9 @@
       why: trimText(raw.why, MAX_WHY),
       time: normalizeTime(raw.time),
       recurring: !!raw.recurring,
-      createdAt: Number(raw.createdAt) || Date.now()
+      createdAt: Number(raw.createdAt) || Date.now(),
+      programId: typeof raw.programId === 'string' ? raw.programId : '',
+      programItem: trimText(raw.programItem, MAX_TITLE)
     };
   }
 
@@ -461,6 +463,17 @@
       programs = seedPrograms();
     }
 
+    /* A link to a program that no longer exists would lock an orphaned task,
+       so drop the link (the task itself stays) instead of carrying it on. */
+    var programIds = {};
+    programs.forEach(function (pg) { programIds[pg.id] = true; });
+    tasks.forEach(function (task) {
+      if (task.programId && !programIds[task.programId]) {
+        task.programId = '';
+        task.programItem = '';
+      }
+    });
+
     var focusRaw = raw.focus && typeof raw.focus === 'object' ? raw.focus : {};
     var minutes = Math.round(Number(focusRaw.minutes));
     var seconds = Math.round(Number(focusRaw.seconds));
@@ -586,8 +599,8 @@
     return total;
   }
 
-  function toggleTask(id) {
-    var key = selectedKey;
+  function toggleTask(id, dayKey) {
+    var key = dayKey || selectedKey;
     var list = completionsFor(key).slice();
     var index = list.indexOf(id);
     var adding = index === -1;
@@ -601,10 +614,8 @@
     save();
     renderAll(adding ? id : null);
 
-    if (adding) {
-      chime();
-      vibrate(8);
-    }
+    /* Silent on purpose: completing a task makes no sound. */
+    if (adding) vibrate(8);
   }
 
   function vibrate(ms) {
@@ -754,13 +765,23 @@
     els.perfectPill.classList.toggle('is-hot', streak > 0);
   }
 
+  function programOf(task) {
+    if (!task.programId) return null;
+    for (var i = 0; i < state.programs.length; i++) {
+      if (state.programs[i].id === task.programId) return state.programs[i];
+    }
+    return null;
+  }
+
   function buildCard(task, flash) {
     var done = isDone(task.id, selectedKey);
+    var program = programOf(task);
 
     var li = document.createElement('li');
     li.className = 'task-card';
     li.dataset.id = task.id;
     if (done) li.classList.add('is-done');
+    if (program) li.classList.add('is-program');
     if (flash && flash === task.id) li.classList.add('just-done');
 
     var check = document.createElement('button');
@@ -774,19 +795,34 @@
       toggleTask(task.id);
     });
 
-    var body = document.createElement('button');
-    body.type = 'button';
-    body.className = 'task-body';
-    body.setAttribute('aria-label', 'Edit ' + task.title);
-    body.addEventListener('click', function () {
-      openTaskSheet(task);
-    });
+    /* A program task keeps its structure: it is checked off here but never
+       opened as a standalone ad-hoc task. */
+    var body;
+    if (program) {
+      body = document.createElement('div');
+      body.className = 'task-body is-locked';
+    } else {
+      body = document.createElement('button');
+      body.type = 'button';
+      body.className = 'task-body';
+      body.setAttribute('aria-label', 'Edit ' + task.title);
+      body.addEventListener('click', function () {
+        openTaskSheet(task);
+      });
+    }
 
     var top = document.createElement('span');
     top.className = 'task-top';
 
     if (task.time) {
       top.appendChild(makeEl('span', 'task-time', task.time));
+    }
+
+    if (program) {
+      var tag = makeEl('span', 'task-prog', '◆ ' + program.title);
+      tag.dir = 'auto';
+      tag.setAttribute('title', 'Part of the ' + program.title + ' program');
+      top.appendChild(tag);
     }
 
     var title = makeEl('span', 'task-title', task.title);
@@ -810,18 +846,22 @@
       side.appendChild(badge);
     }
 
-    var del = document.createElement('button');
-    del.type = 'button';
-    del.className = 'task-del';
-    del.setAttribute('aria-label', 'Delete ' + task.title);
-    del.innerHTML = X_SVG;
-    del.addEventListener('click', function (event) {
-      event.stopPropagation();
-      askDelete(task.recurring ? 'habit' : 'task', task.title, function () {
-        removeTask(task.id);
+    /* Deleting a linked task alone would leave the program short an item;
+       it leaves with the program instead. */
+    if (!program) {
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'task-del';
+      del.setAttribute('aria-label', 'Delete ' + task.title);
+      del.innerHTML = X_SVG;
+      del.addEventListener('click', function (event) {
+        event.stopPropagation();
+        askDelete(task.recurring ? 'habit' : 'task', task.title, function () {
+          removeTask(task.id);
+        });
       });
-    });
-    side.appendChild(del);
+      side.appendChild(del);
+    }
 
     li.appendChild(check);
     li.appendChild(body);
@@ -901,7 +941,7 @@
     state.challenges = state.challenges.filter(function (item) { return item.id !== ch.id; });
     save();
     renderAll();
-    toast('Challenge deleted');
+    toast('✓ Challenge deleted');
   }
 
   function renderChallenges() {
@@ -1034,7 +1074,7 @@
           ch.log = {};
           save();
           renderAll();
-          toast(st.kind === 'idle' ? 'Challenge started — day 1' : 'Challenge restarted');
+          toast(st.kind === 'idle' ? '✓ Challenge started · day 1' : '✓ Challenge restarted');
         });
         actions.appendChild(start);
         if (manageChallenges) {
@@ -1079,13 +1119,10 @@
     });
 
     if (challengeWonDays(ch) >= ch.duration) {
-      chime();
       toast('Challenge won — every day cleared');
     } else if (all) {
-      chime();
       toast('Day ' + (daysBetween(ch.startedAt, todayKey) + 1) + ' won');
     } else {
-      chime();
       vibrate(8);
     }
   }
@@ -1106,20 +1143,58 @@
     return { kind: 'live', label: 'Day ' + day, day: day, pct: pct };
   }
 
+  /* The task that carries a program item. Matched on the item title the task
+     was created with, so the link survives even if the title is re-rendered. */
+  function linkedTaskFor(p, title) {
+    var key = String(title || '').toLowerCase();
+    for (var i = 0; i < state.tasks.length; i++) {
+      var task = state.tasks[i];
+      if (task.programId !== p.id) continue;
+      if (String(task.programItem || task.title).toLowerCase() === key) return task;
+    }
+    return null;
+  }
+
+  function linkTaskToProgram(task, p, title) {
+    task.programId = p.id;
+    task.programItem = title;
+    /* Program items are daily routine, so they always live in the
+       Non-Negotiables section rather than today's ad-hoc plan. */
+    task.recurring = true;
+  }
+
   function startProgram(p) {
     var added = 0;
+    var linked = 0;
+
     p.items.forEach(function (title) {
-      var exists = state.tasks.some(function (task) {
-        return task.title.toLowerCase() === title.toLowerCase();
-      });
-      if (exists) return;
+      if (linkedTaskFor(p, title)) return;
+
+      /* Adopt a matching standalone task instead of duplicating it. */
+      var existing = null;
+      for (var i = 0; i < state.tasks.length; i++) {
+        var task = state.tasks[i];
+        if (!task.programId && task.title.toLowerCase() === title.toLowerCase()) {
+          existing = task;
+          break;
+        }
+      }
+
+      if (existing) {
+        linkTaskToProgram(existing, p, title);
+        linked += 1;
+        return;
+      }
+
       state.tasks.unshift({
         id: uid(),
         title: title,
         why: p.why,
         time: '',
         recurring: true,
-        createdAt: Date.now()
+        createdAt: Date.now(),
+        programId: p.id,
+        programItem: title
       });
       added += 1;
     });
@@ -1127,9 +1202,32 @@
     p.startedAt = todayKey;
     save();
     renderAll();
-    toast(added
-      ? 'Program started · ' + added + ' habit' + (added === 1 ? '' : 's') + ' added'
-      : 'Program restarted — routine already in place');
+
+    var parts = [];
+    if (added) parts.push(added + ' item' + (added === 1 ? '' : 's') + ' added');
+    if (linked) parts.push(linked + ' linked');
+    toast('✓ Program started' + (parts.length ? ' · ' + parts.join(' · ') : ' · routine in place'));
+  }
+
+  /* One-time repair for programs started before tasks carried a link: bind
+     the matching task that is already in the list, never invent new ones. */
+  function ensureProgramLinks() {
+    var changed = false;
+    state.programs.forEach(function (p) {
+      if (!p.startedAt) return;
+      p.items.forEach(function (title) {
+        if (linkedTaskFor(p, title)) return;
+        for (var i = 0; i < state.tasks.length; i++) {
+          var task = state.tasks[i];
+          if (task.programId) continue;
+          if (task.title.toLowerCase() !== title.toLowerCase()) continue;
+          linkTaskToProgram(task, p, title);
+          changed = true;
+          break;
+        }
+      });
+    });
+    if (changed) save();
   }
 
   function renderPrograms() {
@@ -1180,17 +1278,55 @@
       meta.appendChild(pctText);
       card.appendChild(meta);
 
-      var steps = makeEl('div', 'prog-steps');
-      p.items.forEach(function (item, i) {
-        var chip = makeEl('span', 'prog-step');
-        chip.dir = 'auto';
-        chip.appendChild(makeEl('i', null, pad(i + 1)));
-        var text = makeEl('span', null, item);
-        text.dir = 'auto';
-        chip.appendChild(text);
-        steps.appendChild(chip);
-      });
-      card.appendChild(steps);
+      if (st.kind === 'live') {
+        /* Same today's-checklist language as a live challenge, but each row
+           checks the linked task in Non-Negotiables — the two stay in step. */
+        var block = makeEl('div', 'track-check');
+        block.appendChild(makeEl('p', 'track-check-label', 'Today · day ' + st.day));
+        var listEl = makeEl('ul', 'mini-list');
+        p.items.forEach(function (item) {
+          var task = linkedTaskFor(p, item);
+          var done = task ? isDone(task.id, todayKey) : false;
+          var li = makeEl('li', 'mini-item' + (done ? ' is-done' : ''));
+          li.dir = textDir(item);
+
+          var btn;
+          if (task) {
+            btn = makeEl('button', 'mini-check');
+            btn.type = 'button';
+            btn.setAttribute('role', 'checkbox');
+            btn.setAttribute('aria-checked', done ? 'true' : 'false');
+            btn.setAttribute('aria-label', (done ? 'Undo: ' : 'Complete: ') + item);
+            btn.innerHTML = CHECK_SVG;
+            btn.addEventListener('click', function () {
+              toggleTask(task.id, todayKey);
+            });
+          } else {
+            btn = makeEl('span', 'mini-check');
+            btn.setAttribute('aria-hidden', 'true');
+          }
+
+          var text = makeEl('span', 'mini-text', item);
+          text.dir = 'auto';
+          li.appendChild(btn);
+          li.appendChild(text);
+          listEl.appendChild(li);
+        });
+        block.appendChild(listEl);
+        card.appendChild(block);
+      } else {
+        var steps = makeEl('div', 'prog-steps');
+        p.items.forEach(function (item, i) {
+          var chip = makeEl('span', 'prog-step');
+          chip.dir = 'auto';
+          chip.appendChild(makeEl('i', null, pad(i + 1)));
+          var text = makeEl('span', null, item);
+          text.dir = 'auto';
+          chip.appendChild(text);
+          steps.appendChild(chip);
+        });
+        card.appendChild(steps);
+      }
 
       /* A live program has no one-tap reset: restarting it would wipe the day
          count, so the only action left is the managed delete. */
@@ -1209,10 +1345,7 @@
         if (managePrograms) {
           actions.appendChild(deleteButton('Delete ' + p.title, function () {
             askDelete('program', p.title, function () {
-              state.programs = state.programs.filter(function (item) { return item.id !== p.id; });
-              save();
-              renderAll();
-              toast('Program removed — habits kept');
+              removeProgram(p);
             });
           }));
         }
@@ -1555,6 +1688,7 @@
   }
 
   function openTaskSheet(task, recurringPreset) {
+    if (task && task.programId) return;
     sheetMode = 'task';
     editingId = task ? task.id : null;
     newRecurring = !!recurringPreset;
@@ -1729,7 +1863,7 @@
     },
     program: {
       title: 'Delete this program?',
-      note: 'Habits it already added to your plan stay put.'
+      note: 'Its routine items are removed from your list with it.'
     }
   };
 
@@ -1810,23 +1944,43 @@
     if (run) run();
   }
 
-  function removeTask(id) {
-    state.tasks = state.tasks.filter(function (t) { return t.id !== id; });
+  /* Drop tasks and every completion that pointed at them, so no stale ids
+     keep a day's count or a streak alive after the task is gone. */
+  function purgeTasks(ids) {
+    if (!ids.length) return;
+    state.tasks = state.tasks.filter(function (t) { return ids.indexOf(t.id) === -1; });
     Object.keys(state.history).forEach(function (key) {
-      var list = state.history[key].filter(function (taskId) { return taskId !== id; });
+      var list = state.history[key].filter(function (taskId) {
+        return ids.indexOf(taskId) === -1;
+      });
       if (list.length) state.history[key] = list;
       else delete state.history[key];
     });
+  }
+
+  function removeTask(id) {
+    purgeTasks([id]);
     save();
     renderAll();
-    toast('Task deleted');
+    toast('✓ Task deleted');
+  }
+
+  function removeProgram(p) {
+    var ids = state.tasks.filter(function (t) { return t.programId === p.id; })
+      .map(function (t) { return t.id; });
+    state.programs = state.programs.filter(function (item) { return item.id !== p.id; });
+    purgeTasks(ids);
+    save();
+    renderAll();
+    toast('✓ Program deleted' +
+      (ids.length ? ' · ' + ids.length + ' linked item' + (ids.length === 1 ? '' : 's') + ' removed' : ''));
   }
 
   function deleteFromSheet() {
     if (!editingId) return;
     var id = editingId;
     var task = state.tasks.filter(function (t) { return t.id === id; })[0];
-    if (!task) return;
+    if (!task || task.programId) return;
     askDelete(task.recurring ? 'habit' : 'task', task.title, function () {
       closeSheet();
       removeTask(id);
@@ -1863,17 +2017,33 @@
 
   /* --------------------------------- toast ------------------------------- */
 
+  /* A leading ✓ is rendered as its own green glyph, so confirmations read as
+     a success at a glance rather than as plain status text. */
   function toast(message) {
     if (toastTimer) {
       window.clearTimeout(toastTimer);
       toastTimer = 0;
     }
-    els.toast.textContent = message;
+
+    var text = String(message == null ? '' : message);
+    var success = text.charAt(0) === '✓';
+    els.toast.textContent = '';
+    els.toast.classList.toggle('is-success', success);
+
+    if (success) {
+      var mark = makeEl('span', 'toast-check', '✓');
+      mark.setAttribute('aria-hidden', 'true');
+      els.toast.appendChild(mark);
+      els.toast.appendChild(makeEl('span', 'toast-msg', text.slice(1).trim()));
+    } else {
+      els.toast.textContent = text;
+    }
+
     els.toast.hidden = false;
     toastTimer = window.setTimeout(function () {
       els.toast.hidden = true;
       toastTimer = 0;
-    }, 2200);
+    }, 2400);
   }
 
   /* -------------------------------- events ------------------------------- */
@@ -2131,6 +2301,7 @@
     });
   }
 
+  ensureProgramLinks();
   renderAll();
   updateFocus();
   save();

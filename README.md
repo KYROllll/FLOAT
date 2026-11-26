@@ -22,7 +22,7 @@ Open **http://localhost:8080**. The service worker and Home Screen install need 
 2. **Share → Add to Home Screen**.
 3. Launch it from the Home Screen — it runs standalone, respects the notch and home indicator, and works offline.
 
-The service worker uses cache `aura-v9` and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the current palette, the new app icons and the in-app mark on the next launch.
+The service worker uses cache `aura-v10` and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the current palette, the new app icons and the in-app mark on the next launch.
 
 ---
 
@@ -32,7 +32,7 @@ The service worker uses cache `aura-v9` and calls `skipWaiting` + `clients.claim
 | --- | --- |
 | **Today** | Week strip, progress card with the LOSS → WIN scale and same-day verdict, Superfocus, Ideal Day, Non-Negotiables |
 | **Challenges** | Multi-day tracks (`7-Day No Sugar`, `14-Day Deep Work`) with a daily checklist, day bar and win count |
-| **Programs** | Structured routines (`Morning Protocol`, `Strength Base`, `Focus Reset`) that add their routine items to your Non-Negotiables when started |
+| **Programs** | Structured routines (`Morning Protocol`, `Strength Base`, `Focus Reset`) whose routine items become program-linked tasks in your Non-Negotiables |
 
 Each tab keeps its own **+** button, and Challenges/Programs have a pencil to reveal delete buttons on their cards.
 
@@ -47,11 +47,11 @@ Each tab keeps its own **+** button, and Challenges/Programs have a pencil to re
 | Edit a task or habit | Tap the card text |
 | Add a task | **+** in the *Ideal Day* header |
 | Add a non-negotiable | **+** in the *Non-Negotiables* header |
-| Delete a task, habit, challenge or program | Reveal **×** (pencil / edit) → tap it → **press and hold** to confirm |
+| Delete a task, habit, challenge or program | Reveal **×** (pencil / edit) → tap it → **press and hold** to confirm → `✓` toast |
 | Review an earlier day | Tap a day in the week strip |
 | Enter Superfocus | Flip the switch on the **Superfocus** card |
 | Start a challenge | **Start challenge** on any challenge card |
-| Start a program | **Start program** — its routine lands in Non-Negotiables |
+| Start a program | **Start program** — its routine lands in Non-Negotiables with a program badge |
 | Change focus length | **Change length** inside Superfocus — quick presets (15 / 25 / 45 / 60) or an exact minutes + seconds stepper |
 
 The task sheet has four fields: **Task**, **Why it matters** (the purpose line under the title), an optional **Time**, and the **Recurring / Non-negotiable** switch that moves a habit into the bottom section. The same sheet becomes a challenge/program form — name, purpose, length in days, and one checklist item per line.
@@ -68,17 +68,17 @@ The task sheet has four fields: **Task**, **Why it matters** (the purpose line u
 
 **Ideal Day** — the non-recurring tasks. Every card carries the tap-to-complete circle, an optional time badge, a bold title, a small "why" line, and a streak pill (`🔥 5`) once a run exists.
 
-**Non-Negotiables** — recurring daily habits in their own section, each with a golden spine, the same completion control and its own streak. Starting a program adds its routine items here.
+**Non-Negotiables** — recurring daily habits in their own section, each with a golden spine, the same completion control and its own streak. Starting a program adds its routine items here as program-linked tasks: each card carries a violet **◆ Program name** badge, cannot be opened or deleted as a standalone task, and checks off in step with the program card.
 
 **Challenges** — each card shows status (Not started / Day N / Won / Closed), a violet-to-gold progress meter, one mark per challenge day (won = emerald, missed = red, today = gold), and today's checklist. Checking every daily action wins the day; winning every day wins the challenge.
 
-**Programs** — each card lists its routine items as numbered chips and tracks `Day N / length` plus a completion percentage. **Start** adds any missing routine items to Non-Negotiables (deduped by title) and stamps the start date. A running program has no restart control, so its day count cannot be reset by accident; only a completed program offers **Start again**.
+**Programs** — each card lists its routine items and tracks `Day N / length` plus a completion percentage. **Start** links any missing routine items into Non-Negotiables (deduped by title — a matching standalone task is adopted and treated as a routine item rather than duplicated) and stamps the start date. A live program shows today's checklist, the same as a challenge, and ticking a row checks the linked task on the Today tab (and the other way around) for that day. A running program has no restart control, so its day count cannot be reset by accident; only a completed program offers **Start again**. Deleting a program removes its linked tasks and their completions, so nothing is orphaned.
 
-Deleting anything is deliberately slow: the **×** opens a confirmation panel whose red button fills only while you keep pressing, and releasing early cancels.
+Starting a challenge or program, and every deletion, confirms with a green `✓` toast. Deleting anything is deliberately slow: the **×** opens a confirmation panel whose red button fills only while you keep pressing, and releasing early cancels.
 
 **Streaks** — a task's streak counts consecutive days ending today, or ending yesterday while today is still open. The pill lights up from three days. The header keeps a *perfect streak*: consecutive days where every task was completed.
 
-Completing a task plays a soft two-note Web Audio chime and a subtle check/card animation. With `prefers-reduced-motion`, transitions collapse.
+Completing a task is silent — no chime — with only the subtle check/card animation (and a short haptic where the device supports it). The Superfocus timer keeps its session-complete chime. With `prefers-reduced-motion`, transitions collapse.
 
 All titles and purpose lines use `dir="auto"`, so Hebrew and English sit side by side correctly.
 
@@ -99,7 +99,9 @@ Key: `aura.daily.v3` (the app reads the old `arena.daily.v2` — or `arena.daily
       "why": "Builds discipline and stamina",
       "time": "06:30",
       "recurring": false,
-      "createdAt": 1764200000000
+      "createdAt": 1764200000000,
+      "programId": "",
+      "programItem": ""
     }
   ],
   "history": { "2026-11-26": ["t...", "t..."] },
@@ -128,7 +130,7 @@ Key: `aura.daily.v3` (the app reads the old `arena.daily.v2` — or `arena.daily
 }
 ```
 
-`history` maps a local `YYYY-MM-DD` date to completed task ids, which is what progress, verdicts and streaks are computed from. Challenge `log` follows the same date-keyed shape, one entry per checklist item completed that day. There is no account and no network call.
+`history` maps a local `YYYY-MM-DD` date to completed task ids, which is what progress, verdicts and streaks are computed from. Challenge `log` follows the same date-keyed shape, one entry per checklist item completed that day. A task created by a program carries `programId` (the program) and `programItem` (the routine line it fills); that is the link the program card reads, and deleting the program purges those tasks and their history. There is no account and no network call.
 
 Every tick is written to `localStorage` immediately and read back to confirm the write stuck; if the device refuses to save (private mode, full quota) the app says so once instead of pretending. The day is also re-read from storage whenever the app comes back to the foreground or is restored from the back/forward cache, so a returning view can never show stale or missing checkmarks, and the win threshold is computed from one shared helper used by both the progress card and the week strip.
 
@@ -143,7 +145,7 @@ style.css                  Near-black palette, ambient indigo/gold aura, header 
 app.js                     State, migration, history, verdicts, streaks, challenges,
                            programs, focus timer, chime, zoom lock
 manifest.json              PWA manifest (AURA, standalone, portrait)
-sw.js                      Offline cache — aura-v9
+sw.js                      Offline cache — aura-v10
 AURALOGO.png               Official logo tile (source for every app icon)
 AURALOGO-ONLY.png          Wordmark alone, alpha cut (source for the in-app mark)
 assets/aura-mark.png       Header/footer mark, trimmed and scaled from AURALOGO-ONLY

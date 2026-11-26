@@ -982,6 +982,36 @@ button {
   direction: ltr;
 }
 
+.task-prog {
+  flex: none;
+  max-width: 100%;
+  padding: 2px 7px;
+  border-radius: 7px;
+  background: rgba(139, 92, 246, 0.14);
+  border: 1px solid rgba(139, 92, 246, 0.28);
+  color: #d8ccff;
+  font-size: 9.5px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  unicode-bidi: plaintext;
+}
+
+.task-body.is-locked {
+  cursor: default;
+}
+
+.task-card.is-program {
+  border-color: rgba(139, 92, 246, 0.2);
+}
+
+.task-card.is-program .task-body.is-locked:active {
+  transform: none;
+}
+
 .task-title {
   font-size: 15px;
   font-weight: 650;
@@ -1592,6 +1622,9 @@ body.editing .task-del {
   left: 50%;
   bottom: calc(var(--nav-h) + 26px + var(--safe-b));
   z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   transform: translateX(-50%);
   padding: 10px 16px;
   border-radius: 999px;
@@ -1602,6 +1635,33 @@ body.editing .task-del {
   white-space: nowrap;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
   animation: toastIn 0.24s var(--ease);
+}
+
+.toast.is-success {
+  border-color: rgba(34, 197, 94, 0.38);
+  background: rgba(9, 27, 20, 0.96);
+  color: #d7f7e3;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 18px rgba(34, 197, 94, 0.16);
+}
+
+.toast-check {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--green);
+  color: #052e16;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.toast-msg {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .toast[hidden] {
