@@ -2646,6 +2646,7 @@ body.focus-open .tabbar {
 }
 
 .mini-text {
+  flex: 1 1 auto;
   min-width: 0;
   overflow-wrap: anywhere;
   text-align: start;

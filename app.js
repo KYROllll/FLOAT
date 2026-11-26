@@ -198,6 +198,16 @@
     return node;
   }
 
+  /* Direction of the first strong character, so a Hebrew card lays out RTL
+     and an English one lays out LTR — mirrors dir="auto" for container order. */
+  var RTL_CHAR = /[\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]/;
+  var STRONG_CHAR = /[A-Za-z\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]/;
+
+  function textDir(text) {
+    var strong = String(text || '').match(STRONG_CHAR);
+    return strong && RTL_CHAR.test(strong[0]) ? 'rtl' : 'ltr';
+  }
+
   function mmss(seconds) {
     var s = Math.max(0, seconds);
     return pad(Math.floor(s / 60)) + ':' + pad(s % 60);
@@ -889,6 +899,7 @@
       card.style.setProperty('--track-b', accent[1]);
 
       var top = makeEl('div', 'track-top');
+      top.dir = textDir(ch.title);
       var wrap = makeEl('div', 'track-title-wrap');
       wrap.dir = 'auto';
       var heading = makeEl('h3', 'track-title', ch.title);
@@ -953,6 +964,7 @@
         var previewList = makeEl('ul', 'mini-list');
         ch.daily.forEach(function (item) {
           var li = makeEl('li', 'mini-item');
+          li.dir = textDir(item.title);
           var dot = makeEl('span', 'mini-check');
           var text = makeEl('span', 'mini-text', item.title);
           text.dir = 'auto';
@@ -970,6 +982,7 @@
         ch.daily.forEach(function (item) {
           var done = doneIds.indexOf(item.id) !== -1;
           var li = makeEl('li', 'mini-item' + (done ? ' is-done' : ''));
+          li.dir = textDir(item.title);
           var btn = makeEl('button', 'mini-check');
           btn.type = 'button';
           btn.setAttribute('role', 'checkbox');
@@ -1120,6 +1133,7 @@
       card.style.setProperty('--track-b', accent[1]);
 
       var top = makeEl('div', 'track-top');
+      top.dir = textDir(p.title);
       var wrap = makeEl('div', 'track-title-wrap');
       wrap.dir = 'auto';
       var heading = makeEl('h3', 'track-title', p.title);
