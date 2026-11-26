@@ -18,10 +18,10 @@
   var WON_AT = 67;
   var FOCUS_LENGTHS = [15, 25, 45, 60];
   var ACCENTS = [
-    ['#7c4ad6', '#e3ac2c'],
-    ['#e3ac2c', '#f08c00'],
-    ['#c026a3', '#7c4ad6'],
-    ['#128a4a', '#0f9d58']
+    ['#8b5cf6', '#f5c94e'],
+    ['#f5c94e', '#ff9f1c'],
+    ['#ef7ac0', '#8b5cf6'],
+    ['#22c55e', '#00e676']
   ];
 
   var CHECK_SVG =
@@ -451,12 +451,43 @@
     };
   }
 
+  var saveWarned = false;
+
   function save() {
+    var payload;
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      payload = JSON.stringify(state);
+      window.localStorage.setItem(STORAGE_KEY, payload);
+      if (window.localStorage.getItem(STORAGE_KEY) !== payload) {
+        throw new Error('storage write did not stick');
+      }
     } catch (err) {
-      /* Private mode or quota: the session still works. */
+      /* Private mode or quota: the session still works, but say so once. */
+      if (!saveWarned && els.toast) {
+        saveWarned = true;
+        toast('This device isn’t saving progress');
+      }
     }
+  }
+
+  /* Re-read the saved day before repainting, so a second tab (or a page
+     restored from the back/forward cache) can never show stale checkmarks. */
+  function syncFromStorage() {
+    var raw = null;
+    var stored;
+    try {
+      raw = window.localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      stored = loadState();
+    } catch (err) {
+      return;
+    }
+    var sameHistory = JSON.stringify(stored.history) === JSON.stringify(state.history);
+    var sameTasks = JSON.stringify(stored.tasks) === JSON.stringify(state.tasks);
+    if (sameHistory && sameTasks) return;
+    state.tasks = stored.tasks;
+    state.history = stored.history;
+    renderAll();
   }
 
   /* ------------------------------- progress ------------------------------ */
@@ -563,18 +594,30 @@
 
       if (key === todayKey) btn.classList.add('is-today');
       if (key === selectedKey) btn.classList.add('is-selected');
-      if (!completionsFor(key).length) btn.classList.add('no-dot');
       if (key > todayKey) btn.disabled = true;
 
       var day = makeEl('span', 'wk-day',
         d.toLocaleDateString(undefined, { weekday: 'short' }).replace(/\.$/, ''));
       var date = makeEl('span', 'wk-date', String(d.getDate()));
+      var result = dayResult(key);
       var dot = makeEl('span', 'wk-dot');
       dot.setAttribute('aria-hidden', 'true');
+      if (result.perfect) {
+        dot.classList.add('is-perfect');
+        dot.innerHTML = CHECK_SVG;
+      } else if (result.won) {
+        dot.classList.add('is-win');
+      } else if (result.total && key <= todayKey) {
+        dot.classList.add('is-loss');
+      }
 
       var label = d.toLocaleDateString(undefined, {
         weekday: 'long', month: 'short', day: 'numeric'
       });
+      if (key <= todayKey && result.total) {
+        label += ' — ' + (result.perfect ? 'perfect day' : result.won ? 'WIN' : 'LOSS') +
+          ', ' + result.done + ' of ' + result.total;
+      }
       btn.setAttribute('aria-label', label);
       btn.setAttribute('aria-pressed', key === selectedKey ? 'true' : 'false');
       btn.title = label;
@@ -594,14 +637,30 @@
     }
   }
 
-  function renderProgress() {
+  /* One verdict for a day, shared by the scale and the week strip, so both
+     always agree on WIN vs LOSS. */
+  function dayResult(key) {
     var total = state.tasks.length;
-    var done = doneCount(selectedKey);
+    var done = doneCount(key);
     var pct = total ? Math.round((done / total) * 100) : 0;
-    var color = pct >= WON_AT ? '#0f7a41' : pct >= 34 ? '#b45309' : '#c81e1e';
+    return {
+      total: total,
+      done: done,
+      pct: pct,
+      won: total > 0 && pct >= WON_AT,
+      perfect: total > 0 && done === total
+    };
+  }
+
+  function renderProgress() {
+    var result = dayResult(selectedKey);
+    var total = result.total;
+    var done = result.done;
+    var pct = result.pct;
+    var color = pct >= WON_AT ? '#34d399' : pct >= 34 ? '#fbbf24' : '#ff6b6b';
     var glow = pct >= WON_AT
-      ? 'rgba(18, 138, 74, 0.16)'
-      : pct >= 34 ? 'rgba(180, 83, 9, 0.14)' : 'rgba(217, 45, 32, 0.14)';
+      ? 'rgba(34, 197, 94, 0.24)'
+      : pct >= 34 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)';
 
     els.progressDone.textContent = String(done);
     els.progressTotal.textContent = String(total);
@@ -620,7 +679,7 @@
     els.progressGlow.style.background =
       'radial-gradient(circle, ' + glow + ' 0%, transparent 68%)';
 
-    var won = pct >= WON_AT;
+    var won = result.won;
 
     if (won) {
       els.scaleStatus.textContent = 'Win zone · threshold cleared';
@@ -1617,8 +1676,17 @@
 
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) return;
+    syncFromStorage();
     rollover();
     if (focus.open) updateFocus();
+  });
+
+  /* iOS can restore a standalone page from the back/forward cache. Repaint
+     from storage so the day's ticks are never lost on the way back. */
+  window.addEventListener('pageshow', function (event) {
+    if (!event.persisted) return;
+    syncFromStorage();
+    renderAll();
   });
 
   /* --------------------------------- boot -------------------------------- */

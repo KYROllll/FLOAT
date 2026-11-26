@@ -9,15 +9,15 @@
   <title>AURA // DAILY OS</title>
   <meta
     name="description"
-    content="AURA is a daily discipline OS: your plan, your non-negotiables, your challenges and your streaks — in one clean, calm screen."
+    content="AURA is a daily discipline OS: your plan, your non-negotiables, your challenges and your streaks — in one dark, focused screen."
   />
-  <meta name="theme-color" content="#faf9f6" />
-  <meta name="color-scheme" content="light" />
+  <meta name="theme-color" content="#08070b" />
+  <meta name="color-scheme" content="dark" />
 
   <!-- iOS standalone / PWA -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="AURA" />
   <meta name="format-detection" content="telephone=no" />
   <link rel="manifest" href="./manifest.json" />
@@ -40,10 +40,10 @@
     <!-- ============================== HEADER ============================= -->
     <header class="topbar">
       <div class="brand">
-        <div class="brand-text">
-          <h1>AURA</h1>
-          <p class="top-meta" id="topMeta">Today’s standard, executed.</p>
-        </div>
+        <h1 class="brand-logo">
+          <img src="./assets/aura-wordmark.png" alt="AURA" width="480" height="90" />
+        </h1>
+        <p class="top-meta" id="topMeta">Today’s standard, executed.</p>
       </div>
 
       <div class="perfect-pill" id="perfectPill" title="Consecutive perfect days">
@@ -253,8 +253,11 @@
     </div>
 
     <footer class="foot">
-      <p><span class="dot-live" aria-hidden="true"></span> Saved on this device</p>
-      <p class="foot-note">AURA // DAILY OS</p>
+      <img class="foot-logo" src="./assets/aura-wordmark.png" alt="AURA" width="480" height="90" />
+      <div class="foot-row">
+        <p><span class="dot-live" aria-hidden="true"></span> Saved on this device</p>
+        <p class="foot-note">AURA // DAILY OS</p>
+      </div>
     </footer>
   </div>
 

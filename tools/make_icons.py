@@ -1,18 +1,21 @@
-"""Build the AURA PWA icons and favicon from the official logo artwork.
+"""Build the AURA PWA icons, favicon and header wordmark from the logo art.
 
 The mark is never redrawn: `assets/aura-logo.png` is cropped to the wordmark
 (its baked-in violet/gold aura included) and centred, untouched, on the same
-off-white canvas the logo sits on. Run: `python3 tools/make_icons.py`.
+off-white canvas the logo sits on. The header/footer wordmark is the same
+crop with only the paper knocked out, so the original letters and glow sit
+directly on the dark surface. Run: `python3 tools/make_icons.py`.
 """
 from pathlib import Path
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageFilter
 
 ROOT = Path(__file__).parent.parent
 SRC = ROOT / "assets" / "aura-logo.png"
 OUT = ROOT / "icons"
 OUT.mkdir(exist_ok=True)
+WORDMARK = ROOT / "assets" / "aura-wordmark.png"
 
 # Background sampled from the logo's own canvas, so the crop blends in.
 PAPER = (246, 244, 243)
@@ -22,9 +25,8 @@ PAPER = (246, 244, 243)
 MARK_WIDTH = {"any": 0.92, "maskable": 0.78}
 
 
-def mark_crop():
+def mark_box(img):
     """Everything in the artwork that is not blank canvas (letters + aura)."""
-    img = Image.open(SRC).convert("RGB")
     a = np.asarray(img).astype(np.int16)
     diff = np.abs(a - np.array(PAPER, dtype=np.int16)).max(axis=2)
     ys, xs = np.nonzero(diff > 8)
@@ -32,12 +34,45 @@ def mark_crop():
 
     # A little breathing room around the glow.
     pad = int(round((right - left) * 0.012))
-    left = max(0, left - pad)
-    top = max(0, top - pad)
-    right = min(img.width, right + pad)
-    bottom = min(img.height, bottom + pad)
+    return (
+        max(0, left - pad),
+        max(0, top - pad),
+        min(img.width, right + pad),
+        min(img.height, bottom + pad),
+    )
 
-    return flatten_paper(img.crop((left, top, right, bottom)))
+
+def mark_crop():
+    img = Image.open(SRC).convert("RGB")
+    return flatten_paper(img.crop(mark_box(img)))
+
+
+def build_wordmark(width=480):
+    """The same crop, paper keyed out, so it can sit on the dark surface."""
+    img = Image.open(SRC).convert("RGB")
+    # Faint scan grain covers the whole sheet; only the real artwork (letters
+    # and their aura) is above this distance from paper, so crop to that.
+    a = np.asarray(img).astype(np.int16)
+    diff = np.abs(a - np.array(PAPER, dtype=np.int16)).max(axis=2)
+    ys, xs = np.nonzero(diff > 32)
+    left, top, right, bottom = xs.min(), ys.min(), xs.max() + 1, ys.max() + 1
+
+    crop = img.crop((left, top, right, bottom))
+    a = np.asarray(crop).astype(np.float32)
+
+    dist = np.sqrt(((a - np.array(PAPER, dtype=np.float32)) ** 2).sum(axis=2))
+    alpha = np.clip((dist - 10) / 30.0, 0, 1) ** 1.15
+    # Soften the key so the scan's grain does not survive as speckle.
+    soft = Image.fromarray((alpha * 255).astype(np.uint8), "L")
+    alpha = np.asarray(soft.filter(ImageFilter.GaussianBlur(1.6))) / 255.0
+    alpha = np.clip((alpha - 0.1) * 1.3, 0, 1)
+
+    rgba = np.dstack([a, alpha * 255]).astype(np.uint8)
+    mark = Image.fromarray(rgba, "RGBA").convert("RGBa")
+    height = max(1, round(width * mark.height / mark.width))
+    mark = mark.resize((width, height), Image.LANCZOS).convert("RGBA")
+    mark.save(WORDMARK, optimize=True)
+    return f"{WORDMARK.name} {mark.width}x{mark.height}"
 
 
 def flatten_paper(crop):
@@ -73,7 +108,7 @@ def save(name, size, mark_width):
     return f"{name} {size}x{size}"
 
 
-written = [
+written = [build_wordmark(),
     save("icon-512.png", 512, MARK_WIDTH["any"]),
     save("icon-192.png", 192, MARK_WIDTH["any"]),
     save("apple-touch-icon.png", 180, MARK_WIDTH["any"]),
