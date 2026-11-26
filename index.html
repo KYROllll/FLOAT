@@ -9,32 +9,39 @@
   <title>AURA // DAILY OS</title>
   <meta
     name="description"
-    content="AURA is a daily discipline OS: your plan, your non-negotiables, your challenges and your streaks — in one alive dark screen."
+    content="AURA is a daily discipline OS: your plan, your non-negotiables, your challenges and your streaks — in one clean, calm screen."
   />
-  <meta name="theme-color" content="#08070b" />
-  <meta name="color-scheme" content="dark" />
+  <meta name="theme-color" content="#faf9f6" />
+  <meta name="color-scheme" content="light" />
 
   <!-- iOS standalone / PWA -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="AURA" />
   <meta name="format-detection" content="telephone=no" />
-  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
   <link rel="manifest" href="./manifest.json" />
-  <link rel="icon" href="./icons/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="./icons/favicon.png" sizes="any" type="image/png" />
   <link rel="icon" href="./icons/icon-192.png" sizes="192x192" type="image/png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png" />
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
   <a class="skip" href="#plan">Skip to today's plan</a>
+
+  <!-- Slow indigo + gold light behind the UI. Purely decorative. -->
+  <div class="ambient" aria-hidden="true">
+    <span class="aura-a"></span>
+    <span class="aura-b"></span>
+    <span class="aura-c"></span>
+  </div>
 
   <div class="app" id="app">
     <!-- ============================== HEADER ============================= -->
     <header class="topbar">
       <div class="brand">
         <div class="brand-text">
-          <h1>AURA <span class="brand-slash">//</span> <span class="brand-daily">DAILY OS</span></h1>
+          <h1>AURA</h1>
           <p class="top-meta" id="topMeta">Today’s standard, executed.</p>
         </div>
       </div>

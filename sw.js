@@ -1,12 +1,12 @@
 /* AURA // DAILY OS — offline shell */
-const CACHE_NAME = 'aura-v2';
+const CACHE_NAME = 'aura-v3';
 const CORE_ASSETS = [
   './',
   './index.html',
   './style.css',
   './app.js',
   './manifest.json',
-  './icons/favicon.svg',
+  './icons/favicon.png',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',

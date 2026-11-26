@@ -18,10 +18,10 @@
   var WON_AT = 67;
   var FOCUS_LENGTHS = [15, 25, 45, 60];
   var ACCENTS = [
-    ['#8b5cf6', '#f5c94e'],
-    ['#f5c94e', '#ff9f1c'],
-    ['#ef7ac0', '#8b5cf6'],
-    ['#22c55e', '#00e676']
+    ['#7c4ad6', '#e3ac2c'],
+    ['#e3ac2c', '#f08c00'],
+    ['#c026a3', '#7c4ad6'],
+    ['#128a4a', '#0f9d58']
   ];
 
   var CHECK_SVG =
@@ -598,10 +598,10 @@
     var total = state.tasks.length;
     var done = doneCount(selectedKey);
     var pct = total ? Math.round((done / total) * 100) : 0;
-    var color = pct >= WON_AT ? '#34d399' : pct >= 34 ? '#fbbf24' : '#ff6b6b';
+    var color = pct >= WON_AT ? '#0f7a41' : pct >= 34 ? '#b45309' : '#c81e1e';
     var glow = pct >= WON_AT
-      ? 'rgba(34, 197, 94, 0.24)'
-      : pct >= 34 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)';
+      ? 'rgba(18, 138, 74, 0.16)'
+      : pct >= 34 ? 'rgba(180, 83, 9, 0.14)' : 'rgba(217, 45, 32, 0.14)';
 
     els.progressDone.textContent = String(done);
     els.progressTotal.textContent = String(total);

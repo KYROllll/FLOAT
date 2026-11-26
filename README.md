@@ -1,8 +1,8 @@
 # AURA // DAILY OS
 
-A mobile-first daily discipline OS. One alive dark screen: the week, today's plan, the non-negotiables, a distraction-free focus timer, and the multi-day challenges that prove you showed up.
+A mobile-first daily discipline OS. One clean, calm screen: the week, today's plan, the non-negotiables, a distraction-free focus timer, and the multi-day challenges that prove you showed up.
 
-The brand comes from `assets/aura-logo.png`: crisp white lettering over deep near-black charcoal surfaces, a deep violet/indigo core, and a luminous golden-yellow aura. That palette runs through the UI, while the daily progress scale keeps its own red → amber → green language so LOSS and WIN never lose their meaning — the progress card carries a live **WIN / LOSS** pill that flips the moment the 67% threshold is cleared.
+The brand comes from `assets/aura-logo.png`: a crisp off-white canvas (`#faf9f6`), near-black ink, a deep violet/indigo core, and a luminous golden-yellow aura. A slow ambient layer drifts those indigo and gold lights behind the whole app, so the surface stays white and readable while the logo's aura is always present. The daily progress scale keeps its own red → amber → green language so LOSS and WIN never lose their meaning — the progress card carries a live **WIN / LOSS** pill that flips the moment the 67% threshold is cleared.
 
 Built with plain **HTML, CSS and vanilla JavaScript**. No frameworks, no build step, no fonts or CDNs. Everything is stored on the device.
 
@@ -22,7 +22,7 @@ Open **http://localhost:8080**. The service worker and Home Screen install need 
 2. **Share → Add to Home Screen**.
 3. Launch it from the Home Screen — it runs standalone, respects the notch and home indicator, and works offline.
 
-The service worker uses cache `aura-v2` and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the rebrand, its new icons and the palette on the next launch.
+The service worker uses cache `aura-v3` and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the light palette, its new icons and the new favicon on the next launch.
 
 ---
 
@@ -62,7 +62,7 @@ The task sheet has four fields: **Task**, **Why it matters** (the purpose line u
 
 **Week strip** — the current Sunday-to-Saturday week. Each pill shows the weekday and date; days with completions get an emerald dot. Today is highlighted, the selected day is the filled gold pill, and future days stay disabled.
 
-**Daily Progress Card** — the selected date, `X of Y completed`, a live percentage, and the progress scale. The track runs luminous red → amber/gold → emerald/green. The filled portion and glowing marker move with each check and shift color at 34 % and 67 %. The scale is labelled **LOSS** and **WIN** at its ends, carries a physical pin at the **67 % win threshold**, and a live status pill reads either `N to win · 67% threshold` or `Win zone · threshold cleared`.
+**Daily Progress Card** — the selected date, `X of Y completed`, a live percentage, and the progress scale. The track runs red → amber/gold → emerald/green. The filled portion and glowing marker move with each check and shift color at 34 % and 67 %. The scale is labelled **LOSS** and **WIN** at its ends, carries a physical pin at the **67 % win threshold**, and a live status pill reads either `N to win · 67% threshold` or `Win zone · threshold cleared`.
 
 **Superfocus** — the toggle card opens a full-screen, dimmed focus view with a 25-minute ring timer, start/pause/reset, a session-complete chime, and a note that iOS Focus mode is still needed to block *system* notifications. Sessions are counted per day.
 
@@ -134,14 +134,14 @@ Key: `aura.daily.v3` (the app reads the old `arena.daily.v2` — or `arena.daily
 
 ```
 index.html                 Three views, superfocus overlay, scale, sheet
-style.css                  Indigo palette + golden aura accents, cards, motion, tab bar
+style.css                  Off-white palette, ambient indigo/gold aura, cards, motion, tab bar
 app.js                     State, migration, history, streaks, challenges, programs,
                            focus timer, chime, zoom lock
 manifest.json              PWA manifest (AURA, standalone, portrait)
-sw.js                      Offline cache — aura-v2
+sw.js                      Offline cache — aura-v3
 assets/aura-logo.png       Official logo artwork (source for every icon)
-icons/                     PNG icons (any + maskable) and the vector favicon
-                            traced from the logo's "A"
+icons/                     PNG icons (any + maskable), apple-touch icon and favicon
+                            cropped from the logo artwork
 tools/make_icons.py        Icon generator (Python + Pillow)
 ```
 
@@ -152,7 +152,7 @@ tools/make_icons.py        Icon generator (Python + Pillow)
 - Viewport is locked (`maximum-scale=1.0, user-scalable=no, viewport-fit=cover`), every input and textarea is at least `16px` so Safari never zooms on focus, and `touch-action: manipulation` plus `gesture*`, multi-touch and double-tap guards stop pinch and double-tap zoom.
 - Safe-area insets pad the header, tab bar, focus view and bottom sheet on notched iPhones.
 - The sheet slides up on mobile and becomes a centered dialog on wider screens; Superfocus hides the tab bar and locks background scroll while open.
-- The theme color, splash background and status bar all use `#08070b`; the icons carry the same indigo plate with the logo's gold aura.
+- The theme color and splash background use `#faf9f6`, the status bar is `default`, and `color-scheme: light` keeps native controls and form fields light.
 
 ---
 
@@ -164,4 +164,4 @@ All icons are generated from `assets/aura-logo.png`:
 python3 tools/make_icons.py
 ```
 
-The script lifts the wordmark's first "A" out of the artwork as an alpha mask, re-lights it in warm ivory on the deep indigo plate, adds the golden aura additively, and writes `icon-512.png`, `icon-192.png`, `apple-touch-icon.png` and `icon-maskable-512.png`. The vector `icons/favicon.svg` traces the same plate, aura and letterform, so browser tabs stay crisp.
+The script crops the untouched wordmark (its baked-in violet → gold aura included) out of the artwork, levels the scan's faint canvas noise to a flat `#f6f4f3` paper, and centres it on same-colour plates. It writes `icon-512.png`, `icon-192.png`, `apple-touch-icon.png`, `icon-maskable-512.png` (mark kept inside the 80% safe circle) and `favicon.png`. The mark is never redrawn, recut or restyled — only scaled and placed.

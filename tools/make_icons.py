@@ -1,170 +1,86 @@
-"""Generate the AURA PWA icons from the official logo artwork.
+"""Build the AURA PWA icons and favicon from the official logo artwork.
 
-The source is `assets/aura-logo.png` (deep-indigo "AURA" wordmark wrapped in a
-golden aura). The first "A" is lifted out of the wordmark as an alpha mask, then
-re-lit in warm ivory on a deep indigo plate with the logo's indigo -> gold aura
-glow. Run: `python3 tools/make_icons.py`.
+The mark is never redrawn: `assets/aura-logo.png` is cropped to the wordmark
+(its baked-in violet/gold aura included) and centred, untouched, on the same
+off-white canvas the logo sits on. Run: `python3 tools/make_icons.py`.
 """
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image
 
 ROOT = Path(__file__).parent.parent
 SRC = ROOT / "assets" / "aura-logo.png"
 OUT = ROOT / "icons"
 OUT.mkdir(exist_ok=True)
 
-# Window around the first "A" of the wordmark (excludes the "U" that follows).
-LETTER_BOX = (250, 1195, 852, 1690)
+# Background sampled from the logo's own canvas, so the crop blends in.
+PAPER = (246, 244, 243)
 
-# Logo palette, sampled from the artwork.
-PLATE_TOP = (26, 16, 56)
-PLATE_MID = (13, 8, 32)
-PLATE_BOTTOM = (5, 3, 15)
-VIOLET = (124, 74, 214)
-GOLD = (255, 205, 92)
-GOLD_HOT = (255, 232, 168)
-IVORY_TOP = (255, 253, 248)
-IVORY_BOTTOM = (255, 242, 208)
-
-WORK = 1024
+# Width of the wordmark relative to the icon edge. Maskable keeps the mark
+# inside Android's 80% safe circle.
+MARK_WIDTH = {"any": 0.92, "maskable": 0.78}
 
 
-def lerp(a, b, t):
-    return tuple(round(a[i] + (b[i] - a[i]) * t) for i in range(len(a)))
+def mark_crop():
+    """Everything in the artwork that is not blank canvas (letters + aura)."""
+    img = Image.open(SRC).convert("RGB")
+    a = np.asarray(img).astype(np.int16)
+    diff = np.abs(a - np.array(PAPER, dtype=np.int16)).max(axis=2)
+    ys, xs = np.nonzero(diff > 8)
+    left, top, right, bottom = xs.min(), ys.min(), xs.max() + 1, ys.max() + 1
+
+    # A little breathing room around the glow.
+    pad = int(round((right - left) * 0.012))
+    left = max(0, left - pad)
+    top = max(0, top - pad)
+    right = min(img.width, right + pad)
+    bottom = min(img.height, bottom + pad)
+
+    return flatten_paper(img.crop((left, top, right, bottom)))
 
 
-def vertical_gradient(size, stops):
-    """stops: [(pos, rgb), ...] with pos ascending 0..1."""
-    img = Image.new("RGB", (size, size))
-    px = img.load()
-    for y in range(size):
-        t = y / (size - 1)
-        for i in range(len(stops) - 1):
-            p0, c0 = stops[i]
-            p1, c1 = stops[i + 1]
-            if p0 <= t <= p1:
-                k = 0 if p1 == p0 else (t - p0) / (p1 - p0)
-                color = lerp(c0, c1, k)
-                break
-        else:
-            color = stops[-1][1]
-        for x in range(size):
-            px[x, y] = color
-    return img
+def flatten_paper(crop):
+    """Flat paper behind the mark: the scan's faint canvas noise is leveled out.
+
+    Only near-white, desaturated pixels are touched, so the letters and the
+    violet/gold aura keep their exact pixels.
+    """
+    a = np.asarray(crop).astype(np.int16)
+    spread = a.max(axis=2) - a.min(axis=2)
+    lum = a.mean(axis=2)
+    flat_bg = (spread <= 6) & (lum >= 232)
+
+    a[flat_bg] = PAPER
+    return Image.fromarray(a.astype(np.uint8), "RGB")
 
 
-def radial_layer(size, center, radius, color, falloff=2.4, opacity=1.0):
-    """Soft radial light as an RGBA layer."""
-    yy, xx = np.mgrid[0:size, 0:size]
-    d = np.sqrt((xx - center[0]) ** 2 + (yy - center[1]) ** 2) / radius
-    alpha = np.clip(np.exp(-(d**2) * falloff) - 0.02, 0, 1) * opacity
-    rgba = np.zeros((size, size, 4), dtype=np.uint8)
-    rgba[..., 0], rgba[..., 1], rgba[..., 2] = color
-    rgba[..., 3] = (alpha * 255).astype(np.uint8)
-    return Image.fromarray(rgba, "RGBA")
+def build(size, mark_width):
+    plate = Image.new("RGB", (size, size), PAPER)
+    mark = mark_crop()
+
+    width = max(1, int(round(size * mark_width)))
+    height = max(1, int(round(mark.height * width / mark.width)))
+    scaled = mark.resize((width, height), Image.LANCZOS)
+
+    plate.paste(scaled, ((size - width) // 2, (size - height) // 2))
+    return plate
 
 
-def glyph_mask():
-    """Alpha coverage of the first letter, cropped to its own bounding box."""
-    src = Image.open(SRC).convert("RGB")
-    l, t, r, b = LETTER_BOX
-    crop = np.asarray(src.crop((l, t, r, b))).astype(np.float32)
-    lum = crop @ np.array([0.299, 0.587, 0.114], dtype=np.float32)
-    alpha = np.clip((150.0 - lum) / 50.0, 0.0, 1.0)
-    alpha[alpha < 0.3] = 0.0
-
-    mask = Image.fromarray((alpha * 255).astype(np.uint8), "L")
-    mask = (
-        mask.point(lambda v: min(255, int(v * 1.25)))
-        .filter(ImageFilter.MedianFilter(5))
-        .filter(ImageFilter.GaussianBlur(1.6))
-        .point(lambda v: 0 if v < 90 else min(255, int((v - 90) * 1.55)))
-        .filter(ImageFilter.GaussianBlur(0.7))
-    )
-    box = mask.point(lambda v: 255 if v > 80 else 0).getbbox()
-    return mask.crop(box)
+def save(name, size, mark_width):
+    icon = build(size, mark_width)
+    icon.save(OUT / name, optimize=True)
+    return f"{name} {size}x{size}"
 
 
-def scaled_mask(target_width):
-    g = glyph_mask()
-    w, h = g.size
-    width = int(target_width)
-    height = int(round(h * width / w))
-    return g.resize((width, height), Image.LANCZOS)
+written = [
+    save("icon-512.png", 512, MARK_WIDTH["any"]),
+    save("icon-192.png", 192, MARK_WIDTH["any"]),
+    save("apple-touch-icon.png", 180, MARK_WIDTH["any"]),
+    save("icon-maskable-512.png", 512, MARK_WIDTH["maskable"]),
+    save("favicon.png", 64, 0.98),
+]
 
-
-def plate(size, maskable=False, rounded=True):
-    bg = vertical_gradient(size, [(0.0, PLATE_TOP), (0.55, PLATE_MID), (1.0, PLATE_BOTTOM)])
-    img = bg.convert("RGBA")
-
-    # Violet core light, then the golden aura that wraps the light.
-    for layer in (
-        radial_layer(size, (size * 0.5, size * 0.24), size * 0.74, VIOLET, 2.8, opacity=0.42),
-        radial_layer(size, (size * 0.5, size * 0.60), size * 0.46, (78, 38, 150), 3.6, opacity=0.5),
-    ):
-        img = Image.alpha_composite(img, layer)
-
-    if rounded and not maskable:
-        mask = Image.new("L", (size, size), 0)
-        ImageDraw.Draw(mask).rounded_rectangle(
-            [0, 0, size - 1, size - 1], radius=int(size * 0.225), fill=255
-        )
-        img.putalpha(mask)
-
-    return img
-
-
-def add_glow(base, alpha, color, strength):
-    """Additive light so the halo brightens the plate instead of muddying it."""
-    rgb = np.asarray(base.convert("RGB")).astype(np.float32)
-    a = (np.asarray(alpha).astype(np.float32) / 255.0)[..., None] * strength
-    rgb = np.clip(rgb + np.array(color, dtype=np.float32) * a, 0, 255)
-    out = Image.fromarray(rgb.astype(np.uint8), "RGB").convert("RGBA")
-    out.putalpha(base.getchannel("A"))
-    return out
-
-
-def build(size=WORK, maskable=False, rounded=True):
-    img = plate(size, maskable, rounded)
-
-    glyph_w = size * (0.46 if maskable else 0.575)
-    glyph = scaled_mask(glyph_w)
-    gw, gh = glyph.size
-    gx = (size - gw) // 2
-    gy = int(round((size - gh) / 2 - size * 0.01))
-
-    # Golden aura: wide bloom, tight bloom, then the crisp ivory letterform.
-    for radius, color, strength in (
-        (size * 0.055, (255, 140, 24), 0.4),
-        (size * 0.022, (255, 186, 48), 0.75),
-        (size * 0.008, (255, 214, 96), 0.85),
-        (size * 0.003, GOLD_HOT, 0.35),
-    ):
-        halo = Image.new("L", (size, size), 0)
-        halo.paste(glyph, (gx, gy))
-        img = add_glow(img, halo.filter(ImageFilter.GaussianBlur(radius)), color, strength)
-
-    fill = Image.new("RGB", glyph.size)
-    fp = fill.load()
-    for y in range(gh):
-        color = lerp(IVORY_TOP, IVORY_BOTTOM, y / max(1, gh - 1))
-        for x in range(gw):
-            fp[x, y] = color
-    img.paste(fill.convert("RGBA"), (gx, gy), glyph)
-
-    return img
-
-
-icon = build()
-icon.resize((512, 512), Image.LANCZOS).save(OUT / "icon-512.png", optimize=True)
-icon.resize((192, 192), Image.LANCZOS).save(OUT / "icon-192.png", optimize=True)
-build(rounded=False).resize((180, 180), Image.LANCZOS).save(
-    OUT / "apple-touch-icon.png", optimize=True
-)
-build(maskable=True).resize((512, 512), Image.LANCZOS).save(
-    OUT / "icon-maskable-512.png", optimize=True
-)
-
-print("Icons generated:", ", ".join(p.name for p in sorted(OUT.glob("*.png"))))
+print("Icons generated from", SRC.name)
+for line in written:
+    print("  ", line)
