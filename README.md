@@ -2,7 +2,7 @@
 
 A mobile-first daily discipline OS. One deep dark screen: the week, today's plan, the non-negotiables, a distraction-free focus timer, and the multi-day challenges that prove you showed up.
 
-The brand comes from `assets/aura-logo.png`: near-black letters, a deep violet/indigo core, and a luminous golden-yellow aura. The app sits on the same near-black (`#08070b`) as the wordmark's letter core, a slow ambient layer drifts those indigo and gold lights behind the whole UI, and the original wordmark artwork is cut out of its paper (`assets/aura-wordmark.png`) to glow in the header and again, small, in the footer. The daily progress scale keeps its own red → amber → green language so LOSS and WIN never lose their meaning — the progress card carries a live **WIN / LOSS** pill that flips the moment the 67% threshold is cleared, and every day in the week strip carries the same verdict.
+The brand comes from `AURALOGO.png`: near-black letters, a deep violet/indigo core, and a luminous golden-yellow aura. The app sits on the same near-black (`#08070b`) as the wordmark's letter core, and a slow ambient layer drifts those indigo and gold lights behind the whole UI. The in-app mark is `AURALOGO-ONLY.png` — the wordmark with its own alpha edge — so the neon rim sits straight on the dark surface in the header and again, small, above the footer line, with no plate or white fringe behind it. The daily progress scale keeps its own red → amber → green language so LOSS and WIN never lose their meaning — the progress card carries a live **WIN / LOSS** pill that flips the moment the 67% threshold is cleared, and every day in the week strip carries the same verdict.
 
 Built with plain **HTML, CSS and vanilla JavaScript**. No frameworks, no build step, no fonts or CDNs. Everything is stored on the device.
 
@@ -22,7 +22,7 @@ Open **http://localhost:8080**. The service worker and Home Screen install need 
 2. **Share → Add to Home Screen**.
 3. Launch it from the Home Screen — it runs standalone, respects the notch and home indicator, and works offline.
 
-The service worker uses cache `aura-v4` and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the dark palette, the header wordmark and the new favicon on the next launch.
+The service worker uses cache `aura-v5` and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the current palette, the new app icons and the in-app mark on the next launch.
 
 ---
 
@@ -141,12 +141,13 @@ style.css                  Near-black palette, ambient indigo/gold aura, header 
 app.js                     State, migration, history, verdicts, streaks, challenges,
                            programs, focus timer, chime, zoom lock
 manifest.json              PWA manifest (AURA, standalone, portrait)
-sw.js                      Offline cache — aura-v4
-assets/aura-logo.png       Official logo artwork (source for every icon and mark)
-assets/aura-wordmark.png   Header/footer wordmark cut from the same artwork
+sw.js                      Offline cache — aura-v5
+AURALOGO.png               Official logo tile (source for every app icon)
+AURALOGO-ONLY.png          Wordmark alone, alpha cut (source for the in-app mark)
+assets/aura-mark.png       Header/footer mark, trimmed and scaled from AURALOGO-ONLY
 icons/                     PNG icons (any + maskable), apple-touch icon and favicon
-                            cropped from the logo artwork
-tools/make_icons.py        Icon + wordmark generator (Python + Pillow)
+                            built from AURALOGO
+tools/make_icons.py        Icon + mark generator (Python + Pillow)
 ```
 
 ---
@@ -162,12 +163,12 @@ tools/make_icons.py        Icon + wordmark generator (Python + Pillow)
 
 ## Rebranding the icons
 
-All icons are generated from `assets/aura-logo.png`:
+All icons are generated from `AURALOGO.png`, and the in-app mark from `AURALOGO-ONLY.png`:
 
 ```bash
 python3 tools/make_icons.py
 ```
 
-The script crops the untouched wordmark (its baked-in violet → gold aura included) out of the artwork, levels the scan's faint canvas noise to a flat `#f6f4f3` paper, and centres it on same-colour plates. It writes `icon-512.png`, `icon-192.png`, `apple-touch-icon.png`, `icon-maskable-512.png` (mark kept inside the 80% safe circle) and `favicon.png`.
+The tile keeps its own dark plate: the script lifts the letter rows out (mirroring the background above and below them, so the plate joins without a seam) and lays the wordmark on top at 86% of the edge, 68% for the maskable icon so it stays inside Android's 80% safe circle, and 96% for the 64px favicon. It writes `icon-512.png`, `icon-192.png`, `apple-touch-icon.png`, `icon-maskable-512.png` and `favicon.png`.
 
-It also writes `assets/aura-wordmark.png` — the same crop with only the paper keyed out, so the original letters and glow sit directly on the dark header and footer. The mark is never redrawn, recut or restyled — only scaled and placed.
+It also writes `assets/aura-mark.png` — the wordmark trimmed to its visible alpha and scaled with premultiplied alpha, so the neon edge stays clean on the dark header and footer. The mark is never redrawn, recut or recoloured — only scaled and placed.

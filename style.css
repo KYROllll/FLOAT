@@ -1,6 +1,6 @@
 /* ==========================================================================
    AURA // DAILY OS — near-black surface, crisp white ink, deep violet core,
-   golden aura. Palette and marks traced from assets/aura-logo.png.
+   golden aura. Palette from AURALOGO.png; in-app mark from AURALOGO-ONLY.png.
    ========================================================================== */
 
 *,
@@ -39,7 +39,7 @@
   --violet: #8b5cf6;
   --violet-bright: #bda8ff;
   --pink: #ef7ac0;
-  --nav-h: 66px;
+  --nav-h: 70px;
   --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
   --pop: cubic-bezier(0.2, 0.9, 0.25, 1.1);
   --safe-t: env(safe-area-inset-top, 0px);
@@ -245,7 +245,8 @@ button {
   min-width: 0;
 }
 
-/* The original wordmark artwork, cut out of its paper and dropped on black. */
+/* AURALOGO-ONLY.png: the original wordmark with its own alpha edge, so the
+   neon rim sits straight on the near-black surface with no plate behind it. */
 .brand-logo {
   margin: 0;
   display: block;
@@ -254,9 +255,9 @@ button {
 
 .brand-logo img {
   display: block;
-  width: 152px;
+  width: 150px;
   height: auto;
-  filter: drop-shadow(0 0 14px rgba(245, 201, 78, 0.22));
+  filter: drop-shadow(0 0 12px rgba(255, 168, 52, 0.18));
 }
 
 .top-meta {
@@ -1002,18 +1003,10 @@ body.editing .task-del {
 
 .foot-logo {
   display: block;
-  width: 86px;
+  width: 84px;
   height: auto;
-  opacity: 0.72;
-  filter: drop-shadow(0 0 10px rgba(245, 201, 78, 0.18));
-}
-
-.foot-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
+  opacity: 0.78;
+  filter: drop-shadow(0 0 9px rgba(255, 168, 52, 0.16));
 }
 
 .foot p {
@@ -1028,11 +1021,6 @@ body.editing .task-del {
   border-radius: 50%;
   background: var(--green);
   vertical-align: 1px;
-}
-
-.foot-note {
-  letter-spacing: 0.1em;
-  color: rgba(100, 116, 139, 0.7);
 }
 
 /* ================================ SHEET ================================= */
@@ -2003,9 +1991,11 @@ body.focus-open {
   transform: translateX(-50%);
   width: min(430px, calc(100% - 22px));
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 4px;
-  padding: 6px;
+  /* minmax(0, …) lets a column shrink below the label's min-content width, so
+     "Challenges" / "Programs" can never push past the bar and get cut. */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 3px;
+  padding: 6px 5px;
   border-radius: 23px;
   background: rgba(12, 11, 16, 0.86);
   border: 1px solid rgba(255, 255, 255, 0.16);
@@ -2023,8 +2013,9 @@ body.focus-open .tabbar {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  padding: 8px 3px 7px;
+  min-width: 0;
+  gap: 4px;
+  padding: 8px 2px 9px;
   border: 0;
   border-radius: 17px;
   background: transparent;
@@ -2048,10 +2039,17 @@ body.focus-open .tabbar {
   height: 21px;
 }
 
+/* Room for the descenders: a tight line box put the tail of the g right on the
+   pill's edge, which read as a clipped letter. */
 .tab-label {
-  font-size: 9.5px;
+  display: block;
+  max-width: 100%;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
+  line-height: 1.35;
+  padding-bottom: 1px;
+  white-space: nowrap;
 }
 
 .tab.is-active {
