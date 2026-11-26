@@ -65,6 +65,12 @@ html {
 }
 
 body {
+  /* Fill the visual viewport even when a view is short (a single program, an
+     empty list). Without this the body box ended above the tab bar and the
+     leftover strip fell back to the flat html colour, which read as grey.
+     100dvh tracks the browser chrome; 100vh is the fallback. */
+  min-height: 100vh;
+  min-height: 100dvh;
   background:
     radial-gradient(95% 52% at 6% -8%, rgba(124, 74, 214, 0.34) 0%, transparent 62%),
     radial-gradient(80% 44% at 100% 0%, rgba(245, 201, 78, 0.12) 0%, transparent 62%),
