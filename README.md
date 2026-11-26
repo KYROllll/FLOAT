@@ -2,7 +2,7 @@
 
 A mobile-first daily discipline OS. One alive dark screen: the week, today's plan, the non-negotiables, a distraction-free focus timer, and the multi-day challenges that prove you showed up.
 
-The brand comes from `assets/aura-logo.png`: deep indigo/violet core, crisp lettering, and a luminous golden-yellow aura. That palette runs through the UI, while the daily progress scale keeps its own red → amber → green language so LOSS and WIN never lose their meaning.
+The brand comes from `assets/aura-logo.png`: crisp white lettering over deep near-black charcoal surfaces, a deep violet/indigo core, and a luminous golden-yellow aura. That palette runs through the UI, while the daily progress scale keeps its own red → amber → green language so LOSS and WIN never lose their meaning — the progress card carries a live **WIN / LOSS** pill that flips the moment the 67% threshold is cleared.
 
 Built with plain **HTML, CSS and vanilla JavaScript**. No frameworks, no build step, no fonts or CDNs. Everything is stored on the device.
 
@@ -22,7 +22,7 @@ Open **http://localhost:8080**. The service worker and Home Screen install need 
 2. **Share → Add to Home Screen**.
 3. Launch it from the Home Screen — it runs standalone, respects the notch and home indicator, and works offline.
 
-The service worker uses cache `aura-v1` and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the rebrand, its new icons and the palette on the next launch.
+The service worker uses cache `aura-v2` and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the rebrand, its new icons and the palette on the next launch.
 
 ---
 
@@ -30,7 +30,7 @@ The service worker uses cache `aura-v1` and calls `skipWaiting` + `clients.claim
 
 | Tab | What lives there |
 | --- | --- |
-| **Today** | Week strip, progress card with the LOSS → WIN scale, Superfocus, Ideal Day, Non-Negotiables |
+| **Today** | Week strip, progress card with the LOSS → WIN scale and same-day verdict, Superfocus, Ideal Day, Non-Negotiables |
 | **Challenges** | Multi-day tracks (`7-Day No Sugar`, `14-Day Deep Work`) with a daily checklist, day bar and win count |
 | **Programs** | Structured routines (`Morning Protocol`, `Strength Base`, `Focus Reset`) that add their routine items to your Non-Negotiables when started |
 
@@ -138,7 +138,7 @@ style.css                  Indigo palette + golden aura accents, cards, motion, 
 app.js                     State, migration, history, streaks, challenges, programs,
                            focus timer, chime, zoom lock
 manifest.json              PWA manifest (AURA, standalone, portrait)
-sw.js                      Offline cache — aura-v1
+sw.js                      Offline cache — aura-v2
 assets/aura-logo.png       Official logo artwork (source for every icon)
 icons/                     PNG icons (any + maskable) and the vector favicon
                             traced from the logo's "A"
@@ -152,7 +152,7 @@ tools/make_icons.py        Icon generator (Python + Pillow)
 - Viewport is locked (`maximum-scale=1.0, user-scalable=no, viewport-fit=cover`), every input and textarea is at least `16px` so Safari never zooms on focus, and `touch-action: manipulation` plus `gesture*`, multi-touch and double-tap guards stop pinch and double-tap zoom.
 - Safe-area insets pad the header, tab bar, focus view and bottom sheet on notched iPhones.
 - The sheet slides up on mobile and becomes a centered dialog on wider screens; Superfocus hides the tab bar and locks background scroll while open.
-- The theme color, splash background and status bar all use `#070512`; the icons carry the same indigo plate with the logo's gold aura.
+- The theme color, splash background and status bar all use `#08070b`; the icons carry the same indigo plate with the logo's gold aura.
 
 ---
 

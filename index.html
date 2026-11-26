@@ -11,7 +11,7 @@
     name="description"
     content="AURA is a daily discipline OS: your plan, your non-negotiables, your challenges and your streaks — in one alive dark screen."
   />
-  <meta name="theme-color" content="#070512" />
+  <meta name="theme-color" content="#08070b" />
   <meta name="color-scheme" content="dark" />
 
   <!-- iOS standalone / PWA -->
@@ -33,9 +33,6 @@
     <!-- ============================== HEADER ============================= -->
     <header class="topbar">
       <div class="brand">
-        <span class="brand-mark">
-          <img src="./icons/favicon.svg" alt="AURA" width="38" height="38" />
-        </span>
         <div class="brand-text">
           <h1>AURA <span class="brand-slash">//</span> <span class="brand-daily">DAILY OS</span></h1>
           <p class="top-meta" id="topMeta">Today’s standard, executed.</p>
@@ -66,8 +63,17 @@
               <span class="progress-word">completed</span>
             </p>
           </div>
-          <div class="progress-pct" id="progressPct">
-            <span id="progressPctNum">0</span><span class="pct-sign">%</span>
+          <div class="progress-side">
+            <div class="progress-pct" id="progressPct">
+              <span id="progressPctNum">0</span><span class="pct-sign">%</span>
+            </div>
+            <p
+              class="verdict"
+              id="progressVerdict"
+              data-state="loss"
+              aria-live="polite"
+              aria-label="Day status: LOSS"
+            >LOSS</p>
           </div>
         </div>
 

@@ -15,6 +15,7 @@
   var MIN_DAYS = 2;
   var MAX_DAYS = 90;
   var RING_LEN = 552.92;
+  var WON_AT = 67;
   var FOCUS_LENGTHS = [15, 25, 45, 60];
   var ACCENTS = [
     ['#8b5cf6', '#f5c94e'],
@@ -44,6 +45,7 @@
     progressTotal: document.getElementById('progressTotal'),
     progressPct: document.getElementById('progressPct'),
     progressPctNum: document.getElementById('progressPctNum'),
+    progressVerdict: document.getElementById('progressVerdict'),
     scale: document.getElementById('scale'),
     scaleFill: document.getElementById('scaleFill'),
     scaleMarker: document.getElementById('scaleMarker'),
@@ -505,6 +507,15 @@
     return n;
   }
 
+  // Smallest completed count whose rounded percentage clears the win bar.
+  function winTarget(total) {
+    if (!total) return 0;
+    for (var k = 1; k <= total; k++) {
+      if (Math.round((k / total) * 100) >= WON_AT) return k;
+    }
+    return total;
+  }
+
   function toggleTask(id) {
     var key = selectedKey;
     var list = completionsFor(key).slice();
@@ -587,8 +598,8 @@
     var total = state.tasks.length;
     var done = doneCount(selectedKey);
     var pct = total ? Math.round((done / total) * 100) : 0;
-    var color = pct >= 67 ? '#34d399' : pct >= 34 ? '#fbbf24' : '#ff6b6b';
-    var glow = pct >= 67
+    var color = pct >= WON_AT ? '#34d399' : pct >= 34 ? '#fbbf24' : '#ff6b6b';
+    var glow = pct >= WON_AT
       ? 'rgba(34, 197, 94, 0.24)'
       : pct >= 34 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)';
 
@@ -609,16 +620,26 @@
     els.progressGlow.style.background =
       'radial-gradient(circle, ' + glow + ' 0%, transparent 68%)';
 
-    if (pct >= 67) {
+    var won = pct >= WON_AT;
+
+    if (won) {
       els.scaleStatus.textContent = 'Win zone · threshold cleared';
       els.scaleStatus.classList.add('is-win');
     } else {
-      var need = total ? Math.max(0, Math.ceil(total * 0.67) - done) : 0;
+      var need = total ? Math.max(0, winTarget(total) - done) : 0;
       els.scaleStatus.textContent = total
-        ? need + ' to win · 67% threshold'
-        : 'Win at 67%';
+        ? need + ' to win · ' + WON_AT + '% threshold'
+        : 'Win at ' + WON_AT + '%';
       els.scaleStatus.classList.remove('is-win');
     }
+
+    els.progressVerdict.textContent = won ? 'WIN' : 'LOSS';
+    els.progressVerdict.dataset.state = won ? 'win' : 'loss';
+    els.progressVerdict.setAttribute(
+      'aria-label',
+      'Day status: ' + (won ? 'WIN' : 'LOSS') + ' — ' + done + ' of ' + total +
+        ' tasks done, ' + WON_AT + '% needed to win'
+    );
 
     if (selectedKey !== todayKey) {
       els.topMeta.textContent = 'Reviewing an earlier day.';
