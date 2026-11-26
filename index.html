@@ -9,9 +9,9 @@
   <title>ARENA // DAILY OS</title>
   <meta
     name="description"
-    content="ARENA is a daily discipline OS: your plan, your non-negotiables, your streaks — in one calm dark screen."
+    content="ARENA is a daily discipline OS: your plan, your non-negotiables, your challenges and your streaks — in one alive dark screen."
   />
-  <meta name="theme-color" content="#070b14" />
+  <meta name="theme-color" content="#070a10" />
   <meta name="color-scheme" content="dark" />
 
   <!-- iOS standalone / PWA -->
@@ -52,112 +52,277 @@
       </div>
     </header>
 
-    <!-- ============================ WEEK STRIP =========================== -->
-    <nav class="weekstrip" id="weekStrip" aria-label="Week selector"></nav>
+    <!-- ============================== TODAY ============================== -->
+    <div class="view" id="viewToday">
+      <nav class="weekstrip" id="weekStrip" aria-label="Week selector"></nav>
 
-    <!-- ========================== PROGRESS CARD ========================== -->
-    <section class="progress-card" aria-labelledby="progressCount">
-      <div class="progress-glow" aria-hidden="true"></div>
+      <section class="progress-card" aria-labelledby="progressCount">
+        <div class="progress-glow" id="progressGlow" aria-hidden="true"></div>
 
-      <div class="progress-head">
-        <div class="progress-copy">
-          <p class="progress-date" id="progressDate">Today</p>
-          <p class="progress-count" id="progressCount">
-            <span id="progressDone">0</span>
-            <span class="progress-of">of</span>
-            <span id="progressTotal">0</span>
-            <span class="progress-word">completed</span>
-          </p>
+        <div class="progress-head">
+          <div class="progress-copy">
+            <p class="progress-date" id="progressDate">Today</p>
+            <p class="progress-count" id="progressCount">
+              <span id="progressDone">0</span>
+              <span class="progress-of">of</span>
+              <span id="progressTotal">0</span>
+              <span class="progress-word">completed</span>
+            </p>
+          </div>
+          <div class="progress-pct" id="progressPct">
+            <span id="progressPctNum">0</span><span class="pct-sign">%</span>
+          </div>
         </div>
-        <div class="progress-pct" id="progressPct">
-          <span id="progressPctNum">0</span><span class="pct-sign">%</span>
-        </div>
-      </div>
 
-      <div
-        class="scale"
-        id="scale"
-        dir="ltr"
-        role="progressbar"
-        aria-valuemin="0"
-        aria-valuemax="100"
-        aria-valuenow="0"
-        aria-label="Daily progress"
-      >
-        <div class="scale-track" aria-hidden="true"></div>
-        <div class="scale-fill" id="scaleFill" aria-hidden="true"></div>
-        <div class="scale-ticks" aria-hidden="true">
-          <span></span><span></span><span></span><span></span>
+        <div
+          class="scale"
+          id="scale"
+          dir="ltr"
+          role="progressbar"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow="0"
+          aria-label="Daily progress"
+        >
+          <div class="scale-track" aria-hidden="true"></div>
+          <div class="scale-fill" id="scaleFill" aria-hidden="true"></div>
+          <div class="scale-ticks" aria-hidden="true">
+            <span></span><span></span><span></span><span></span>
+          </div>
+          <div class="scale-threshold" id="scaleThreshold" aria-hidden="true">
+            <span class="threshold-pin"></span>
+            <span class="threshold-tag">WIN</span>
+          </div>
+          <div class="scale-marker" id="scaleMarker" aria-hidden="true">
+            <span class="scale-marker-glow"></span>
+            <span class="scale-marker-dot"></span>
+          </div>
         </div>
-        <div class="scale-marker" id="scaleMarker" aria-hidden="true">
-          <span class="scale-marker-glow"></span>
-          <span class="scale-marker-dot"></span>
+
+        <div class="scale-legend">
+          <span class="legend-end legend-loss">LOSS</span>
+          <span class="legend-status" id="scaleStatus">Win at 67%</span>
+          <span class="legend-end legend-win">WIN</span>
         </div>
-      </div>
+      </section>
 
-      <div class="scale-caption" aria-hidden="true">
-        <span>Start</span>
-        <span>Momentum</span>
-        <span>Green</span>
-      </div>
-    </section>
+      <!-- ========================== SUPERFOCUS =========================== -->
+      <section class="focus-card" id="focusCard">
+        <div class="focus-card-glow" aria-hidden="true"></div>
+        <div class="focus-card-body">
+          <div class="focus-card-copy">
+            <p class="focus-kicker"><span class="focus-spark" aria-hidden="true"></span>Superfocus</p>
+            <h2>One thing. No noise.</h2>
+            <p class="focus-sub" id="focusSub">25 minutes of unbroken work · then a clean break.</p>
+          </div>
+          <label class="focus-switch">
+            <input id="focusSwitch" type="checkbox" role="switch" aria-label="Superfocus mode" />
+            <span class="focus-switch-track" aria-hidden="true">
+              <span class="focus-switch-thumb"></span>
+            </span>
+            <span class="focus-switch-text" id="focusSwitchText">OFF</span>
+          </label>
+        </div>
+        <div class="focus-card-foot">
+          <span id="focusSessions">0 sessions today</span>
+          <span class="focus-dot" aria-hidden="true"></span>
+          <span class="focus-tip">Dimmed, timed, quiet</span>
+        </div>
+      </section>
 
-    <!-- ============================ TODAY PLAN =========================== -->
-    <section class="section" id="plan" aria-labelledby="planTitle">
-      <header class="section-head">
+      <!-- ============================ TODAY PLAN ========================= -->
+      <section class="section" id="plan" aria-labelledby="planTitle">
+        <header class="section-head">
+          <div>
+            <h2 class="section-title" id="planTitle">Ideal Day</h2>
+            <p class="section-sub" id="planCount">0 tasks</p>
+          </div>
+          <div class="section-actions">
+            <button class="icon-btn edit-btn" id="editBtn" type="button" aria-pressed="false" title="Edit list">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M4 20h4.2L19 9.2a2.1 2.1 0 0 0 0-3l-1.2-1.2a2.1 2.1 0 0 0-3 0L4 15.8V20Z" />
+                <path d="m13.6 6.4 4 4" />
+              </svg>
+              <span class="sr-only">Edit tasks</span>
+            </button>
+            <button class="icon-btn add-btn" id="addBtn" type="button" title="Add a task">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              <span class="sr-only">Add a task</span>
+            </button>
+          </div>
+        </header>
+
+        <ul class="task-list" id="planList"></ul>
+        <p class="empty" id="planEmpty" hidden>No tasks yet. Add one to set today’s standard.</p>
+      </section>
+
+      <!-- ========================= NON-NEGOTIABLES ======================= -->
+      <section class="section section-nn" aria-labelledby="nnTitle">
+        <header class="section-head">
+          <div>
+            <h2 class="section-title" id="nnTitle">
+              <span class="nn-shield" aria-hidden="true">◆</span> Non-Negotiables
+            </h2>
+            <p class="section-sub" id="nnCount">0 habits</p>
+          </div>
+          <div class="section-actions">
+            <button class="icon-btn add-btn" id="addHabitBtn" type="button" title="Add a non-negotiable">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              <span class="sr-only">Add a non-negotiable</span>
+            </button>
+          </div>
+        </header>
+
+        <ul class="task-list task-list-nn" id="nnList"></ul>
+        <p class="empty" id="nnEmpty" hidden>
+          Nothing is non-negotiable yet. Add the habits that hold everything else up.
+        </p>
+      </section>
+    </div>
+
+    <!-- ============================ CHALLENGES =========================== -->
+    <div class="view" id="viewChallenges" hidden>
+      <header class="view-head">
         <div>
-          <h2 class="section-title" id="planTitle">Today’s Plan</h2>
-          <p class="section-sub" id="planCount">0 tasks</p>
+          <p class="view-kicker">Multi-day pressure</p>
+          <h2>Challenges</h2>
+          <p class="view-sub">Pick a track. Show up daily. Win the streak.</p>
         </div>
         <div class="section-actions">
-          <button class="icon-btn edit-btn" id="editBtn" type="button" aria-pressed="false" title="Edit list">
+          <button class="icon-btn edit-btn" id="editChallenges" type="button" aria-pressed="false" title="Manage challenges">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M4 20h4.2L19 9.2a2.1 2.1 0 0 0 0-3l-1.2-1.2a2.1 2.1 0 0 0-3 0L4 15.8V20Z" />
               <path d="m13.6 6.4 4 4" />
             </svg>
-            <span class="sr-only">Edit tasks</span>
+            <span class="sr-only">Manage challenges</span>
           </button>
-          <button class="icon-btn add-btn" id="addBtn" type="button" title="Add a task">
+          <button class="icon-btn add-btn" id="addChallengeBtn" type="button" title="New challenge">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
               <path d="M12 5v14M5 12h14" />
             </svg>
-            <span class="sr-only">Add a task</span>
+            <span class="sr-only">New challenge</span>
           </button>
         </div>
       </header>
 
-      <ul class="task-list" id="planList"></ul>
-      <p class="empty" id="planEmpty" hidden>No tasks yet. Add one to set today’s standard.</p>
-    </section>
+      <div class="challenge-list" id="challengeList"></div>
+      <p class="empty" id="challengesEmpty" hidden>No challenges yet. Create a track that scares you a little.</p>
+    </div>
 
-    <!-- ========================= NON-NEGOTIABLES ========================= -->
-    <section class="section section-nn" aria-labelledby="nnTitle">
-      <header class="section-head">
+    <!-- ============================= PROGRAMS ============================ -->
+    <div class="view" id="viewPrograms" hidden>
+      <header class="view-head">
         <div>
-          <h2 class="section-title" id="nnTitle">
-            <span class="nn-shield" aria-hidden="true">◆</span> Non-Negotiables
-          </h2>
-          <p class="section-sub" id="nnCount">0 habits</p>
+          <p class="view-kicker">Structured tracks</p>
+          <h2>Programs</h2>
+          <p class="view-sub">Start a routine. It lands straight in your Non-Negotiables.</p>
         </div>
         <div class="section-actions">
-          <button class="icon-btn add-btn" id="addHabitBtn" type="button" title="Add a non-negotiable">
+          <button class="icon-btn edit-btn" id="editPrograms" type="button" aria-pressed="false" title="Manage programs">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 20h4.2L19 9.2a2.1 2.1 0 0 0 0-3l-1.2-1.2a2.1 2.1 0 0 0-3 0L4 15.8V20Z" />
+              <path d="m13.6 6.4 4 4" />
+            </svg>
+            <span class="sr-only">Manage programs</span>
+          </button>
+          <button class="icon-btn add-btn" id="addProgramBtn" type="button" title="New program">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
               <path d="M12 5v14M5 12h14" />
             </svg>
-            <span class="sr-only">Add a non-negotiable</span>
+            <span class="sr-only">New program</span>
           </button>
         </div>
       </header>
 
-      <ul class="task-list task-list-nn" id="nnList"></ul>
-      <p class="empty" id="nnEmpty" hidden>
-        Nothing is non-negotiable yet. Add the habits that hold everything else up.
-      </p>
-    </section>
+      <div class="program-list" id="programList"></div>
+      <p class="empty" id="programsEmpty" hidden>No programs yet. Build a routine worth repeating.</p>
+    </div>
 
     <footer class="foot">
       <p><span class="dot-live" aria-hidden="true"></span> Saved on this device</p>
       <p class="foot-note">ARENA // DAILY OS</p>
+    </footer>
+  </div>
+
+  <!-- ============================ BOTTOM NAV ============================ -->
+  <nav class="tabbar" id="tabbar" aria-label="Main">
+    <button class="tab is-active" type="button" data-view="today" aria-current="page">
+      <span class="tab-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="4.2" />
+          <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.2 5.2l1.6 1.6M17.2 17.2l1.6 1.6M18.8 5.2l-1.6 1.6M6.8 17.2l-1.6 1.6" />
+        </svg>
+      </span>
+      <span class="tab-label">Today</span>
+    </button>
+    <button class="tab" type="button" data-view="challenges">
+      <span class="tab-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21c3.6-1.4 6-4.7 6-8.6C18 7.6 15.3 4.3 12 3c-3.3 1.3-6 4.6-6 9.4 0 3.9 2.4 7.2 6 8.6Z" />
+          <path d="M12 17.4c1.5-.9 2.4-2.4 2.4-4.1 0-1.9-1.1-3.5-2.4-4.4-1.3.9-2.4 2.5-2.4 4.4 0 1.7.9 3.2 2.4 4.1Z" />
+        </svg>
+      </span>
+      <span class="tab-label">Challenges</span>
+    </button>
+    <button class="tab" type="button" data-view="programs">
+      <span class="tab-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m12 3 8 4.2-8 4.2-8-4.2L12 3Z" />
+          <path d="m4 12 8 4.2 8-4.2" />
+          <path d="m4 16.8 8 4.2 8-4.2" />
+        </svg>
+      </span>
+      <span class="tab-label">Programs</span>
+    </button>
+  </nav>
+
+  <!-- ============================ SUPERFOCUS =========================== -->
+  <div class="focus-view" id="focusView" hidden>
+    <div class="focus-aura" aria-hidden="true"></div>
+
+    <header class="focus-top">
+      <span class="focus-brand">ARENA <span>//</span> SUPERFOCUS</span>
+      <button class="focus-exit" id="focusExit" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
+          <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" />
+        </svg>
+        <span>Exit</span>
+      </button>
+    </header>
+
+    <div class="focus-stage">
+      <p class="focus-state" id="focusState">Ready when you are</p>
+
+      <div class="focus-ring">
+        <svg viewBox="0 0 200 200" aria-hidden="true">
+          <circle class="ring-track" cx="100" cy="100" r="88" />
+          <circle class="ring-progress" id="focusRing" cx="100" cy="100" r="88" />
+        </svg>
+        <div class="focus-clock">
+          <span id="focusTime">25:00</span>
+          <small id="focusMinutesLabel">minutes</small>
+        </div>
+      </div>
+
+      <p class="focus-goal" id="focusGoal">Clear the next thing.</p>
+
+      <div class="focus-controls">
+        <button class="focus-btn focus-btn-main" id="focusToggle" type="button">Start</button>
+        <button class="focus-btn focus-btn-ghost" id="focusReset" type="button">Reset</button>
+      </div>
+
+      <p class="focus-note">
+        Enable iOS Focus mode to block system notifications — ARENA can only quiet itself.
+      </p>
+    </div>
+
+    <footer class="focus-foot">
+      <span id="focusFootSessions">0 sessions today</span>
+      <button class="focus-mini" id="focusChange" type="button">Change length</button>
     </footer>
   </div>
 
@@ -185,7 +350,7 @@
 
       <form class="sheet-form" id="taskForm" autocomplete="off" novalidate>
         <label class="field">
-          <span class="field-label">Task</span>
+          <span class="field-label" id="labelTitle">Task</span>
           <input
             id="fieldTitle"
             type="text"
@@ -198,7 +363,7 @@
         </label>
 
         <label class="field">
-          <span class="field-label">Why it matters</span>
+          <span class="field-label" id="labelWhy">Why it matters</span>
           <input
             id="fieldWhy"
             type="text"
@@ -209,7 +374,7 @@
           />
         </label>
 
-        <div class="field-row">
+        <div class="field-row" id="taskExtras">
           <label class="field field-time">
             <span class="field-label">Time <span class="optional">optional</span></span>
             <input id="fieldTime" type="time" />
@@ -223,6 +388,24 @@
               <span class="switch-text">Non-negotiable</span>
             </label>
           </div>
+        </div>
+
+        <div class="field-extra" id="trackExtras" hidden>
+          <label class="field">
+            <span class="field-label">Length <span class="optional">days</span></span>
+            <input id="fieldDuration" type="number" inputmode="numeric" min="2" max="90" step="1" value="7" />
+          </label>
+
+          <label class="field">
+            <span class="field-label" id="labelItems">Daily checklist <span class="optional">one per line</span></span>
+            <textarea
+              id="fieldItems"
+              dir="auto"
+              rows="4"
+              maxlength="600"
+              placeholder="No added sugar&#10;2L water&#10;20 minute walk"
+            ></textarea>
+          </label>
         </div>
 
         <p class="form-error" id="formError" role="alert" hidden>Give the task a name first.</p>
