@@ -1,6 +1,8 @@
-# ARENA // DAILY OS
+# AURA // DAILY OS
 
 A mobile-first daily discipline OS. One alive dark screen: the week, today's plan, the non-negotiables, a distraction-free focus timer, and the multi-day challenges that prove you showed up.
+
+The brand comes from `assets/aura-logo.png`: deep indigo/violet core, crisp lettering, and a luminous golden-yellow aura. That palette runs through the UI, while the daily progress scale keeps its own red → amber → green language so LOSS and WIN never lose their meaning.
 
 Built with plain **HTML, CSS and vanilla JavaScript**. No frameworks, no build step, no fonts or CDNs. Everything is stored on the device.
 
@@ -20,7 +22,7 @@ Open **http://localhost:8080**. The service worker and Home Screen install need 
 2. **Share → Add to Home Screen**.
 3. Launch it from the Home Screen — it runs standalone, respects the notch and home indicator, and works offline.
 
-The service worker uses cache `arena-v2` and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up this version on the next launch.
+The service worker uses cache `aura-v1` and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the rebrand, its new icons and the palette on the next launch.
 
 ---
 
@@ -58,7 +60,7 @@ The task sheet has four fields: **Task**, **Why it matters** (the purpose line u
 
 ## What's on screen
 
-**Week strip** — the current Sunday-to-Saturday week. Each pill shows the weekday and date; days with completions get an emerald dot. Today is highlighted, the selected day is the filled green pill, and future days stay disabled.
+**Week strip** — the current Sunday-to-Saturday week. Each pill shows the weekday and date; days with completions get an emerald dot. Today is highlighted, the selected day is the filled gold pill, and future days stay disabled.
 
 **Daily Progress Card** — the selected date, `X of Y completed`, a live percentage, and the progress scale. The track runs luminous red → amber/gold → emerald/green. The filled portion and glowing marker move with each check and shift color at 34 % and 67 %. The scale is labelled **LOSS** and **WIN** at its ends, carries a physical pin at the **67 % win threshold**, and a live status pill reads either `N to win · 67% threshold` or `Win zone · threshold cleared`.
 
@@ -66,9 +68,9 @@ The task sheet has four fields: **Task**, **Why it matters** (the purpose line u
 
 **Ideal Day** — the non-recurring tasks. Every card carries the tap-to-complete circle, an optional time badge, a bold title, a small "why" line, and a streak pill (`🔥 5`) once a run exists.
 
-**Non-Negotiables** — recurring daily habits in their own section, each with an emerald spine, the same completion control and its own streak. Starting a program adds its routine items here.
+**Non-Negotiables** — recurring daily habits in their own section, each with a golden spine, the same completion control and its own streak. Starting a program adds its routine items here.
 
-**Challenges** — each card shows status (Not started / Day N / Won / Closed), a violet-to-cyan progress meter, one mark per challenge day (won = emerald, missed = red, today = cyan), and today's checklist. Checking every daily action wins the day; winning every day wins the challenge.
+**Challenges** — each card shows status (Not started / Day N / Won / Closed), a violet-to-gold progress meter, one mark per challenge day (won = emerald, missed = red, today = gold), and today's checklist. Checking every daily action wins the day; winning every day wins the challenge.
 
 **Programs** — each card lists its routine items as numbered chips and tracks `Day N / length` plus a completion percentage. **Start** adds any missing routine items to Non-Negotiables (deduped by title) and stamps the start date.
 
@@ -82,11 +84,11 @@ All titles and purpose lines use `dir="auto"`, so Hebrew and English sit side by
 
 ## Storage
 
-Key: `arena.daily.v2` (the app reads the old `arena.daily.v1` tasks/history once and migrates them).
+Key: `aura.daily.v3` (the app reads the old `arena.daily.v2` — or `arena.daily.v1` — state once and migrates it).
 
 ```json
 {
-  "v": 2,
+  "v": 3,
   "view": "today",
   "tasks": [
     {
@@ -132,12 +134,14 @@ Key: `arena.daily.v2` (the app reads the old `arena.daily.v1` tasks/history once
 
 ```
 index.html                 Three views, superfocus overlay, scale, sheet
-style.css                  Midnight palette + vibrant accents, cards, motion, tab bar
+style.css                  Indigo palette + golden aura accents, cards, motion, tab bar
 app.js                     State, migration, history, streaks, challenges, programs,
                            focus timer, chime, zoom lock
-manifest.json              PWA manifest (ARENA, standalone, portrait)
-sw.js                      Offline cache — arena-v2
-icons/                     PNG icons (any + maskable) and SVG favicon
+manifest.json              PWA manifest (AURA, standalone, portrait)
+sw.js                      Offline cache — aura-v1
+assets/aura-logo.png       Official logo artwork (source for every icon)
+icons/                     PNG icons (any + maskable) and the vector favicon
+                            traced from the logo's "A"
 tools/make_icons.py        Icon generator (Python + Pillow)
 ```
 
@@ -148,4 +152,16 @@ tools/make_icons.py        Icon generator (Python + Pillow)
 - Viewport is locked (`maximum-scale=1.0, user-scalable=no, viewport-fit=cover`), every input and textarea is at least `16px` so Safari never zooms on focus, and `touch-action: manipulation` plus `gesture*`, multi-touch and double-tap guards stop pinch and double-tap zoom.
 - Safe-area insets pad the header, tab bar, focus view and bottom sheet on notched iPhones.
 - The sheet slides up on mobile and becomes a centered dialog on wider screens; Superfocus hides the tab bar and locks background scroll while open.
-- The theme color, splash background and status bar all use `#070a10`.
+- The theme color, splash background and status bar all use `#070512`; the icons carry the same indigo plate with the logo's gold aura.
+
+---
+
+## Rebranding the icons
+
+All icons are generated from `assets/aura-logo.png`:
+
+```bash
+python3 tools/make_icons.py
+```
+
+The script lifts the wordmark's first "A" out of the artwork as an alpha mask, re-lights it in warm ivory on the deep indigo plate, adds the golden aura additively, and writes `icon-512.png`, `icon-192.png`, `apple-touch-icon.png` and `icon-maskable-512.png`. The vector `icons/favicon.svg` traces the same plate, aura and letterform, so browser tabs stay crisp.

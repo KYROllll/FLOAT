@@ -1,143 +1,170 @@
-"""Generate ARENA PWA icons: an emerald progress ring closed by a check."""
+"""Generate the AURA PWA icons from the official logo artwork.
+
+The source is `assets/aura-logo.png` (deep-indigo "AURA" wordmark wrapped in a
+golden aura). The first "A" is lifted out of the wordmark as an alpha mask, then
+re-lit in warm ivory on a deep indigo plate with the logo's indigo -> gold aura
+glow. Run: `python3 tools/make_icons.py`.
+"""
 from pathlib import Path
+
+import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
-OUT = Path(__file__).parent.parent / "icons"
+ROOT = Path(__file__).parent.parent
+SRC = ROOT / "assets" / "aura-logo.png"
+OUT = ROOT / "icons"
 OUT.mkdir(exist_ok=True)
 
-SIZE = 1024
-BG_TOP = (12, 22, 42, 255)
-BG_BOTTOM = (7, 11, 20, 255)
-RING_BACK = (30, 41, 59, 255)
-GREEN = (34, 197, 94, 255)
-GREEN_BRIGHT = (74, 222, 128, 255)
+# Window around the first "A" of the wordmark (excludes the "U" that follows).
+LETTER_BOX = (250, 1195, 852, 1690)
+
+# Logo palette, sampled from the artwork.
+PLATE_TOP = (26, 16, 56)
+PLATE_MID = (13, 8, 32)
+PLATE_BOTTOM = (5, 3, 15)
+VIOLET = (124, 74, 214)
+GOLD = (255, 205, 92)
+GOLD_HOT = (255, 232, 168)
+IVORY_TOP = (255, 253, 248)
+IVORY_BOTTOM = (255, 242, 208)
+
+WORK = 1024
 
 
 def lerp(a, b, t):
     return tuple(round(a[i] + (b[i] - a[i]) * t) for i in range(len(a)))
 
 
-def vertical_gradient(size, top, bottom):
-    img = Image.new("RGBA", (size, size), top)
-    draw = ImageDraw.Draw(img)
+def vertical_gradient(size, stops):
+    """stops: [(pos, rgb), ...] with pos ascending 0..1."""
+    img = Image.new("RGB", (size, size))
+    px = img.load()
     for y in range(size):
-        draw.line([(0, y), (size, y)], fill=lerp(top, bottom, y / (size - 1)))
+        t = y / (size - 1)
+        for i in range(len(stops) - 1):
+            p0, c0 = stops[i]
+            p1, c1 = stops[i + 1]
+            if p0 <= t <= p1:
+                k = 0 if p1 == p0 else (t - p0) / (p1 - p0)
+                color = lerp(c0, c1, k)
+                break
+        else:
+            color = stops[-1][1]
+        for x in range(size):
+            px[x, y] = color
     return img
 
 
-def ring_layer(size, center, radius, width, progress, scale):
-    layer = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(layer)
-    box = [center[0] - radius, center[1] - radius, center[0] + radius, center[1] + radius]
-
-    draw.arc(box, start=-90, end=270, fill=RING_BACK, width=width)
-
-    start = -90
-    sweep = 360 * progress
-    steps = 120
-    for i in range(steps):
-        t0 = i / steps
-        t1 = (i + 1) / steps
-        color = lerp(GREEN, GREEN_BRIGHT, t0)
-        draw.arc(
-            box,
-            start=start + sweep * t0,
-            end=start + sweep * t1 + 1.2,
-            fill=color,
-            width=width,
-        )
-
-    # End cap of the progress arc
-    import math
-    end_angle = math.radians(start + sweep)
-    ex = center[0] + radius * math.cos(end_angle)
-    ey = center[1] + radius * math.sin(end_angle)
-    cap = width / 2
-    draw.ellipse([ex - cap, ey - cap, ex + cap, ey + cap], fill=GREEN_BRIGHT)
-    return layer
+def radial_layer(size, center, radius, color, falloff=2.4, opacity=1.0):
+    """Soft radial light as an RGBA layer."""
+    yy, xx = np.mgrid[0:size, 0:size]
+    d = np.sqrt((xx - center[0]) ** 2 + (yy - center[1]) ** 2) / radius
+    alpha = np.clip(np.exp(-(d**2) * falloff) - 0.02, 0, 1) * opacity
+    rgba = np.zeros((size, size, 4), dtype=np.uint8)
+    rgba[..., 0], rgba[..., 1], rgba[..., 2] = color
+    rgba[..., 3] = (alpha * 255).astype(np.uint8)
+    return Image.fromarray(rgba, "RGBA")
 
 
-def check_layer(size, center, scale):
-    layer = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(layer)
-    cx, cy = center
-    pts = [
-        (cx - size * 0.145 * scale, cy + size * 0.012 * scale),
-        (cx - size * 0.038 * scale, cy + size * 0.118 * scale),
-        (cx + size * 0.155 * scale, cy - size * 0.112 * scale),
-    ]
-    draw.line(pts, fill=(248, 250, 252, 255), width=int(size * 0.055 * scale), joint="curve")
-    return layer
+def glyph_mask():
+    """Alpha coverage of the first letter, cropped to its own bounding box."""
+    src = Image.open(SRC).convert("RGB")
+    l, t, r, b = LETTER_BOX
+    crop = np.asarray(src.crop((l, t, r, b))).astype(np.float32)
+    lum = crop @ np.array([0.299, 0.587, 0.114], dtype=np.float32)
+    alpha = np.clip((150.0 - lum) / 50.0, 0.0, 1.0)
+    alpha[alpha < 0.3] = 0.0
+
+    mask = Image.fromarray((alpha * 255).astype(np.uint8), "L")
+    mask = (
+        mask.point(lambda v: min(255, int(v * 1.25)))
+        .filter(ImageFilter.MedianFilter(5))
+        .filter(ImageFilter.GaussianBlur(1.6))
+        .point(lambda v: 0 if v < 90 else min(255, int((v - 90) * 1.55)))
+        .filter(ImageFilter.GaussianBlur(0.7))
+    )
+    box = mask.point(lambda v: 255 if v > 80 else 0).getbbox()
+    return mask.crop(box)
 
 
-def base_icon(size=SIZE, maskable=False):
-    if maskable:
-        img = vertical_gradient(size, BG_TOP, BG_BOTTOM)
-        scale = 0.78
-    else:
-        img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-        body = vertical_gradient(size, BG_TOP, BG_BOTTOM)
+def scaled_mask(target_width):
+    g = glyph_mask()
+    w, h = g.size
+    width = int(target_width)
+    height = int(round(h * width / w))
+    return g.resize((width, height), Image.LANCZOS)
+
+
+def plate(size, maskable=False, rounded=True):
+    bg = vertical_gradient(size, [(0.0, PLATE_TOP), (0.55, PLATE_MID), (1.0, PLATE_BOTTOM)])
+    img = bg.convert("RGBA")
+
+    # Violet core light, then the golden aura that wraps the light.
+    for layer in (
+        radial_layer(size, (size * 0.5, size * 0.24), size * 0.74, VIOLET, 2.8, opacity=0.42),
+        radial_layer(size, (size * 0.5, size * 0.60), size * 0.46, (78, 38, 150), 3.6, opacity=0.5),
+    ):
+        img = Image.alpha_composite(img, layer)
+
+    if rounded and not maskable:
         mask = Image.new("L", (size, size), 0)
         ImageDraw.Draw(mask).rounded_rectangle(
             [0, 0, size - 1, size - 1], radius=int(size * 0.225), fill=255
         )
-        img = Image.composite(body, img, mask)
-        scale = 1.0
+        img.putalpha(mask)
 
-    center = (size * 0.5, size * 0.5)
-
-    # Emerald glow behind the mark.
-    glow = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    gd = ImageDraw.Draw(glow)
-    gr = size * 0.30 * scale
-    gd.ellipse(
-        [center[0] - gr, center[1] - gr, center[0] + gr, center[1] + gr],
-        fill=(34, 197, 94, 52),
-    )
-    img = Image.alpha_composite(img, glow.filter(ImageFilter.GaussianBlur(size * 0.09)))
-
-    img = Image.alpha_composite(
-        img,
-        ring_layer(
-            size,
-            center,
-            radius=size * 0.285 * scale,
-            width=int(size * 0.048 * scale),
-            progress=0.74,
-            scale=scale,
-        ),
-    )
-
-    return Image.alpha_composite(img, check_layer(size, center, scale))
+    return img
 
 
-icon = base_icon()
+def add_glow(base, alpha, color, strength):
+    """Additive light so the halo brightens the plate instead of muddying it."""
+    rgb = np.asarray(base.convert("RGB")).astype(np.float32)
+    a = (np.asarray(alpha).astype(np.float32) / 255.0)[..., None] * strength
+    rgb = np.clip(rgb + np.array(color, dtype=np.float32) * a, 0, 255)
+    out = Image.fromarray(rgb.astype(np.uint8), "RGB").convert("RGBA")
+    out.putalpha(base.getchannel("A"))
+    return out
+
+
+def build(size=WORK, maskable=False, rounded=True):
+    img = plate(size, maskable, rounded)
+
+    glyph_w = size * (0.46 if maskable else 0.575)
+    glyph = scaled_mask(glyph_w)
+    gw, gh = glyph.size
+    gx = (size - gw) // 2
+    gy = int(round((size - gh) / 2 - size * 0.01))
+
+    # Golden aura: wide bloom, tight bloom, then the crisp ivory letterform.
+    for radius, color, strength in (
+        (size * 0.055, (255, 140, 24), 0.4),
+        (size * 0.022, (255, 186, 48), 0.75),
+        (size * 0.008, (255, 214, 96), 0.85),
+        (size * 0.003, GOLD_HOT, 0.35),
+    ):
+        halo = Image.new("L", (size, size), 0)
+        halo.paste(glyph, (gx, gy))
+        img = add_glow(img, halo.filter(ImageFilter.GaussianBlur(radius)), color, strength)
+
+    fill = Image.new("RGB", glyph.size)
+    fp = fill.load()
+    for y in range(gh):
+        color = lerp(IVORY_TOP, IVORY_BOTTOM, y / max(1, gh - 1))
+        for x in range(gw):
+            fp[x, y] = color
+    img.paste(fill.convert("RGBA"), (gx, gy), glyph)
+
+    return img
+
+
+icon = build()
 icon.resize((512, 512), Image.LANCZOS).save(OUT / "icon-512.png", optimize=True)
 icon.resize((192, 192), Image.LANCZOS).save(OUT / "icon-192.png", optimize=True)
-icon.resize((180, 180), Image.LANCZOS).save(OUT / "apple-touch-icon.png", optimize=True)
+build(rounded=False).resize((180, 180), Image.LANCZOS).save(
+    OUT / "apple-touch-icon.png", optimize=True
+)
+build(maskable=True).resize((512, 512), Image.LANCZOS).save(
+    OUT / "icon-maskable-512.png", optimize=True
+)
 
-mask = base_icon(maskable=True)
-mask.resize((512, 512), Image.LANCZOS).save(OUT / "icon-maskable-512.png", optimize=True)
-
-svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#0c162a"/>
-      <stop offset="1" stop-color="#070b14"/>
-    </linearGradient>
-    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#22c55e"/>
-      <stop offset="1" stop-color="#4ade80"/>
-    </linearGradient>
-  </defs>
-  <rect width="64" height="64" rx="14" fill="url(#bg)"/>
-  <circle cx="32" cy="32" r="18.5" fill="none" stroke="#1e293b" stroke-width="3.2"/>
-  <path d="M32 13.5a18.5 18.5 0 1 1-16.1 9.4" fill="none" stroke="url(#ring)"
-        stroke-width="3.2" stroke-linecap="round"/>
-  <path d="M23.2 32.6 29.3 38.7 41.4 24.6" fill="none" stroke="#f8fafc"
-        stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
-"""
-(OUT / "favicon.svg").write_text(svg)
-
-print("Icons generated:", ", ".join(p.name for p in sorted(OUT.glob("*"))))
+print("Icons generated:", ", ".join(p.name for p in sorted(OUT.glob("*.png"))))

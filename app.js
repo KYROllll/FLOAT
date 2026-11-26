@@ -1,13 +1,13 @@
 /* ==========================================================================
-   ARENA // DAILY OS
+   AURA // DAILY OS
    Daily discipline, streaks, challenges and programs. Vanilla JS, no deps.
-   Storage: localStorage "arena.daily.v2"
+   Storage: localStorage "aura.daily.v3" (reads the old ARENA keys once)
    ========================================================================== */
 (function () {
   'use strict';
 
-  var STORAGE_KEY = 'arena.daily.v2';
-  var LEGACY_KEY = 'arena.daily.v1';
+  var STORAGE_KEY = 'aura.daily.v3';
+  var LEGACY_KEYS = ['arena.daily.v2', 'arena.daily.v1'];
   var MAX_TITLE = 80;
   var MAX_WHY = 120;
   var MAX_ITEMS = 12;
@@ -17,10 +17,10 @@
   var RING_LEN = 552.92;
   var FOCUS_LENGTHS = [15, 25, 45, 60];
   var ACCENTS = [
-    ['#8b5cf6', '#22d3ee'],
-    ['#f97316', '#fbbf24'],
-    ['#22c55e', '#00e676'],
-    ['#ec4899', '#8b5cf6']
+    ['#8b5cf6', '#f5c94e'],
+    ['#f5c94e', '#ff9f1c'],
+    ['#ef7ac0', '#8b5cf6'],
+    ['#22c55e', '#00e676']
   ];
 
   var CHECK_SVG =
@@ -269,7 +269,7 @@
 
   function seedState() {
     return {
-      v: 2,
+      v: 3,
       view: 'today',
       tasks: seedTasks(),
       history: {},
@@ -376,9 +376,12 @@
 
     var raw = parse(STORAGE_KEY);
     if (!raw || typeof raw !== 'object' || !Array.isArray(raw.tasks)) {
-      var legacy = parse(LEGACY_KEY);
-      if (legacy && Array.isArray(legacy.tasks)) {
-        raw = { tasks: legacy.tasks, history: legacy.history };
+      for (var i = 0; i < LEGACY_KEYS.length; i += 1) {
+        var legacy = parse(LEGACY_KEYS[i]);
+        if (legacy && Array.isArray(legacy.tasks)) {
+          raw = legacy;
+          break;
+        }
       }
     }
     if (!raw || typeof raw !== 'object' || !Array.isArray(raw.tasks)) return seedState();
@@ -432,7 +435,7 @@
     if (FOCUS_LENGTHS.indexOf(minutes) === -1) minutes = 25;
 
     return {
-      v: 2,
+      v: 3,
       view: raw.view === 'challenges' || raw.view === 'programs' ? raw.view : 'today',
       tasks: tasks,
       history: history,
