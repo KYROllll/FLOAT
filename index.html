@@ -513,6 +513,32 @@
     </section>
   </div>
 
+  <!-- ========================= HOLD TO CONFIRM ========================= -->
+  <div class="confirm" id="confirm" hidden>
+    <div class="confirm-veil" id="confirmVeil"></div>
+
+    <section
+      class="confirm-panel"
+      id="confirmPanel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="confirmTitle"
+      aria-describedby="confirmNote"
+    >
+      <p class="confirm-kicker">Hold to confirm</p>
+      <h2 class="confirm-title" id="confirmTitle">Delete this task?</h2>
+      <p class="confirm-item" id="confirmItem" dir="auto"></p>
+      <p class="confirm-note" id="confirmNote"></p>
+
+      <button class="confirm-hold" id="confirmHold" type="button" aria-label="Hold to confirm deletion">
+        <span class="confirm-hold-fill" id="confirmHoldFill" aria-hidden="true"></span>
+        <span class="confirm-hold-text" id="confirmHoldText">Hold to delete</span>
+      </button>
+
+      <button class="confirm-cancel" id="confirmCancel" type="button">Cancel</button>
+    </section>
+  </div>
+
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
   <noscript>

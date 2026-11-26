@@ -104,6 +104,14 @@
     sheetClose: document.getElementById('sheetClose'),
     sheetCancel: document.getElementById('sheetCancel'),
     sheetDelete: document.getElementById('sheetDelete'),
+    confirm: document.getElementById('confirm'),
+    confirmVeil: document.getElementById('confirmVeil'),
+    confirmTitle: document.getElementById('confirmTitle'),
+    confirmItem: document.getElementById('confirmItem'),
+    confirmNote: document.getElementById('confirmNote'),
+    confirmHold: document.getElementById('confirmHold'),
+    confirmHoldText: document.getElementById('confirmHoldText'),
+    confirmCancel: document.getElementById('confirmCancel'),
     taskForm: document.getElementById('taskForm'),
     fieldTitle: document.getElementById('fieldTitle'),
     fieldWhy: document.getElementById('fieldWhy'),
@@ -809,7 +817,9 @@
     del.innerHTML = X_SVG;
     del.addEventListener('click', function (event) {
       event.stopPropagation();
-      removeTask(task.id);
+      askDelete(task.recurring ? 'habit' : 'task', task.title, function () {
+        removeTask(task.id);
+      });
     });
     side.appendChild(del);
 
@@ -885,6 +895,13 @@
     btn.innerHTML = X_SVG;
     btn.addEventListener('click', handler);
     return btn;
+  }
+
+  function removeChallenge(ch) {
+    state.challenges = state.challenges.filter(function (item) { return item.id !== ch.id; });
+    save();
+    renderAll();
+    toast('Challenge deleted');
   }
 
   function renderChallenges() {
@@ -1022,20 +1039,14 @@
         actions.appendChild(start);
         if (manageChallenges) {
           actions.appendChild(deleteButton('Delete ' + ch.title, function () {
-            state.challenges = state.challenges.filter(function (item) { return item.id !== ch.id; });
-            save();
-            renderAll();
-            toast('Challenge deleted');
+            askDelete('challenge', ch.title, function () { removeChallenge(ch); });
           }));
         }
         card.appendChild(actions);
       } else if (manageChallenges) {
         var manageRow = makeEl('div', 'track-actions');
         manageRow.appendChild(deleteButton('Delete ' + ch.title, function () {
-          state.challenges = state.challenges.filter(function (item) { return item.id !== ch.id; });
-          save();
-          renderAll();
-          toast('Challenge deleted');
+          askDelete('challenge', ch.title, function () { removeChallenge(ch); });
         }));
         card.appendChild(manageRow);
       }
@@ -1181,24 +1192,32 @@
       });
       card.appendChild(steps);
 
-      var actions = makeEl('div', 'track-actions');
-      var start = makeEl('button', 'track-btn is-primary',
-        st.kind === 'idle' ? 'Start program' : st.kind === 'won' ? 'Start again' : 'Restart');
-      start.type = 'button';
-      start.addEventListener('click', function () {
-        startProgram(p);
-      });
-      actions.appendChild(start);
+      /* A live program has no one-tap reset: restarting it would wipe the day
+         count, so the only action left is the managed delete. */
+      if (st.kind !== 'live' || managePrograms) {
+        var actions = makeEl('div', 'track-actions');
+        if (st.kind !== 'live') {
+          var start = makeEl('button', 'track-btn is-primary',
+            st.kind === 'idle' ? 'Start program' : 'Start again');
+          start.type = 'button';
+          start.addEventListener('click', function () {
+            startProgram(p);
+          });
+          actions.appendChild(start);
+        }
 
-      if (managePrograms) {
-        actions.appendChild(deleteButton('Delete ' + p.title, function () {
-          state.programs = state.programs.filter(function (item) { return item.id !== p.id; });
-          save();
-          renderAll();
-          toast('Program removed — habits kept');
-        }));
+        if (managePrograms) {
+          actions.appendChild(deleteButton('Delete ' + p.title, function () {
+            askDelete('program', p.title, function () {
+              state.programs = state.programs.filter(function (item) { return item.id !== p.id; });
+              save();
+              renderAll();
+              toast('Program removed — habits kept');
+            });
+          }));
+        }
+        card.appendChild(actions);
       }
-      card.appendChild(actions);
 
       els.programList.appendChild(card);
     });
@@ -1682,6 +1701,115 @@
     else saveTrack();
   }
 
+  /* ------------------------- hold-to-confirm delete ----------------------- */
+
+  /* Deleting is permanent, so every × opens this dialog instead of firing at
+     once: the action only runs after a deliberate press-and-hold. Releasing
+     early cancels, and the fill shows how much of the hold is left. */
+
+  var CONFIRM_HOLD_MS = 900;
+  var confirmCallback = null;
+  var confirmOpener = null;
+  var confirmStartAt = 0;
+  var confirmRaf = 0;
+  var confirmDone = false;
+
+  var CONFIRM_COPY = {
+    task: {
+      title: 'Delete this task?',
+      note: 'It leaves today’s plan and its streak history is cleared.'
+    },
+    habit: {
+      title: 'Delete this non-negotiable?',
+      note: 'Its daily ticks and streak are cleared with it.'
+    },
+    challenge: {
+      title: 'Delete this challenge?',
+      note: 'Every logged win goes with it.'
+    },
+    program: {
+      title: 'Delete this program?',
+      note: 'Habits it already added to your plan stay put.'
+    }
+  };
+
+  function askDelete(kind, title, onConfirm) {
+    var copy = CONFIRM_COPY[kind] || CONFIRM_COPY.task;
+    confirmCallback = onConfirm;
+    confirmOpener = document.activeElement;
+    if (confirmOpener && typeof confirmOpener.blur === 'function') confirmOpener.blur();
+    els.confirmTitle.textContent = copy.title;
+    els.confirmItem.textContent = title || '';
+    els.confirmNote.textContent = copy.note;
+    resetConfirmHold();
+    confirmDone = false;
+    els.confirm.hidden = false;
+    document.body.classList.add('confirm-open');
+    window.setTimeout(function () {
+      if (!els.confirm.hidden) els.confirmHold.focus();
+    }, 40);
+  }
+
+  function closeConfirm(restoreFocus) {
+    resetConfirmHold();
+    confirmCallback = null;
+    els.confirm.hidden = true;
+    document.body.classList.remove('confirm-open');
+    var opener = confirmOpener;
+    confirmOpener = null;
+    if (!restoreFocus || !opener) return;
+    if (!document.contains(opener) || opener.offsetParent === null) return;
+    try { opener.focus({ preventScroll: true }); } catch (err) { /* ignore */ }
+  }
+
+  function resetConfirmHold() {
+    if (confirmRaf) {
+      window.cancelAnimationFrame(confirmRaf);
+      confirmRaf = 0;
+    }
+    confirmStartAt = 0;
+    els.confirmHold.classList.remove('is-holding');
+    els.confirmHold.style.setProperty('--hold', '0');
+    els.confirmHoldText.textContent = 'Hold to delete';
+  }
+
+  function startConfirmHold(event) {
+    if (event) event.preventDefault();
+    if (els.confirm.hidden || confirmRaf || confirmDone) return;
+    confirmStartAt = 0;
+    els.confirmHold.classList.add('is-holding');
+    els.confirmHoldText.textContent = 'Keep holding…';
+    vibrate(6);
+    confirmRaf = window.requestAnimationFrame(stepConfirmHold);
+  }
+
+  function stepConfirmHold(now) {
+    confirmRaf = 0;
+    if (!confirmStartAt) confirmStartAt = now;
+    var ratio = Math.min(1, (now - confirmStartAt) / CONFIRM_HOLD_MS);
+    els.confirmHold.style.setProperty('--hold', ratio.toFixed(4));
+    if (ratio >= 1) {
+      finishConfirmHold();
+      return;
+    }
+    confirmRaf = window.requestAnimationFrame(stepConfirmHold);
+  }
+
+  function finishConfirmHold() {
+    if (confirmDone) return;
+    confirmDone = true;
+    if (confirmRaf) {
+      window.cancelAnimationFrame(confirmRaf);
+      confirmRaf = 0;
+    }
+    els.confirmHold.style.setProperty('--hold', '1');
+    els.confirmHold.classList.remove('is-holding');
+    vibrate(18);
+    var run = confirmCallback;
+    closeConfirm(false);
+    if (run) run();
+  }
+
   function removeTask(id) {
     state.tasks = state.tasks.filter(function (t) { return t.id !== id; });
     Object.keys(state.history).forEach(function (key) {
@@ -1697,8 +1825,12 @@
   function deleteFromSheet() {
     if (!editingId) return;
     var id = editingId;
-    closeSheet();
-    removeTask(id);
+    var task = state.tasks.filter(function (t) { return t.id === id; })[0];
+    if (!task) return;
+    askDelete(task.recurring ? 'habit' : 'task', task.title, function () {
+      closeSheet();
+      removeTask(id);
+    });
   }
 
   /* --------------------------------- audio ------------------------------- */
@@ -1783,6 +1915,32 @@
   els.sheetCancel.addEventListener('click', closeSheet);
   els.sheetVeil.addEventListener('click', closeSheet);
 
+  els.confirmCancel.addEventListener('click', function () { closeConfirm(true); });
+  els.confirmVeil.addEventListener('click', function () { closeConfirm(true); });
+
+  els.confirmHold.addEventListener('pointerdown', startConfirmHold);
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (type) {
+    els.confirmHold.addEventListener(type, function () {
+      if (!confirmDone) resetConfirmHold();
+    });
+  });
+  els.confirmHold.addEventListener('contextmenu', function (event) {
+    event.preventDefault();
+  });
+  els.confirmHold.addEventListener('keydown', function (event) {
+    if (event.key !== ' ' && event.key !== 'Enter') return;
+    if (event.repeat) {
+      event.preventDefault();
+      return;
+    }
+    startConfirmHold(event);
+  });
+  els.confirmHold.addEventListener('keyup', function (event) {
+    if (event.key !== ' ' && event.key !== 'Enter') return;
+    event.preventDefault();
+    if (!confirmDone) resetConfirmHold();
+  });
+
   els.fieldTitle.addEventListener('input', function () {
     if (!els.fieldTitle.value.trim()) return;
     clearError();
@@ -1825,7 +1983,8 @@
 
   document.addEventListener('keydown', function (event) {
     if (event.key !== 'Escape') return;
-    if (!els.sheet.hidden) closeSheet();
+    if (!els.confirm.hidden) closeConfirm(true);
+    else if (!els.sheet.hidden) closeSheet();
     else if (!els.focusLength.hidden) closeLengthPanel();
     else if (focus.open) exitFocus();
   });
@@ -1868,7 +2027,7 @@
   }
 
   function canPull() {
-    if (pull.loading || focus.open || !els.sheet.hidden) return false;
+    if (pull.loading || focus.open || !els.sheet.hidden || !els.confirm.hidden) return false;
     return (window.scrollY || document.documentElement.scrollTop || 0) <= 0;
   }
 

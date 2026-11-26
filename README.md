@@ -22,7 +22,7 @@ Open **http://localhost:8080**. The service worker and Home Screen install need 
 2. **Share → Add to Home Screen**.
 3. Launch it from the Home Screen — it runs standalone, respects the notch and home indicator, and works offline.
 
-The service worker uses cache `aura-v8` and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the current palette, the new app icons and the in-app mark on the next launch.
+The service worker uses cache `aura-v9` and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the current palette, the new app icons and the in-app mark on the next launch.
 
 ---
 
@@ -47,7 +47,7 @@ Each tab keeps its own **+** button, and Challenges/Programs have a pencil to re
 | Edit a task or habit | Tap the card text |
 | Add a task | **+** in the *Ideal Day* header |
 | Add a non-negotiable | **+** in the *Non-Negotiables* header |
-| Delete tasks | **Pencil** → tap **×** on any card |
+| Delete a task, habit, challenge or program | Reveal **×** (pencil / edit) → tap it → **press and hold** to confirm |
 | Review an earlier day | Tap a day in the week strip |
 | Enter Superfocus | Flip the switch on the **Superfocus** card |
 | Start a challenge | **Start challenge** on any challenge card |
@@ -72,7 +72,9 @@ The task sheet has four fields: **Task**, **Why it matters** (the purpose line u
 
 **Challenges** — each card shows status (Not started / Day N / Won / Closed), a violet-to-gold progress meter, one mark per challenge day (won = emerald, missed = red, today = gold), and today's checklist. Checking every daily action wins the day; winning every day wins the challenge.
 
-**Programs** — each card lists its routine items as numbered chips and tracks `Day N / length` plus a completion percentage. **Start** adds any missing routine items to Non-Negotiables (deduped by title) and stamps the start date.
+**Programs** — each card lists its routine items as numbered chips and tracks `Day N / length` plus a completion percentage. **Start** adds any missing routine items to Non-Negotiables (deduped by title) and stamps the start date. A running program has no restart control, so its day count cannot be reset by accident; only a completed program offers **Start again**.
+
+Deleting anything is deliberately slow: the **×** opens a confirmation panel whose red button fills only while you keep pressing, and releasing early cancels.
 
 **Streaks** — a task's streak counts consecutive days ending today, or ending yesterday while today is still open. The pill lights up from three days. The header keeps a *perfect streak*: consecutive days where every task was completed.
 
@@ -141,7 +143,7 @@ style.css                  Near-black palette, ambient indigo/gold aura, header 
 app.js                     State, migration, history, verdicts, streaks, challenges,
                            programs, focus timer, chime, zoom lock
 manifest.json              PWA manifest (AURA, standalone, portrait)
-sw.js                      Offline cache — aura-v8
+sw.js                      Offline cache — aura-v9
 AURALOGO.png               Official logo tile (source for every app icon)
 AURALOGO-ONLY.png          Wordmark alone, alpha cut (source for the in-app mark)
 assets/aura-mark.png       Header/footer mark, trimmed and scaled from AURALOGO-ONLY
