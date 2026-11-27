@@ -436,6 +436,8 @@
     scaleFill: document.getElementById('scaleFill'),
     scaleMarker: document.getElementById('scaleMarker'),
     scaleStatus: document.getElementById('scaleStatus'),
+    restToggle: document.getElementById('restToggle'),
+    restToggleText: document.getElementById('restToggleText'),
     focusSub: document.getElementById('focusSub'),
     focusSessions: document.getElementById('focusSessions'),
     focusSwitch: document.getElementById('focusSwitch'),
@@ -461,8 +463,10 @@
     calTally: document.getElementById('calTally'),
     calWins: document.getElementById('calWins'),
     calLosses: document.getElementById('calLosses'),
+    calRest: document.getElementById('calRest'),
     calWinWord: document.getElementById('calWinWord'),
     calLossWord: document.getElementById('calLossWord'),
+    calRestWord: document.getElementById('calRestWord'),
     calSub: document.getElementById('calSub'),
     calWeekdays: document.getElementById('calWeekdays'),
     calGrid: document.getElementById('calGrid'),
@@ -531,6 +535,8 @@
     taskExtras: document.getElementById('taskExtras'),
     trackExtras: document.getElementById('trackExtras'),
     trackDates: document.getElementById('trackDates'),
+    challengeModeField: document.getElementById('challengeModeField'),
+    challengeModeHint: document.getElementById('challengeModeHint'),
     fieldDuration: document.getElementById('fieldDuration'),
     fieldItems: document.getElementById('fieldItems'),
     fieldStartDate: document.getElementById('fieldStartDate'),
@@ -568,6 +574,7 @@
   var manageChallenges = false;
   var editingId = null;
   var sheetMode = 'task';
+  var sheetChallengeMode = 'habit';
   var newRecurring = false;
   var toastTimer = 0;
   var audioCtx = null;
@@ -721,11 +728,13 @@
         duration: 7,
         startDate: today,
         endDate: shiftKey(today, 6),
+        mode: 'habit',
         daily: [
           { id: uid(), title: 'No added sugar' },
           { id: uid(), title: '2L water' },
           { id: uid(), title: '20 minute walk' }
         ],
+        plan: [],
         startedAt: null,
         log: {}
       },
@@ -736,11 +745,13 @@
         duration: 14,
         startDate: today,
         endDate: shiftKey(today, 13),
+        mode: 'habit',
         daily: [
           { id: uid(), title: '90 min deep work' },
           { id: uid(), title: 'Phone in another room' },
           { id: uid(), title: 'Shutdown ritual at 18:00' }
         ],
+        plan: [],
         startedAt: null,
         log: {}
       }
@@ -856,6 +867,7 @@
       view: 'today',
       tasks: seedTasks(),
       days: {},
+      restDays: {},
       challenges: seedChallenges(),
       programs: seedPrograms(),
       workouts: seedWorkouts(),
@@ -928,9 +940,51 @@
     if (!raw || typeof raw !== 'object') return null;
     var title = trimText(raw.title, MAX_TITLE);
     if (!title) return null;
+
+    var duration = clampDays(raw.duration);
+    var startedAt = validDateKey(raw.startedAt);
+    var startDate = validDateKey(raw.startDate) || startedAt || keyOf(new Date());
+    var endDate = validDateKey(raw.endDate);
+
+    /* An explicit start-to-end range wins: the length follows the dates. */
+    if (endDate && endDate > startDate) {
+      duration = clampDays(daysBetween(startDate, endDate) + 1);
+    }
+    endDate = shiftKey(startDate, duration - 1);
+
     var daily = normalizeDaily(raw.daily);
     var seen = {};
     daily.forEach(function (item) { seen[item.id] = true; });
+
+    /* Build mode keeps one slot per day. Every slot owns its own items, so a
+       day is judged by that day's milestone, not by a shared checklist. */
+    var mode = raw.mode === 'build' ? 'build' : 'habit';
+    var plan = [];
+    if (mode === 'build') {
+      var rawPlan = Array.isArray(raw.plan) ? raw.plan : [];
+      for (var i = 0; i < duration; i += 1) {
+        var slot = rawPlan[i];
+        var rawItems = slot && Array.isArray(slot.items)
+          ? slot.items
+          : (Array.isArray(slot) ? slot : []);
+        var items = [];
+        for (var j = 0; j < rawItems.length && items.length < MAX_ITEMS; j += 1) {
+          var entry = rawItems[j];
+          var text = trimText(typeof entry === 'string' ? entry : entry && entry.title, MAX_TITLE);
+          if (!text) continue;
+          var itemId = entry && typeof entry.id === 'string' && entry.id ? entry.id : uid();
+          if (seen[itemId]) itemId = uid();
+          seen[itemId] = true;
+          items.push({ id: itemId, title: text });
+        }
+        if (!items.length) {
+          var fallbackId = uid();
+          seen[fallbackId] = true;
+          items.push({ id: fallbackId, title: 'Day ' + (i + 1) + ' milestone' });
+        }
+        plan.push({ items: items });
+      }
+    }
 
     var log = {};
     if (raw.log && typeof raw.log === 'object') {
@@ -946,25 +1000,16 @@
       });
     }
 
-    var duration = clampDays(raw.duration);
-    var startedAt = validDateKey(raw.startedAt);
-    var startDate = validDateKey(raw.startDate) || startedAt || keyOf(new Date());
-    var endDate = validDateKey(raw.endDate);
-
-    /* An explicit start-to-end range wins: the length follows the dates. */
-    if (endDate && endDate > startDate) {
-      duration = clampDays(daysBetween(startDate, endDate) + 1);
-    }
-    endDate = shiftKey(startDate, duration - 1);
-
     return {
       id: typeof raw.id === 'string' && raw.id ? raw.id : uid(),
       title: title,
       why: trimText(raw.why, MAX_WHY),
+      mode: mode,
       duration: duration,
       startDate: startDate,
       endDate: endDate,
       daily: daily,
+      plan: plan,
       startedAt: startedAt,
       log: log
     };
@@ -1242,12 +1287,22 @@
       seconds = 0;
     }
 
+    /* Rest days are deliberate recovery dates. They carry no verdict, so
+       they are stored separately from the day records. */
+    var restDays = {};
+    if (raw.restDays && typeof raw.restDays === 'object') {
+      Object.keys(raw.restDays).forEach(function (key) {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(key) && raw.restDays[key]) restDays[key] = true;
+      });
+    }
+
     return {
       v: 3,
       /* Older builds stored a Programs/Workouts tab; both now live on Today. */
       view: raw.view === 'challenges' || raw.view === 'calendar' ? raw.view : 'today',
       tasks: tasks,
       days: days,
+      restDays: restDays,
       challenges: challenges,
       programs: programs,
       workouts: workouts,
@@ -1295,9 +1350,11 @@
     }
     var sameDays = JSON.stringify(stored.days) === JSON.stringify(state.days);
     var sameTasks = JSON.stringify(stored.tasks) === JSON.stringify(state.tasks);
-    if (sameDays && sameTasks) return;
+    var sameRest = JSON.stringify(stored.restDays) === JSON.stringify(state.restDays);
+    if (sameDays && sameTasks && sameRest) return;
     state.tasks = stored.tasks;
     state.days = stored.days;
+    state.restDays = stored.restDays;
     renderAll();
   }
 
@@ -1419,11 +1476,26 @@
 
   function streakFor(task, key) {
     var cursor = key;
-    if (!taskDoneOn(task, cursor)) cursor = shiftKey(cursor, -1);
     var n = 0;
-    while (n < MAX_STREAK && taskDoneOn(task, cursor)) {
-      n += 1;
-      cursor = shiftKey(cursor, -1);
+    var guard = 0;
+    while (guard < MAX_STREAK) {
+      guard += 1;
+      /* Rest days freeze the run without adding to it. */
+      if (isRestDay(cursor)) {
+        cursor = shiftKey(cursor, -1);
+        continue;
+      }
+      if (taskDoneOn(task, cursor)) {
+        n += 1;
+        cursor = shiftKey(cursor, -1);
+        continue;
+      }
+      /* An unfinished today can still be saved by yesterday's run. */
+      if (cursor === key) {
+        cursor = shiftKey(cursor, -1);
+        continue;
+      }
+      break;
     }
     return n;
   }
@@ -1435,11 +1507,25 @@
   }
 
   function perfectStreak() {
-    if (!activeTasksOn(todayKey).length) return 0;
+    /* A rest day is skipped rather than counted, so it freezes the run
+       without padding it. An unfinished today can still be saved. */
+    if (!isRestDay(todayKey) && !activeTasksOn(todayKey).length) return 0;
     var cursor = todayKey;
-    if (!allDone(cursor)) cursor = shiftKey(cursor, -1);
     var n = 0;
-    while (n < MAX_STREAK && allDone(cursor)) {
+    var guard = 0;
+    while (guard < MAX_STREAK) {
+      guard += 1;
+      if (isRestDay(cursor)) {
+        cursor = shiftKey(cursor, -1);
+        continue;
+      }
+      if (!allDone(cursor)) {
+        if (cursor === todayKey) {
+          cursor = shiftKey(cursor, -1);
+          continue;
+        }
+        break;
+      }
       n += 1;
       cursor = shiftKey(cursor, -1);
     }
@@ -1516,8 +1602,12 @@
       dot.setAttribute('aria-hidden', 'true');
 
       /* An open day carries a live dot; a closed day carries its final mark.
-         Empty days stay neutral — never a red mark for having nothing planned. */
-      if (result.total) {
+         Rest days get their own neutral moon, never a red cross. Empty days
+         stay neutral — never a red mark for having nothing planned. */
+      if (result.rest) {
+        dot.classList.add('is-rest');
+        dot.textContent = '☾';
+      } else if (result.total) {
         if (key < todayKey) {
           if (result.won) {
             dot.classList.add('is-check');
@@ -1534,7 +1624,9 @@
       var label = d.toLocaleDateString(undefined, {
         weekday: 'long', month: 'short', day: 'numeric'
       });
-      if (key < todayKey && result.total) {
+      if (result.rest) {
+        label += ' — rest day, streak frozen';
+      } else if (key < todayKey && result.total) {
         label += ' — closed, ' + (result.won ? 'win' : 'loss') +
           ', ' + result.done + ' of ' + result.total;
       } else if (key === todayKey && result.total) {
@@ -1581,12 +1673,55 @@
     return state.challenges.filter(function (ch) { return challengeActiveOn(ch, key); });
   }
 
+  /* A rest day is intentional recovery: no WIN, no LOSS, and it never breaks
+     a streak or enters a win rate. */
+  function isRestDay(key) {
+    return !!(state.restDays && state.restDays[key]);
+  }
+
+  function challengeMode(ch) {
+    return ch && ch.mode === 'build' ? 'build' : 'habit';
+  }
+
+  /* Habit mode repeats one checklist every day. Build mode gives every date
+     its own slot, so only that day's milestone counts. */
+  function challengeItemsFor(ch, key) {
+    if (!ch) return [];
+    if (challengeMode(ch) === 'habit') return ch.daily || [];
+    var index = ch.startDate ? daysBetween(ch.startDate, key) : -1;
+    if (index < 0 || index >= ch.duration) return [];
+    var slot = ch.plan && ch.plan[index];
+    return slot && Array.isArray(slot.items) ? slot.items : [];
+  }
+
+  function challengeDayComplete(ch, key) {
+    var items = challengeItemsFor(ch, key);
+    if (!items.length) return false;
+    var log = (ch.log && ch.log[key]) || [];
+    for (var i = 0; i < items.length; i += 1) {
+      if (log.indexOf(items[i].id) === -1) return false;
+    }
+    return true;
+  }
+
+  function challengeRestCount(ch) {
+    var n = 0;
+    for (var i = 0; i < ch.duration; i += 1) {
+      if (isRestDay(shiftKey(ch.startDate, i))) n += 1;
+    }
+    return n;
+  }
+
+  function challengeActiveDays(ch) {
+    return Math.max(1, ch.duration - challengeRestCount(ch));
+  }
+
   function challengeDayStats(key) {
     var total = 0;
     var done = 0;
     challengesOn(key).forEach(function (ch) {
       var log = (ch.log && ch.log[key]) || [];
-      ch.daily.forEach(function (item) {
+      challengeItemsFor(ch, key).forEach(function (item) {
         total += 1;
         if (log.indexOf(item.id) !== -1) done += 1;
       });
@@ -1603,16 +1738,19 @@
     var total = taskTotal + challenge.total;
     var done = taskDone + challenge.done;
     var pct = total ? Math.round((done / total) * 100) : 0;
+    var rest = isRestDay(key);
     return {
       total: total,
       done: done,
       pct: pct,
       tasks: { total: taskTotal, done: taskDone },
       challenge: challenge,
+      rest: rest,
       /* No items at all is not a failure: the day simply carries no score. */
       empty: total === 0,
-      won: total > 0 && pct >= WON_AT,
-      perfect: total > 0 && done === total
+      /* A rest day is never a win, even when every box was ticked. */
+      won: !rest && total > 0 && pct >= WON_AT,
+      perfect: !rest && total > 0 && done === total
     };
   }
 
@@ -1622,12 +1760,15 @@
     var done = result.done;
     var pct = result.pct;
     var empty = result.empty;
-    var color = empty ? '#8d879b'
-      : pct >= WON_AT ? '#34d399' : pct >= 34 ? '#fbbf24' : '#ff6b6b';
-    var glow = empty ? 'rgba(141, 135, 155, 0.14)'
-      : pct >= WON_AT
-        ? 'rgba(34, 197, 94, 0.24)'
-        : pct >= 34 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)';
+    var rest = result.rest;
+    var color = rest ? '#b9a7f5'
+      : empty ? '#8d879b'
+        : pct >= WON_AT ? '#34d399' : pct >= 34 ? '#fbbf24' : '#ff6b6b';
+    var glow = rest ? 'rgba(139, 92, 246, 0.22)'
+      : empty ? 'rgba(141, 135, 155, 0.14)'
+        : pct >= WON_AT
+          ? 'rgba(34, 197, 94, 0.24)'
+          : pct >= 34 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)';
 
     els.progressDone.textContent = String(done);
     els.progressTotal.textContent = String(total);
@@ -1648,7 +1789,10 @@
 
     var won = result.won;
 
-    if (empty) {
+    if (rest) {
+      els.scaleStatus.textContent = 'Rest day · streak frozen';
+      els.scaleStatus.classList.remove('is-win');
+    } else if (empty) {
       els.scaleStatus.textContent = 'Nothing scheduled · neutral day';
       els.scaleStatus.classList.remove('is-win');
     } else if (won) {
@@ -1660,18 +1804,31 @@
       els.scaleStatus.classList.remove('is-win');
     }
 
-    /* An empty day is neither won nor lost, so it never wears the LOSS badge. */
-    els.progressVerdict.textContent = empty ? 'CLEAR' : won ? 'WIN' : 'LOSS';
-    els.progressVerdict.dataset.state = empty ? 'clear' : won ? 'win' : 'loss';
+    /* An empty day is neither won nor lost, and a rest day is deliberately
+       neither, so neither ever wears the LOSS badge. */
+    els.progressVerdict.textContent = rest ? 'REST' : empty ? 'CLEAR' : won ? 'WIN' : 'LOSS';
+    els.progressVerdict.dataset.state = rest ? 'rest' : empty ? 'clear' : won ? 'win' : 'loss';
     els.progressVerdict.setAttribute(
       'aria-label',
-      empty
-        ? 'Day status: nothing scheduled'
-        : 'Day status: ' + (won ? 'WIN' : 'LOSS') + ' — ' + done + ' of ' + total +
-            ' tasks done, ' + WON_AT + '% needed to win'
+      rest
+        ? 'Day status: rest day, no win or loss'
+        : empty
+          ? 'Day status: nothing scheduled'
+          : 'Day status: ' + (won ? 'WIN' : 'LOSS') + ' — ' + done + ' of ' + total +
+              ' tasks done, ' + WON_AT + '% needed to win'
     );
 
-    if (selectedKey !== todayKey) {
+    if (els.restToggle) {
+      els.restToggle.classList.toggle('is-on', rest);
+      els.restToggle.setAttribute('aria-pressed', rest ? 'true' : 'false');
+      if (els.restToggleText) {
+        els.restToggleText.textContent = rest ? 'Rest day on' : 'Rest day';
+      }
+    }
+
+    if (rest) {
+      els.topMeta.textContent = 'Rest day. Recovery is part of the plan.';
+    } else if (selectedKey !== todayKey) {
       els.topMeta.textContent = total
         ? 'Reviewing an earlier day.'
         : 'Nothing was scheduled on this day.';
@@ -1810,30 +1967,37 @@
     }
     els.challengeTodaySection.hidden = false;
 
+    var rest = isRestDay(todayKey);
     var total = 0;
     var doneTotal = 0;
     list.forEach(function (ch) {
       var log = ch.log[todayKey] || [];
-      total += ch.daily.length;
-      doneTotal += ch.daily.filter(function (item) {
+      var items = challengeItemsFor(ch, todayKey);
+      total += items.length;
+      doneTotal += items.filter(function (item) {
         return log.indexOf(item.id) !== -1;
       }).length;
     });
     els.challengeTodayCount.textContent = doneTotal + ' of ' + total +
-      ' actions · ' + list.length + ' running';
+      ' actions · ' + list.length + ' running' + (rest ? ' · rest day' : '');
 
     list.forEach(function (ch) {
       var st = challengeStatus(ch);
       var log = ch.log[todayKey] || [];
-      var done = ch.daily.filter(function (item) {
+      var items = challengeItemsFor(ch, todayKey);
+      var done = items.filter(function (item) {
         return log.indexOf(item.id) !== -1;
       }).length;
-      var complete = done === ch.daily.length && ch.daily.length > 0;
+      /* A rest day is never a fake win, even with every box ticked. */
+      var complete = !rest && done === items.length && items.length > 0;
+      var build = challengeMode(ch) === 'build';
+      var dayNo = daysBetween(ch.startDate, todayKey) + 1;
 
       /* The whole header follows the title's direction, so a Hebrew title
          starts at the right edge and the win chip moves to the left. */
       var dir = textDir(ch.title);
-      var card = makeEl('article', 'today-challenge-card' + (complete ? ' is-done' : ''));
+      var card = makeEl('article', 'today-challenge-card' +
+        (complete ? ' is-done' : '') + (rest ? ' is-rest' : ''));
       card.dir = dir;
       var head = makeEl('div', 'today-challenge-head');
       head.dir = dir;
@@ -1841,20 +2005,23 @@
       var title = makeEl('h3', 'today-challenge-name', ch.title);
       title.dir = 'auto';
       wrap.appendChild(title);
-      var meta = makeEl('p', 'today-challenge-meta',
-        st.label + ' · ' + done + ' of ' + ch.daily.length + ' today');
+      var metaText = rest
+        ? 'Rest day · streak frozen'
+        : (build ? 'Day ' + dayNo + ' milestone · ' : '') +
+          done + ' of ' + items.length + ' today';
+      var meta = makeEl('p', 'today-challenge-meta', metaText);
       meta.dir = dir;
       wrap.appendChild(meta);
       head.appendChild(wrap);
       var chip = makeEl('span', 'today-challenge-chip',
-        complete ? 'DAY WON' : st.won + ' WINS');
+        rest ? 'REST DAY' : complete ? 'DAY WON' : st.won + ' WINS');
       /* Keep “0 WINS” in reading order inside a right-to-left header. */
       chip.dir = 'ltr';
       head.appendChild(chip);
       card.appendChild(head);
 
       var listEl = makeEl('ul', 'mini-list today-challenge-items');
-      ch.daily.forEach(function (item) {
+      items.forEach(function (item) {
         var ticked = log.indexOf(item.id) !== -1;
         var li = makeEl('li', 'mini-item' + (ticked ? ' is-done' : ''));
         /* Every row in the card follows the challenge direction, so the
@@ -1911,56 +2078,54 @@
   /* ------------------------------ challenges ----------------------------- */
 
   function challengeWonDays(ch) {
-    if (!ch.startDate || !ch.daily.length) return 0;
+    if (!ch.startDate) return 0;
     var n = 0;
-    for (var i = 0; i < ch.duration; i++) {
+    for (var i = 0; i < ch.duration; i += 1) {
       var key = shiftKey(ch.startDate, i);
       if (key > todayKey) break;
-      var list = ch.log[key] || [];
-      var complete = true;
-      for (var j = 0; j < ch.daily.length; j++) {
-        if (list.indexOf(ch.daily[j].id) === -1) { complete = false; break; }
-      }
-      if (complete) n += 1;
+      /* Rest days are skipped: they neither add a win nor break the run. */
+      if (isRestDay(key)) continue;
+      if (challengeDayComplete(ch, key)) n += 1;
     }
     return n;
   }
 
-  /* The same 67% standard the day scale uses, scaled to the whole window: a
-     challenge is won by clearing at least 67% of its days. */
+  /* The same 67% standard the day scale uses, scaled to the challenge's
+     active days: rest days are removed from both sides of the ratio. */
   function challengeThreshold(ch) {
-    return Math.max(1, Math.ceil(ch.duration * WON_AT / 100));
+    return Math.max(1, Math.ceil(challengeActiveDays(ch) * WON_AT / 100));
   }
 
   /* A challenge runs by its dates alone — no start button to forget. */
   function challengeStatus(ch) {
     var won = challengeWonDays(ch);
+    var activeDays = challengeActiveDays(ch);
     var threshold = challengeThreshold(ch);
-    var pct = Math.round((won / ch.duration) * 100);
+    var pct = Math.round((won / activeDays) * 100);
 
     if (todayKey < ch.startDate) {
       return {
         kind: 'scheduled', label: 'Starts ' + shortDate(ch.startDate),
-        day: 0, won: 0, pct: 0, threshold: threshold
+        day: 0, won: 0, pct: 0, threshold: threshold, activeDays: activeDays
       };
     }
     if (todayKey > ch.endDate) {
       var verdict = won >= threshold ? 'win' : 'loss';
       return {
         kind: 'over', label: verdict === 'win' ? 'Win' : 'Loss', day: ch.duration,
-        won: won, pct: pct, threshold: threshold, verdict: verdict
+        won: won, pct: pct, threshold: threshold, verdict: verdict, activeDays: activeDays
       };
     }
-    if (won >= ch.duration) {
+    if (won >= activeDays) {
       return {
         kind: 'won', label: 'Win', day: ch.duration, won: won, pct: 100,
-        threshold: threshold, verdict: 'win'
+        threshold: threshold, verdict: 'win', activeDays: activeDays
       };
     }
     var raw = daysBetween(ch.startDate, todayKey) + 1;
     return {
       kind: 'live', label: 'Day ' + raw + ' / ' + ch.duration, day: raw, won: won,
-      pct: pct, threshold: threshold
+      pct: pct, threshold: threshold, activeDays: activeDays
     };
   }
 
@@ -1971,10 +2136,10 @@
     box.appendChild(makeEl('span', 'verdict-badge', win ? 'WIN' : 'LOSS'));
     var copy = makeEl('div', 'verdict-copy');
     copy.appendChild(makeEl('b', 'verdict-title',
-      st.won + ' of ' + ch.duration + ' days won'));
+      st.won + ' of ' + st.activeDays + ' active days won'));
     copy.appendChild(makeEl('span', 'verdict-note', win
-      ? (st.won === ch.duration
-        ? 'Every day cleared — target ' + st.threshold + ' met.'
+      ? (st.won >= st.activeDays
+        ? 'Every active day cleared — target ' + st.threshold + ' met.'
         : 'Target ' + st.threshold + ' days met. Window closed strong.')
       : 'Target ' + st.threshold + ' days · ' + (st.threshold - st.won) + ' short.'));
     box.appendChild(copy);
@@ -2019,11 +2184,16 @@
 
     state.challenges.forEach(function (ch, index) {
       var st = challengeStatus(ch);
+      var todayRest = isRestDay(todayKey);
+      var build = challengeMode(ch) === 'build';
+      var todayItems = challengeItemsFor(ch, todayKey);
+      var todayIndex = daysBetween(ch.startDate, todayKey);
       var accent = ACCENTS[index % ACCENTS.length];
       var card = makeEl('article', 'track-card' +
         (st.verdict === 'win' ? ' is-won' : '') +
         (st.verdict === 'loss' ? ' is-loss' : '') +
-        (st.kind === 'scheduled' ? ' is-scheduled' : ''));
+        (st.kind === 'scheduled' ? ' is-scheduled' : '') +
+        (todayRest && st.kind === 'live' ? ' is-rest' : ''));
       card.style.setProperty('--track-a', accent[0]);
       card.style.setProperty('--track-b', accent[1]);
 
@@ -2040,8 +2210,11 @@
         wrap.appendChild(why);
       }
       top.appendChild(wrap);
-      var statusKind = st.verdict === 'win' ? 'win' : st.verdict === 'loss' ? 'loss' : st.kind;
-      var statusEl = makeEl('span', 'track-status is-' + statusKind, st.label);
+      var statusKind = todayRest && st.kind === 'live'
+        ? 'rest'
+        : st.verdict === 'win' ? 'win' : st.verdict === 'loss' ? 'loss' : st.kind;
+      var statusLabel = todayRest && st.kind === 'live' ? 'Rest day' : st.label;
+      var statusEl = makeEl('span', 'track-status is-' + statusKind, statusLabel);
       statusEl.dir = 'auto';
       top.appendChild(statusEl);
       card.appendChild(top);
@@ -2067,7 +2240,8 @@
       meta.dir = 'ltr';
       meta.appendChild(makeEl('span', null,
         st.kind === 'scheduled'
-          ? 'Starts ' + shortDate(ch.startDate) + ' · ' + ch.daily.length + ' daily actions'
+          ? 'Starts ' + shortDate(ch.startDate) + ' · ' +
+            (build ? ch.duration + ' day slots' : ch.daily.length + ' daily actions')
           : 'Day ' + st.day + ' / ' + ch.duration));
       var wins = makeEl('span');
       var winsNum = makeEl('b', null, String(st.won));
@@ -2080,18 +2254,15 @@
       if (ch.startDate) {
         var daysRow = makeEl('div', 'track-days');
         daysRow.setAttribute('aria-hidden', 'true');
-        var todayIndex = daysBetween(ch.startDate, todayKey);
         for (var i = 0; i < ch.duration; i++) {
           var mark = makeEl('span', 'day-mark');
           var key = shiftKey(ch.startDate, i);
-          var complete = false;
-          if (key <= todayKey) {
-            var list = ch.log[key] || [];
-            complete = ch.daily.length > 0;
-            for (var j = 0; j < ch.daily.length; j++) {
-              if (list.indexOf(ch.daily[j].id) === -1) { complete = false; break; }
-            }
+          if (key <= todayKey && isRestDay(key)) {
+            mark.classList.add('is-rest');
+            daysRow.appendChild(mark);
+            continue;
           }
+          var complete = key <= todayKey && challengeDayComplete(ch, key);
           if (complete) mark.classList.add('is-won');
           else if (i === todayIndex) mark.classList.add('is-today');
           else if (key < todayKey) mark.classList.add('is-missed');
@@ -2103,10 +2274,13 @@
       if (st.kind === 'scheduled') {
         var preview = makeEl('div', 'track-check');
         preview.appendChild(makeEl('p', 'track-check-label',
-          'Starts ' + shortDate(ch.startDate) + ' · daily checklist'));
+          build
+            ? 'Starts ' + shortDate(ch.startDate) + ' · Day 1 milestone'
+            : 'Starts ' + shortDate(ch.startDate) + ' · daily checklist'));
         var previewList = makeEl('ul', 'mini-list');
+        var previewItems = build ? challengeItemsFor(ch, ch.startDate) : ch.daily;
         /* Read-only here: no check circle. Ticking happens on Today. */
-        ch.daily.forEach(function (item) {
+        previewItems.forEach(function (item) {
           var li = makeEl('li', 'mini-item');
           li.dir = textDir(item.title);
           var text = makeEl('span', 'mini-text', item.title);
@@ -2119,12 +2293,16 @@
       } else if (st.kind === 'live') {
         var block = makeEl('div', 'track-check');
         block.appendChild(makeEl('p', 'track-check-label',
-          'Today · day ' + st.day + ' · check off on Today'));
+          todayRest
+            ? 'Rest day · streak frozen'
+            : build
+              ? 'Today · Day ' + st.day + ' milestone · check off on Today'
+              : 'Today · day ' + st.day + ' · check off on Today'));
         var listEl = makeEl('ul', 'mini-list');
         var doneIds = ch.log[todayKey] || [];
         /* Status only, never a control: the Challenges tab carries no check
            circle at all. Today is the one place a daily action is ticked. */
-        ch.daily.forEach(function (item) {
+        todayItems.forEach(function (item) {
           var done = doneIds.indexOf(item.id) !== -1;
           var li = makeEl('li', 'mini-item' + (done ? ' is-done' : ''));
           li.dir = textDir(item.title);
@@ -2139,7 +2317,7 @@
         card.appendChild(makeEl('p', 'track-check-label', 'Every day won. Run it back?'));
       } else {
         card.appendChild(makeEl('p', 'track-check-label',
-          'Window closed · ' + st.won + ' of ' + ch.duration + ' days won.'));
+          'Window closed · ' + st.won + ' of ' + st.activeDays + ' active days won.'));
       }
 
       var canRestart = st.kind === 'won' || st.kind === 'over';
@@ -2194,12 +2372,16 @@
 
     if (!adding || key !== todayKey) return;
 
-    var all = ch.daily.every(function (item) {
-      return (ch.log[todayKey] || []).indexOf(item.id) !== -1;
-    });
+    /* A rest day still accepts ticks, but it never announces a win. */
+    if (isRestDay(todayKey)) {
+      vibrate(8);
+      return;
+    }
 
-    if (challengeWonDays(ch) >= ch.duration) {
-      toast('Challenge won — every day cleared');
+    var all = challengeDayComplete(ch, todayKey);
+
+    if (challengeWonDays(ch) >= challengeActiveDays(ch)) {
+      toast('Challenge won — every active day cleared');
     } else if (all) {
       toast('Day ' + (daysBetween(ch.startDate, todayKey) + 1) + ' won');
     } else {
@@ -3904,14 +4086,18 @@
 
     var wins = 0;
     var losses = 0;
+    var rests = 0;
     for (var day = 1; day <= daysInMonth; day += 1) {
       var date = new Date(year, month, day);
       var key = keyOf(date);
       var future = key > todayKey;
       var result = future ? null : dayResult(key);
+      var rest = !future && result.rest;
       var stateName = future ? 'future'
-        : (result.total === 0 ? 'empty' : (result.won ? 'win' : 'loss'));
-      if (!future && result.total) {
+        : rest ? 'rest'
+          : (result.total === 0 ? 'empty' : (result.won ? 'win' : 'loss'));
+      if (!future && rest) rests += 1;
+      else if (!future && result.total) {
         if (result.won) wins += 1;
         else losses += 1;
       }
@@ -3923,16 +4109,17 @@
       cell.appendChild(makeEl('span', 'cal-day', String(day)));
       if (!future) {
         cell.appendChild(makeEl('span', 'cal-mark',
-          result.total === 0 ? '·' : (result.won ? 'W' : 'L')));
+          rest ? 'R' : result.total === 0 ? '·' : (result.won ? 'W' : 'L')));
       }
 
       var label = date.toLocaleDateString(undefined, {
         weekday: 'long', month: 'long', day: 'numeric'
       });
       label += future ? ' — not yet'
-        : result.total === 0 ? ' — nothing scheduled'
-          : ' — ' + (result.won ? 'WIN' : 'LOSS') + ', ' + result.done +
-            ' of ' + result.total + ' done';
+        : rest ? ' — rest day, streak frozen'
+          : result.total === 0 ? ' — nothing scheduled'
+            : ' — ' + (result.won ? 'WIN' : 'LOSS') + ', ' + result.done +
+              ' of ' + result.total + ' done';
       cell.setAttribute('aria-label', label);
       cell.title = label;
       if (future) {
@@ -3949,12 +4136,16 @@
 
     els.calWins.textContent = String(wins);
     els.calLosses.textContent = String(losses);
+    if (els.calRest) els.calRest.textContent = String(rests);
     if (els.calWinWord) els.calWinWord.textContent = wins === 1 ? 'win' : 'wins';
     if (els.calLossWord) els.calLossWord.textContent = losses === 1 ? 'loss' : 'losses';
+    if (els.calRestWord) els.calRestWord.textContent = rests === 1 ? 'rest' : 'rests';
     var decided = wins + losses;
-    els.calSub.textContent = decided
+    els.calSub.textContent = decided || rests
       ? wins + ' win' + (wins === 1 ? '' : 's') + ' · ' + losses + ' loss' +
-        (losses === 1 ? '' : 'es') + ' in ' + title + '.'
+        (losses === 1 ? '' : 'es') +
+        (rests ? ' · ' + rests + ' rest day' + (rests === 1 ? '' : 's') : '') +
+        ' in ' + title + '.'
       : 'No judged days yet in ' + title + '.';
   }
 
@@ -4057,6 +4248,20 @@
     updateDateHint();
   }
 
+  function syncChallengeMode() {
+    var buttons = document.querySelectorAll('[data-challenge-mode]');
+    Array.prototype.forEach.call(buttons, function (btn) {
+      var on = btn.dataset.challengeMode === sheetChallengeMode;
+      btn.classList.toggle('is-active', on);
+      btn.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+    if (els.challengeModeHint) {
+      els.challengeModeHint.textContent = sheetChallengeMode === 'build'
+        ? 'Each day gets its own slot. Separate days with a blank line.'
+        : 'A recurring checklist for every day of the window.';
+    }
+  }
+
   function applySheetMode() {
     var isTask = sheetMode === 'task';
     var isChallenge = sheetMode === 'challenge';
@@ -4064,6 +4269,7 @@
     els.taskExtras.hidden = !isTask;
     els.trackExtras.hidden = !isChallenge && sheetMode !== 'program';
     els.trackDates.hidden = !isChallenge;
+    els.challengeModeField.hidden = !isChallenge;
 
     if (isTask) {
       els.sheetTitle.textContent = editingId ? 'Edit task' : (newRecurring ? 'New non-negotiable' : 'New task');
@@ -4074,6 +4280,8 @@
       return;
     }
 
+    if (isChallenge) syncChallengeMode();
+
     els.sheetTitle.textContent = editingId
       ? (isChallenge ? 'Edit challenge' : 'Edit program')
       : (isChallenge ? 'New challenge' : 'New program');
@@ -4082,10 +4290,14 @@
     els.fieldTitle.placeholder = isChallenge ? 'e.g. 7-Day No Sugar' : 'e.g. Morning Protocol';
     els.fieldWhy.placeholder = 'What does finishing this change?';
     els.labelItems.innerHTML = isChallenge
-      ? 'Daily checklist <span class="optional">one per line</span>'
+      ? (sheetChallengeMode === 'build'
+        ? 'Day plan <span class="optional">blank line between days</span>'
+        : 'Daily checklist <span class="optional">one per line</span>')
       : 'Routine items <span class="optional">one per line</span>';
     els.fieldItems.placeholder = isChallenge
-      ? 'No added sugar\n2L water\n20 minute walk'
+      ? (sheetChallengeMode === 'build'
+        ? 'Day 1 task\nSecond day-1 task\n\nDay 2 task'
+        : 'No added sugar\n2L water\n20 minute walk')
       : 'Wake at 06:00\n10 min sunlight\nCold shower';
   }
 
@@ -4108,11 +4320,18 @@
   function openTrackSheet(mode, item) {
     sheetMode = mode;
     editingId = item ? item.id : null;
+    sheetChallengeMode = item && mode === 'challenge' && item.mode === 'build' ? 'build' : 'habit';
 
     els.fieldTitle.value = item ? item.title : '';
     els.fieldWhy.value = item ? item.why : '';
     if (item && mode === 'challenge') {
-      els.fieldItems.value = item.daily.map(function (entry) { return entry.title; }).join('\n');
+      if (sheetChallengeMode === 'build' && Array.isArray(item.plan)) {
+        els.fieldItems.value = item.plan.map(function (slot) {
+          return (slot.items || []).map(function (entry) { return entry.title; }).join('\n');
+        }).join('\n\n');
+      } else {
+        els.fieldItems.value = item.daily.map(function (entry) { return entry.title; }).join('\n');
+      }
     } else if (item && mode === 'program') {
       els.fieldItems.value = item.items.join('\n');
     } else {
@@ -4197,6 +4416,38 @@
     toast(wasEditing ? 'Task updated' : 'Task added');
   }
 
+  /* Build mode reads the textarea as day blocks: a blank line starts the next
+     day. Missing days are filled with a named slot so every date is winnable. */
+  function parseBuildPlan(text, duration, existing) {
+    var blocks = String(text || '').split(/\n\s*\n/);
+    var oldPlan = existing && existing.mode === 'build' && Array.isArray(existing.plan)
+      ? existing.plan
+      : [];
+    var used = {};
+    var plan = [];
+    for (var i = 0; i < duration; i += 1) {
+      var lines = (blocks[i] || '').split('\n').map(function (line) {
+        return trimText(line, MAX_TITLE);
+      }).filter(Boolean).slice(0, MAX_ITEMS);
+      if (!lines.length) lines = ['Day ' + (i + 1) + ' milestone'];
+
+      var oldById = {};
+      var oldItems = oldPlan[i] && Array.isArray(oldPlan[i].items) ? oldPlan[i].items : [];
+      oldItems.forEach(function (entry) {
+        oldById[entry.title.toLowerCase()] = entry.id;
+      });
+
+      var dayItems = lines.map(function (line) {
+        var id = oldById[line.toLowerCase()] || uid();
+        if (used[id]) id = uid();
+        used[id] = true;
+        return { id: id, title: line };
+      });
+      plan.push({ items: dayItems });
+    }
+    return plan;
+  }
+
   function saveTrack() {
     var mode = sheetMode;
     var wasEditing = !!editingId;
@@ -4211,18 +4462,16 @@
     var items = els.fieldItems.value.split('\n').map(function (line) {
       return trimText(line, MAX_TITLE);
     }).filter(Boolean).slice(0, MAX_ITEMS);
-
-    if (!items.length) {
-      showError(mode === 'challenge'
-        ? 'Add at least one daily action.'
-        : 'Add at least one routine item.');
-      els.fieldItems.focus();
-      return;
-    }
-
     var why = trimText(els.fieldWhy.value, MAX_WHY);
 
     if (mode === 'challenge') {
+      var modeValue = sheetChallengeMode === 'build' ? 'build' : 'habit';
+      if (modeValue === 'habit' && !items.length) {
+        showError('Add at least one daily action.');
+        els.fieldItems.focus();
+        return;
+      }
+
       var startDate = validDateKey(els.fieldStartDate.value) || todayKey;
       var endDate = validDateKey(els.fieldEndDate.value) ||
         shiftKey(startDate, duration - 1);
@@ -4237,27 +4486,36 @@
       var existing = editingId
         ? state.challenges.filter(function (ch) { return ch.id === editingId; })[0]
         : null;
-      var oldIds = {};
-      if (existing) {
-        existing.daily.forEach(function (entry) {
-          oldIds[entry.title.toLowerCase()] = entry.id;
+      var daily = [];
+      var plan = [];
+
+      if (modeValue === 'habit') {
+        var oldIds = {};
+        if (existing) {
+          existing.daily.forEach(function (entry) {
+            oldIds[entry.title.toLowerCase()] = entry.id;
+          });
+        }
+        var used = {};
+        daily = items.map(function (text) {
+          var id = oldIds[text.toLowerCase()] || uid();
+          if (used[id]) id = uid();
+          used[id] = true;
+          return { id: id, title: text };
         });
+      } else {
+        plan = parseBuildPlan(els.fieldItems.value, duration, existing);
       }
-      var used = {};
-      var daily = items.map(function (text) {
-        var id = oldIds[text.toLowerCase()] || uid();
-        if (used[id]) id = uid();
-        used[id] = true;
-        return { id: id, title: text };
-      });
 
       if (existing) {
         existing.title = title;
         existing.why = why;
+        existing.mode = modeValue;
         existing.duration = duration;
         existing.startDate = startDate;
         existing.endDate = endDate;
         existing.daily = daily;
+        existing.plan = plan;
         /* Configuring the beginning moves the day count with it. */
         if (existing.startedAt) existing.startedAt = startDate;
       } else {
@@ -4265,15 +4523,22 @@
           id: uid(),
           title: title,
           why: why,
+          mode: modeValue,
           duration: duration,
           startDate: startDate,
           endDate: endDate,
           daily: daily,
+          plan: plan,
           startedAt: null,
           log: {}
         });
       }
     } else {
+      if (!items.length) {
+        showError('Add at least one routine item.');
+        els.fieldItems.focus();
+        return;
+      }
       var existingProgram = editingId
         ? state.programs.filter(function (p) { return p.id === editingId; })[0]
         : null;
@@ -4529,6 +4794,30 @@
   els.addBtn.addEventListener('click', function () { openTaskSheet(null, false); });
   els.addHabitBtn.addEventListener('click', function () { openTaskSheet(null, true); });
   els.addChallengeBtn.addEventListener('click', function () { openTrackSheet('challenge'); });
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-challenge-mode]'), function (btn) {
+    btn.addEventListener('click', function () {
+      sheetChallengeMode = btn.dataset.challengeMode === 'build' ? 'build' : 'habit';
+      applySheetMode();
+    });
+  });
+
+  /* Rest days are a deliberate choice, so a single tap toggles the selected
+     date. They never score as a win or a loss. */
+  if (els.restToggle) {
+    els.restToggle.addEventListener('click', function () {
+      if (!state.restDays) state.restDays = {};
+      if (isRestDay(selectedKey)) {
+        delete state.restDays[selectedKey];
+        toast('Rest day cleared');
+      } else {
+        state.restDays[selectedKey] = true;
+        toast('Rest day · streak frozen');
+      }
+      save();
+      renderAll();
+    });
+  }
 
   els.calPrev.addEventListener('click', function () {
     calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() - 1, 1);
