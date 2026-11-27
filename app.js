@@ -484,6 +484,8 @@
     focusTime: document.getElementById('focusTime'),
     focusMinutesLabel: document.getElementById('focusMinutesLabel'),
     focusGoal: document.getElementById('focusGoal'),
+    focusTask: document.getElementById('focusTask'),
+    focusTaskPicker: document.getElementById('focusTaskPicker'),
     focusToggle: document.getElementById('focusToggle'),
     focusReset: document.getElementById('focusReset'),
     focusChange: document.getElementById('focusChange'),
@@ -838,7 +840,7 @@
       challenges: seedChallenges(),
       programs: seedPrograms(),
       workouts: seedWorkouts(),
-      focus: { sessions: 0, date: keyOf(new Date()), minutes: 25, seconds: 0 }
+      focus: { sessions: 0, date: keyOf(new Date()), minutes: 25, seconds: 0, taskId: '' }
     };
   }
 
@@ -1227,7 +1229,8 @@
         sessions: Math.max(0, Math.min(999, Number(focusRaw.sessions) || 0)),
         date: /^\d{4}-\d{2}-\d{2}$/.test(focusRaw.date) ? focusRaw.date : keyOf(new Date()),
         minutes: minutes,
-        seconds: seconds
+        seconds: seconds,
+        taskId: typeof focusRaw.taskId === 'string' ? focusRaw.taskId : ''
       }
     };
   }
@@ -2337,25 +2340,20 @@
         card.appendChild(preview);
       } else if (st.kind === 'live') {
         var block = makeEl('div', 'track-check');
-        block.appendChild(makeEl('p', 'track-check-label', 'Today · day ' + st.day));
+        block.appendChild(makeEl('p', 'track-check-label',
+          'Today · day ' + st.day + ' · check off on Today'));
         var listEl = makeEl('ul', 'mini-list');
         var doneIds = ch.log[todayKey] || [];
         ch.daily.forEach(function (item) {
           var done = doneIds.indexOf(item.id) !== -1;
           var li = makeEl('li', 'mini-item' + (done ? ' is-done' : ''));
           li.dir = textDir(item.title);
-          var btn = makeEl('button', 'mini-check');
-          btn.type = 'button';
-          btn.setAttribute('role', 'checkbox');
-          btn.setAttribute('aria-checked', done ? 'true' : 'false');
-          btn.setAttribute('aria-label', (done ? 'Undo: ' : 'Complete: ') + item.title);
-          btn.innerHTML = CHECK_SVG;
-          btn.addEventListener('click', function () {
-            toggleChallengeItem(ch, item.id);
-          });
+          var mark = makeEl('span', 'mini-check');
+          mark.setAttribute('aria-hidden', 'true');
+          mark.innerHTML = CHECK_SVG;
           var text = makeEl('span', 'mini-text', item.title);
           text.dir = 'auto';
-          li.appendChild(btn);
+          li.appendChild(mark);
           li.appendChild(text);
           listEl.appendChild(li);
         });
@@ -3713,14 +3711,43 @@
     els.focusMinutesLabel.textContent = durationLabel(false);
   }
 
-  function focusGoalText() {
-    if (selectedKey === todayKey) {
-      var tasks = activeTasksOn(todayKey);
-      for (var i = 0; i < tasks.length; i++) {
-        if (!isDone(tasks[i].id, todayKey)) return tasks[i].title;
-      }
+  /* Superfocus is linked to one task from Today, chosen before the timer
+     starts. "General focus" is the clean fallback: no task, no clutter. */
+  function focusSelectedTask() {
+    var id = state.focus.taskId;
+    if (!id) return null;
+    var tasks = activeTasksOn(todayKey);
+    for (var i = 0; i < tasks.length; i++) {
+      if (tasks[i].id === id) return tasks[i];
     }
-    return 'Clear the next thing.';
+    return null;
+  }
+
+  function focusGoalText() {
+    var picked = focusSelectedTask();
+    return picked ? picked.title : 'Clear the next thing.';
+  }
+
+  function renderFocusTasks() {
+    if (!els.focusTask) return;
+    var tasks = activeTasksOn(todayKey);
+    var picked = focusSelectedTask();
+
+    els.focusTask.textContent = '';
+    var general = makeEl('option', null, 'General focus · no linked task');
+    general.value = 'general';
+    els.focusTask.appendChild(general);
+
+    tasks.forEach(function (task) {
+      var opt = makeEl('option', null,
+        task.title + (isDone(task.id, todayKey) ? ' · done' : ''));
+      opt.value = task.id;
+      els.focusTask.appendChild(opt);
+    });
+
+    els.focusTask.value = picked ? picked.id : 'general';
+    els.focusTask.disabled = focus.running;
+    els.focusGoal.textContent = focusGoalText();
   }
 
   function updateFocus() {
@@ -3730,6 +3757,7 @@
     els.focusToggle.textContent = focus.running
       ? 'Pause'
       : focus.left <= 0 ? 'Start again' : focus.left < focus.total ? 'Resume' : 'Start';
+    if (els.focusTask) els.focusTask.disabled = focus.running;
 
     var statusText = focus.running
       ? 'Focus running'
@@ -3751,7 +3779,7 @@
     els.focusView.hidden = false;
     document.body.classList.add('focus-open');
     if (focus.left <= 0) focus.left = focus.total;
-    els.focusGoal.textContent = focusGoalText();
+    renderFocusTasks();
     els.focusGoal.dir = 'auto';
     els.focusSwitch.checked = true;
     els.focusSwitchText.textContent = 'ON';
@@ -4029,6 +4057,7 @@
     renderChallenges();
     renderCalendar();
     updateFocusCard();
+    if (focus.open) renderFocusTasks();
 
     document.body.classList.toggle('editing', editMode);
     els.editBtn.classList.toggle('is-on', editMode);
@@ -4679,6 +4708,12 @@
   });
 
   els.focusExit.addEventListener('click', exitFocus);
+
+  els.focusTask.addEventListener('change', function () {
+    state.focus.taskId = els.focusTask.value === 'general' ? '' : els.focusTask.value;
+    save();
+    els.focusGoal.textContent = focusGoalText();
+  });
 
   els.focusToggle.addEventListener('click', function () {
     if (focus.running) pauseFocus();

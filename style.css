@@ -2365,11 +2365,64 @@ body.focus-open {
   color: var(--ink-dim);
 }
 
+/* Pick the Today task this session is for — or keep it general. */
+.focus-task-picker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  width: min(100%, 330px);
+  margin-top: 18px;
+}
+
+.focus-task-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted-dim);
+}
+
+.focus-task-select {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 38px 0 15px;
+  border-radius: 14px;
+  border: 1px solid rgba(168, 162, 180, 0.22);
+  background-color: rgba(20, 18, 26, 0.72);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a8a2b4' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9.5 12 15.5 18 9.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 13px center;
+  background-size: 16px 16px;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: border-color 0.2s var(--ease), opacity 0.2s var(--ease);
+}
+
+.focus-task-select:focus-visible {
+  outline: none;
+  border-color: rgba(245, 201, 78, 0.6);
+}
+
+.focus-task-select:disabled {
+  opacity: 0.55;
+}
+
+.focus-task-select option {
+  background: #14121a;
+  color: var(--ink);
+}
+
 .focus-controls {
   display: flex;
   gap: 10px;
   width: min(100%, 330px);
-  margin-top: 24px;
+  margin-top: 20px;
 }
 
 .focus-btn {
@@ -5752,11 +5805,21 @@ body.demo-open {
   }
 
   .focus-goal {
-    margin-top: 14px;
+    margin-top: 12px;
+  }
+
+  .focus-task-picker {
+    margin-top: 8px;
+    gap: 5px;
+  }
+
+  .focus-task-select {
+    min-height: 40px;
+    font-size: 13px;
   }
 
   .focus-controls {
-    margin-top: 16px;
+    margin-top: 14px;
   }
 
   .focus-note {
