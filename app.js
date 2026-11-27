@@ -152,23 +152,23 @@
      light up without any label sprawl. */
   var BODY_MUSCLES = [
     { key: 'legs', shapes: [
-      '<path d="M53 127 Q56 125 58.5 127 L56 173 Q55 178 51.5 173 Z"/>',
-      '<path d="M67 127 Q64 125 61.5 127 L64 173 Q65 178 68.5 173 Z"/>'
+      '<path d="M51.5 126 L58.5 126 L57 160 L55.5 176 L52 176 L50.5 160 Z"/>',
+      '<path d="M61.5 126 L68.5 126 L69.5 160 L68 176 L64.5 176 L63 160 Z"/>'
     ] },
     { key: 'core', shapes: [
-      '<path d="M52 78 Q60 74.5 68 78 L67 114 Q60 119 53 114 Z"/>'
+      '<path d="M52.5 78 Q60 74.5 67.5 78 L66.5 112 Q60 117 53.5 112 Z"/>'
     ] },
     { key: 'chest', shapes: [
-      '<path d="M49 56 Q54 52.5 59 56.5 L59 68 Q53.5 72 49 67 Z"/>',
-      '<path d="M71 56 Q66 52.5 61 56.5 L61 68 Q66.5 72 71 67 Z"/>'
+      '<path d="M49.5 57 Q54 53.5 59 57 L59 68 Q54 71.5 49.5 67 Z"/>',
+      '<path d="M70.5 57 Q66 53.5 61 57 L61 68 Q66 71.5 70.5 67 Z"/>'
     ] },
     { key: 'shoulders', shapes: [
-      '<ellipse cx="42.5" cy="50" rx="8.4" ry="6.4" transform="rotate(-28 42.5 50)"/>',
-      '<ellipse cx="77.5" cy="50" rx="8.4" ry="6.4" transform="rotate(28 77.5 50)"/>'
+      '<ellipse cx="43" cy="50.5" rx="8.2" ry="6.2" transform="rotate(-26 43 50.5)"/>',
+      '<ellipse cx="77" cy="50.5" rx="8.2" ry="6.2" transform="rotate(26 77 50.5)"/>'
     ] },
     { key: 'triceps', shapes: [
-      '<path d="M35.5 64 L40 66.5 L35.6 85 L30.6 81 Z"/>',
-      '<path d="M84.5 64 L80 66.5 L84.4 85 L89.4 81 Z"/>'
+      '<path d="M35.8 63.5 L40.2 66 L36.4 86 L31.6 82.2 Z"/>',
+      '<path d="M84.2 63.5 L79.8 66 L83.6 86 L88.4 82.2 Z"/>'
     ] }
   ];
 
@@ -186,10 +186,11 @@
       '<path class="body-head" d="M55 31 h10 l1 10 h-12 Z"/>' +
       '<path class="body-fill" d="M45 43 C47 39 73 39 75 43 L78 70 C78 76 74 79 73 83 ' +
       'L72 110 C72 120 66 124 60 124 C54 124 48 120 48 110 L47 83 C46 79 42 76 42 70 Z"/>' +
-      '<path class="body-limb" d="M46 48 L35 74 L30.5 104"/>' +
-      '<path class="body-limb" d="M74 48 L85 74 L89.5 104"/>' +
-      '<path class="body-limb" d="M54.5 122 L51.5 158 L51 200"/>' +
-      '<path class="body-limb" d="M65.5 122 L68.5 158 L69 200"/>' +
+      '<line class="body-seam" x1="60" y1="44" x2="60" y2="120"/>' +
+      '<path class="body-limb" d="M46 47 L36 73 L31 103"/>' +
+      '<path class="body-limb" d="M74 47 L84 73 L89 103"/>' +
+      '<path class="body-limb" d="M54.5 122 L52 158 L51.5 200"/>' +
+      '<path class="body-limb" d="M65.5 122 L68 158 L68.5 200"/>' +
       '</g>';
     svg += '<g class="body-muscles" aria-hidden="true">';
     BODY_MUSCLES.forEach(function (group) {
@@ -346,23 +347,24 @@
   }
 
   /* Side view for the standing movements: a squat, lunge or calf raise reads
-     instantly from the side, which a front silhouette cannot do. */
+     instantly from the side, which a front silhouette cannot do. The trunk is
+     a true vertical and every joint stacks over the floor. */
   function standFigure() {
     return '<g class="fig-bob">' + jointAnims('bob') +
-      joint(112, 30, 'head', '<circle class="fig-head" r="12"/>' +
-        '<path class="fig-face" d="M8 -3 l7 3 -7 3"/>') +
-      '<line class="fig-neck" x1="110" y1="41" x2="108" y2="50"/>' +
-      '<line class="fig-trunk" x1="108" y1="50" x2="100" y2="110"/>' +
-      joint(94, 108, 'legR', seg(36) + joint(0, 36, 'shinR',
-        seg(32) + '<line class="fig-foot" x1="-2" y1="0" x2="11" y2="0"/>')) +
-      joint(102, 108, 'legL', seg(36) + joint(0, 36, 'shinL',
-        seg(32) + '<line class="fig-foot" x1="-2" y1="0" x2="11" y2="0"/>')) +
-      joint(107, 58, 'armL', seg(24) + joint(0, 24, 'foreL',
+      joint(104, 28, 'head', '<circle class="fig-head" r="12"/>' +
+        '<path class="fig-face" d="M-7 -3 l-8 3 8 3"/>') +
+      '<line class="fig-neck" x1="104" y1="40" x2="104" y2="50"/>' +
+      '<line class="fig-trunk" x1="104" y1="50" x2="104" y2="110"/>' +
+      joint(98, 108, 'legR', seg(36) + joint(0, 36, 'shinR',
+        seg(32) + '<line class="fig-foot" x1="-2" y1="0" x2="12" y2="0"/>')) +
+      joint(110, 108, 'legL', seg(36) + joint(0, 36, 'shinL',
+        seg(32) + '<line class="fig-foot" x1="-2" y1="0" x2="12" y2="0"/>')) +
+      joint(108, 58, 'armL', seg(24) + joint(0, 24, 'foreL',
         seg(22) + '<circle class="fig-hand" cy="24" r="4"/>')) +
-      joint(99, 58, 'armR', '<line class="fig-limb is-back" x1="0" y1="0" x2="0" y2="24"/>' +
+      joint(100, 58, 'armR', '<line class="fig-limb is-back" x1="0" y1="0" x2="0" y2="24"/>' +
         joint(0, 24, 'foreR', '<line class="fig-limb is-back" x1="0" y1="0" x2="0" y2="22"/>')) +
       '</g>' +
-      '<line class="fig-floor" x1="48" y1="184" x2="156" y2="184"/>';
+      '<line class="fig-floor" x1="46" y1="180" x2="160" y2="180"/>';
   }
 
   function floorFigure() {
@@ -387,6 +389,9 @@
     activeJoints = reduce ? null : motion.joints;
     var floor = motion.posture === 'floor';
     var inner = floor ? floorFigure() : standFigure();
+    /* Floor work faces left as well, so a push-up reads the same way as the
+       tab icon instead of mirroring it. */
+    if (floor) inner = '<g transform="translate(200 0) scale(-1 1)">' + inner + '</g>';
     activeJoints = null;
     return '<svg class="demo-figure" viewBox="' +
       (floor ? '0 104 200 84' : '20 4 164 192') +
@@ -439,6 +444,12 @@
     nnList: document.getElementById('nnList'),
     nnEmpty: document.getElementById('nnEmpty'),
     nnCount: document.getElementById('nnCount'),
+    workoutTodaySection: document.getElementById('workoutTodaySection'),
+    workoutTodayList: document.getElementById('workoutTodayList'),
+    workoutTodayCount: document.getElementById('workoutTodayCount'),
+    challengeTodaySection: document.getElementById('challengeTodaySection'),
+    challengeTodayList: document.getElementById('challengeTodayList'),
+    challengeTodayCount: document.getElementById('challengeTodayCount'),
     progTodaySection: document.getElementById('programTodaySection'),
     progTodayList: document.getElementById('progTodayList'),
     progTodayCount: document.getElementById('progTodayCount'),
@@ -448,12 +459,23 @@
     viewToday: document.getElementById('viewToday'),
     viewChallenges: document.getElementById('viewChallenges'),
     viewWorkouts: document.getElementById('viewWorkouts'),
+    viewCalendar: document.getElementById('viewCalendar'),
+    calPrev: document.getElementById('calPrev'),
+    calNext: document.getElementById('calNext'),
+    calMonth: document.getElementById('calMonth'),
+    calTally: document.getElementById('calTally'),
+    calWins: document.getElementById('calWins'),
+    calLosses: document.getElementById('calLosses'),
+    calWinWord: document.getElementById('calWinWord'),
+    calLossWord: document.getElementById('calLossWord'),
+    calSub: document.getElementById('calSub'),
+    calWeekdays: document.getElementById('calWeekdays'),
+    calGrid: document.getElementById('calGrid'),
     challengeList: document.getElementById('challengeList'),
     challengesEmpty: document.getElementById('challengesEmpty'),
     addChallengeBtn: document.getElementById('addChallengeBtn'),
     editChallenges: document.getElementById('editChallenges'),
     editWorkouts: document.getElementById('editWorkouts'),
-    addWorkoutBtn: document.getElementById('addWorkoutBtn'),
     buildWorkoutBtn: document.getElementById('buildWorkoutBtn'),
     workoutSummary: document.getElementById('workoutSummary'),
     workoutList: document.getElementById('workoutList'),
@@ -536,7 +558,11 @@
   var state = loadState();
   var todayKey = keyOf(new Date());
   var selectedKey = todayKey;
-  var view = state.view === 'programs' ? 'workouts' : (state.view || 'today');
+  var view = state.view || 'today';
+  var calCursor = (function () {
+    var now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  })();
   var editMode = false;
   var manageChallenges = false;
   var manageWorkouts = false;
@@ -636,6 +662,20 @@
   function mmss(seconds) {
     var s = Math.max(0, seconds);
     return pad(Math.floor(s / 60)) + ':' + pad(s % 60);
+  }
+
+  /* A habit keeps a stable key across renames, so its streak follows the
+     routine itself instead of a raw record id. */
+  function streakKeyFor(title) {
+    return String(title == null ? '' : title)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 60);
+  }
+
+  function taskKey(task) {
+    return (task && task.key) || streakKeyFor(task && task.title);
   }
 
   /* -------------------------------- seed --------------------------------- */
@@ -740,6 +780,8 @@
         why: 'Drive the chest, shoulders and triceps with clean pressing volume.',
         focus: 'Chest · Shoulders · Triceps',
         days: [1, 4],
+        weeks: 4,
+        startDate: keyOf(new Date()),
         target: 40,
         exercises: [
           exercise('Push-Up'),
@@ -757,6 +799,8 @@
         why: 'Build the trunk and posture that hold every other session tall.',
         focus: 'Core · Back',
         days: [2, 5],
+        weeks: 4,
+        startDate: keyOf(new Date()),
         target: 30,
         exercises: [
           exercise('Superman Hold'),
@@ -774,6 +818,8 @@
         why: 'Strong legs carry every other session and every long day.',
         focus: 'Legs · Glutes',
         days: [3, 6],
+        weeks: 4,
+        startDate: keyOf(new Date()),
         target: 40,
         exercises: [
           exercise('Squat'),
@@ -814,6 +860,7 @@
       time: normalizeTime(raw.time),
       recurring: !!raw.recurring,
       createdAt: Number(raw.createdAt) || Date.now(),
+      key: trimText(raw.key, 80) || streakKeyFor(title),
       programId: typeof raw.programId === 'string' ? raw.programId : '',
       programItem: trimText(raw.programItem, MAX_TITLE)
     };
@@ -831,6 +878,7 @@
       why: trimText(raw.why, MAX_WHY),
       time: normalizeTime(raw.time),
       recurring: !!raw.recurring,
+      key: trimText(raw.key, 80) || streakKeyFor(title),
       programId: typeof raw.programId === 'string' ? raw.programId : '',
       programItem: trimText(raw.programItem, MAX_TITLE),
       programTitle: trimText(raw.programTitle, MAX_TITLE)
@@ -994,12 +1042,21 @@
     if (!isFinite(target) || target < 10) target = 35;
     target = Math.min(120, target);
 
+    /* A program runs for a whole number of weeks from its start date. Older
+       templates had no window, so they begin today and stay scheduled. */
+    var weeks = Math.round(Number(raw.weeks));
+    if (!isFinite(weeks) || weeks < 1) weeks = 4;
+    weeks = Math.min(12, weeks);
+    var startDate = validDateKey(raw.startDate) || keyOf(new Date());
+
     return {
       id: typeof raw.id === 'string' && raw.id ? raw.id : uid(),
       title: title,
       why: trimText(raw.why, MAX_WHY),
       focus: trimText(raw.focus, 60),
       days: days,
+      weeks: weeks,
+      startDate: startDate,
       exercises: exercises,
       target: target,
       log: log,
@@ -1136,6 +1193,7 @@
             why: task.why,
             time: task.time,
             recurring: !!task.recurring,
+            key: taskKey(task),
             programId: task.programId,
             programItem: task.programItem,
             programTitle: ''
@@ -1163,7 +1221,9 @@
 
     return {
       v: 3,
-      view: raw.view === 'challenges' || raw.view === 'programs' ? raw.view : 'today',
+      view: raw.view === 'programs' ? 'workouts'
+        : raw.view === 'challenges' || raw.view === 'workouts' || raw.view === 'calendar'
+          ? raw.view : 'today',
       tasks: tasks,
       days: days,
       challenges: challenges,
@@ -1258,6 +1318,7 @@
       why: task.why,
       time: task.time,
       recurring: !!task.recurring,
+      key: taskKey(task),
       programId: task.programId || '',
       programItem: task.programItem || '',
       programTitle: p ? p.title : (task.programTitle || '')
@@ -1311,15 +1372,36 @@
     return doneCount(key) === tasks.length;
   }
 
-  function streakFor(taskId, key) {
+  /* A tick counts for a habit when either its record id or its stable key
+     matches, so a task that was removed and re-added under the same name
+     keeps the run it had. */
+  function taskDoneOn(task, key) {
+    if (isDone(task.id, key)) return true;
+    var stable = taskKey(task);
+    if (!stable) return false;
+    var record = state.days[key];
+    if (!record) return false;
+    var done = Array.isArray(record.done) ? record.done : [];
+    return (record.items || []).some(function (item) {
+      return done.indexOf(item.id) !== -1 && taskKey(item) === stable;
+    });
+  }
+
+  function streakFor(task, key) {
     var cursor = key;
-    if (!isDone(taskId, cursor)) cursor = shiftKey(cursor, -1);
+    if (!taskDoneOn(task, cursor)) cursor = shiftKey(cursor, -1);
     var n = 0;
-    while (n < MAX_STREAK && isDone(taskId, cursor)) {
+    while (n < MAX_STREAK && taskDoneOn(task, cursor)) {
       n += 1;
       cursor = shiftKey(cursor, -1);
     }
     return n;
+  }
+
+  /* The badge starts on the second consecutive day: the first tick is just
+     showing up, the run is only real once it repeats. */
+  function streakBadge(streak) {
+    return streak >= 2 ? streak - 1 : 0;
   }
 
   function perfectStreak() {
@@ -1450,16 +1532,68 @@
     }
   }
 
-  /* One verdict for a day, shared by the scale and the week strip, so both
-     always agree on WIN vs LOSS. */
+  /* Workouts expose their own scheduled window, and every scheduled session
+     is one line on the day's scale. */
+  function workoutScheduledOn(w, key) {
+    if (w.days.indexOf(fromKey(key).getDay()) === -1) return false;
+    if (!w.startDate) return true;
+    return key >= w.startDate && key <= shiftKey(w.startDate, w.weeks * 7 - 1);
+  }
+
+  function workoutsOn(key) {
+    return state.workouts.filter(function (w) {
+      return workoutExistedOn(w, key) &&
+        (workoutScheduledOn(w, key) || !!workoutEntry(w, key));
+    });
+  }
+
+  function workoutDayStats(key) {
+    var list = workoutsOn(key);
+    var done = list.filter(function (w) { return workoutComplete(w, key); }).length;
+    return { total: list.length, done: done, list: list };
+  }
+
+  /* Challenges run by their own dates, and every daily action is part of the
+     same day score while the window is open. */
+  function challengeActiveOn(ch, key) {
+    if (!ch || !ch.startDate || !ch.endDate) return false;
+    return key >= ch.startDate && key <= ch.endDate;
+  }
+
+  function challengesOn(key) {
+    return state.challenges.filter(function (ch) { return challengeActiveOn(ch, key); });
+  }
+
+  function challengeDayStats(key) {
+    var total = 0;
+    var done = 0;
+    challengesOn(key).forEach(function (ch) {
+      var log = (ch.log && ch.log[key]) || [];
+      ch.daily.forEach(function (item) {
+        total += 1;
+        if (log.indexOf(item.id) !== -1) done += 1;
+      });
+    });
+    return { total: total, done: done };
+  }
+
+  /* One verdict for a day, shared by the scale, the week strip and the monthly
+     calendar, so all three always agree on WIN vs LOSS. */
   function dayResult(key) {
-    var total = activeTasksOn(key).length;
-    var done = doneCount(key);
+    var taskTotal = activeTasksOn(key).length;
+    var taskDone = doneCount(key);
+    var challenge = challengeDayStats(key);
+    var workout = workoutDayStats(key);
+    var total = taskTotal + challenge.total + workout.total;
+    var done = taskDone + challenge.done + workout.done;
     var pct = total ? Math.round((done / total) * 100) : 0;
     return {
       total: total,
       done: done,
       pct: pct,
+      tasks: { total: taskTotal, done: taskDone },
+      challenge: challenge,
+      workout: workout,
       /* No items at all is not a failure: the day simply carries no score. */
       empty: total === 0,
       won: total > 0 && pct >= WON_AT,
@@ -1617,10 +1751,10 @@
     var side = document.createElement('div');
     side.className = 'task-side';
 
-    var streak = streakFor(task.id, selectedKey);
+    var streak = streakBadge(streakFor(task, selectedKey));
     if (streak > 0) {
       var badge = makeEl('span', 'streak' + (streak >= 3 ? ' is-hot' : ''), '🔥 ' + streak);
-      badge.setAttribute('title', streak + ' day streak');
+      badge.setAttribute('title', (streak + 1) + ' consecutive days');
       side.appendChild(badge);
     }
 
@@ -1645,6 +1779,198 @@
     li.appendChild(body);
     li.appendChild(side);
     return li;
+  }
+
+  /* ------------------------- Today · active blocks ----------------------- */
+
+  /* A scheduled session lands on Today with one honest check plus each
+     exercise, so the same tick works from either screen. */
+  function toggleWorkoutAll(w) {
+    var complete = workoutComplete(w, todayKey);
+    if (!w.log) w.log = {};
+    if (complete) {
+      delete w.log[todayKey];
+    } else {
+      w.log[todayKey] = {
+        started: true,
+        done: w.exercises.map(function (exercise) { return exercise.id; }),
+        finished: true
+      };
+    }
+    save();
+    renderAll();
+    vibrate(10);
+    toast(complete ? '✓ Workout reopened · ' + w.title : '✓ Workout complete · ' + w.title);
+  }
+
+  function renderTodayWorkouts() {
+    var show = selectedKey === todayKey;
+    els.workoutTodaySection.hidden = !show;
+    if (!show) return;
+
+    var stats = workoutDayStats(todayKey);
+    var list = stats.list;
+    els.workoutTodayList.textContent = '';
+    if (!list.length) {
+      els.workoutTodaySection.hidden = true;
+      return;
+    }
+    els.workoutTodaySection.hidden = false;
+
+    var totalExercises = 0;
+    var doneExercises = 0;
+    list.forEach(function (w) {
+      totalExercises += w.exercises.length;
+      doneExercises += workoutDoneIds(w, todayKey).length;
+    });
+    els.workoutTodayCount.textContent = doneExercises + ' of ' + totalExercises +
+      ' exercises · ' + list.length + ' session' + (list.length === 1 ? '' : 's');
+
+    list.forEach(function (w) {
+      var complete = workoutComplete(w, todayKey);
+      var doneIds = workoutDoneIds(w, todayKey);
+      var card = makeEl('article', 'today-workout-card' + (complete ? ' is-done' : ''));
+
+      var head = makeEl('div', 'today-workout-head');
+      var wrap = makeEl('div', 'today-workout-copy');
+      var title = makeEl('h3', 'today-workout-name', w.title);
+      title.dir = 'auto';
+      wrap.appendChild(title);
+      wrap.appendChild(makeEl('p', 'today-workout-meta',
+        w.focus || 'Training session'));
+      head.appendChild(wrap);
+      head.appendChild(makeEl('span', 'today-workout-state',
+        complete ? 'WIN' : doneIds.length ? 'IN SESSION' : 'SCHEDULED'));
+      card.appendChild(head);
+
+      var meter = makeEl('div', 'quality-meter today-workout-meter');
+      var fill = makeEl('span');
+      fill.style.width = (w.exercises.length
+        ? Math.round((doneIds.length / w.exercises.length) * 100)
+        : 0) + '%';
+      meter.appendChild(fill);
+      card.appendChild(meter);
+
+      var master = makeEl('button', 'today-workout-check');
+      master.type = 'button';
+      master.setAttribute('role', 'checkbox');
+      master.setAttribute('aria-checked', complete ? 'true' : 'false');
+      master.setAttribute('aria-label',
+        (complete ? 'Reopen workout: ' : 'Complete workout: ') + w.title);
+      var mark = makeEl('span', 'today-workout-mark');
+      mark.innerHTML = CHECK_SVG;
+      master.appendChild(mark);
+      master.appendChild(makeEl('span', 'today-workout-check-text',
+        complete ? 'Workout complete · tap to reopen' : 'Mark workout complete'));
+      master.addEventListener('click', function () { toggleWorkoutAll(w); });
+      card.appendChild(master);
+
+      var exList = makeEl('ul', 'today-ex-list');
+      w.exercises.forEach(function (exercise) {
+        var done = doneIds.indexOf(exercise.id) !== -1;
+        var row = makeEl('li', 'today-ex' + (done ? ' is-done' : ''));
+        var btn = makeEl('button', 'today-ex-toggle');
+        btn.type = 'button';
+        btn.setAttribute('role', 'checkbox');
+        btn.setAttribute('aria-checked', done ? 'true' : 'false');
+        btn.setAttribute('aria-label',
+          (done ? 'Undo: ' : 'Complete: ') + exercise.name);
+        var mini = makeEl('span', 'mini-check');
+        mini.innerHTML = CHECK_SVG;
+        btn.appendChild(mini);
+        var name = makeEl('span', 'today-ex-name', exercise.name);
+        name.dir = 'auto';
+        btn.appendChild(name);
+        btn.appendChild(makeEl('span', 'today-ex-dose', workoutDose(exercise)));
+        btn.addEventListener('click', function () {
+          toggleWorkoutExercise(w, exercise.id);
+        });
+        row.appendChild(btn);
+
+        var guide = makeEl('button', 'today-ex-guide');
+        guide.type = 'button';
+        guide.dataset.demo = exercise.name;
+        guide.setAttribute('aria-label', 'How to do ' + exercise.name);
+        guide.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+          'stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+          '<circle cx="12" cy="12" r="9"/><path d="M10 8.6l5 3.4-5 3.4z"/></svg>';
+        row.appendChild(guide);
+        exList.appendChild(row);
+      });
+      card.appendChild(exList);
+      els.workoutTodayList.appendChild(card);
+    });
+  }
+
+  function renderTodayChallenges() {
+    var show = selectedKey === todayKey;
+    els.challengeTodaySection.hidden = !show;
+    if (!show) return;
+
+    var list = challengesOn(todayKey);
+    els.challengeTodayList.textContent = '';
+    if (!list.length) {
+      els.challengeTodaySection.hidden = true;
+      return;
+    }
+    els.challengeTodaySection.hidden = false;
+
+    var total = 0;
+    var doneTotal = 0;
+    list.forEach(function (ch) {
+      var log = ch.log[todayKey] || [];
+      total += ch.daily.length;
+      doneTotal += ch.daily.filter(function (item) {
+        return log.indexOf(item.id) !== -1;
+      }).length;
+    });
+    els.challengeTodayCount.textContent = doneTotal + ' of ' + total +
+      ' actions · ' + list.length + ' running';
+
+    list.forEach(function (ch) {
+      var st = challengeStatus(ch);
+      var log = ch.log[todayKey] || [];
+      var done = ch.daily.filter(function (item) {
+        return log.indexOf(item.id) !== -1;
+      }).length;
+      var complete = done === ch.daily.length && ch.daily.length > 0;
+
+      var card = makeEl('article', 'today-challenge-card' + (complete ? ' is-done' : ''));
+      var head = makeEl('div', 'today-challenge-head');
+      var wrap = makeEl('div', 'today-challenge-copy');
+      var title = makeEl('h3', 'today-challenge-name', ch.title);
+      title.dir = 'auto';
+      wrap.appendChild(title);
+      wrap.appendChild(makeEl('p', 'today-challenge-meta',
+        st.label + ' · ' + done + ' of ' + ch.daily.length + ' today'));
+      head.appendChild(wrap);
+      head.appendChild(makeEl('span', 'today-challenge-chip',
+        complete ? 'DAY WON' : st.won + ' WINS'));
+      card.appendChild(head);
+
+      var listEl = makeEl('ul', 'mini-list today-challenge-items');
+      ch.daily.forEach(function (item) {
+        var ticked = log.indexOf(item.id) !== -1;
+        var li = makeEl('li', 'mini-item' + (ticked ? ' is-done' : ''));
+        li.dir = textDir(item.title);
+        var btn = makeEl('button', 'mini-check');
+        btn.type = 'button';
+        btn.setAttribute('role', 'checkbox');
+        btn.setAttribute('aria-checked', ticked ? 'true' : 'false');
+        btn.setAttribute('aria-label', (ticked ? 'Undo: ' : 'Complete: ') + item.title);
+        btn.innerHTML = CHECK_SVG;
+        btn.addEventListener('click', function () {
+          toggleChallengeItem(ch, item.id, todayKey);
+        });
+        var text = makeEl('span', 'mini-text', item.title);
+        text.dir = 'auto';
+        li.appendChild(btn);
+        li.appendChild(text);
+        listEl.appendChild(li);
+      });
+      card.appendChild(listEl);
+      els.challengeTodayList.appendChild(card);
+    });
   }
 
   function fillList(listEl, items, emptyEl, flash) {
@@ -1758,10 +2084,10 @@
   /* ------------------------------ challenges ----------------------------- */
 
   function challengeWonDays(ch) {
-    if (!ch.startedAt || !ch.daily.length) return 0;
+    if (!ch.startDate || !ch.daily.length) return 0;
     var n = 0;
     for (var i = 0; i < ch.duration; i++) {
-      var key = shiftKey(ch.startedAt, i);
+      var key = shiftKey(ch.startDate, i);
       if (key > todayKey) break;
       var list = ch.log[key] || [];
       var complete = true;
@@ -1779,36 +2105,35 @@
     return Math.max(1, Math.ceil(ch.duration * WON_AT / 100));
   }
 
+  /* A challenge runs by its dates alone — no start button to forget. */
   function challengeStatus(ch) {
     var won = challengeWonDays(ch);
     var threshold = challengeThreshold(ch);
-    if (!ch.startedAt) {
-      return { kind: 'idle', label: 'Not started', day: 0, won: 0, pct: 0, threshold: threshold };
-    }
-    var raw = daysBetween(ch.startedAt, todayKey) + 1;
     var pct = Math.round((won / ch.duration) * 100);
-    if (won >= ch.duration) {
+
+    if (todayKey < ch.startDate) {
       return {
-        kind: 'won', label: 'Win', day: ch.duration, won: won, pct: 100,
-        threshold: threshold, verdict: 'win'
+        kind: 'scheduled', label: 'Starts ' + shortDate(ch.startDate),
+        day: 0, won: 0, pct: 0, threshold: threshold
       };
     }
-    if (raw < 1) {
-      return {
-        kind: 'scheduled', label: 'Scheduled', day: 0, won: won, pct: 0,
-        threshold: threshold
-      };
-    }
-    if (raw > ch.duration) {
+    if (todayKey > ch.endDate) {
       var verdict = won >= threshold ? 'win' : 'loss';
       return {
         kind: 'over', label: verdict === 'win' ? 'Win' : 'Loss', day: ch.duration,
         won: won, pct: pct, threshold: threshold, verdict: verdict
       };
     }
+    if (won >= ch.duration) {
+      return {
+        kind: 'won', label: 'Win', day: ch.duration, won: won, pct: 100,
+        threshold: threshold, verdict: 'win'
+      };
+    }
+    var raw = daysBetween(ch.startDate, todayKey) + 1;
     return {
-      kind: 'live', label: 'Day ' + raw, day: raw, won: won, pct: pct,
-      threshold: threshold
+      kind: 'live', label: 'Day ' + raw + ' / ' + ch.duration, day: raw, won: won,
+      pct: pct, threshold: threshold
     };
   }
 
@@ -1914,8 +2239,8 @@
       var meta = makeEl('div', 'track-meta');
       meta.dir = 'ltr';
       meta.appendChild(makeEl('span', null,
-        st.kind === 'idle' || st.kind === 'scheduled'
-          ? ch.duration + ' days · ' + ch.daily.length + ' daily actions'
+        st.kind === 'scheduled'
+          ? 'Starts ' + shortDate(ch.startDate) + ' · ' + ch.daily.length + ' daily actions'
           : 'Day ' + st.day + ' / ' + ch.duration));
       var wins = makeEl('span');
       var winsNum = makeEl('b', null, String(st.won));
@@ -1925,13 +2250,13 @@
       meta.appendChild(wins);
       card.appendChild(meta);
 
-      if (ch.startedAt) {
+      if (ch.startDate) {
         var daysRow = makeEl('div', 'track-days');
         daysRow.setAttribute('aria-hidden', 'true');
-        var todayIndex = daysBetween(ch.startedAt, todayKey);
+        var todayIndex = daysBetween(ch.startDate, todayKey);
         for (var i = 0; i < ch.duration; i++) {
           var mark = makeEl('span', 'day-mark');
-          var key = shiftKey(ch.startedAt, i);
+          var key = shiftKey(ch.startDate, i);
           var complete = false;
           if (key <= todayKey) {
             var list = ch.log[key] || [];
@@ -1948,12 +2273,10 @@
         card.appendChild(daysRow);
       }
 
-      if (!ch.startedAt || st.kind === 'scheduled') {
+      if (st.kind === 'scheduled') {
         var preview = makeEl('div', 'track-check');
         preview.appendChild(makeEl('p', 'track-check-label',
-          st.kind === 'scheduled'
-            ? 'Starts ' + shortDate(ch.startDate) + ' · daily checklist'
-            : 'Daily checklist'));
+          'Starts ' + shortDate(ch.startDate) + ' · daily checklist'));
         var previewList = makeEl('ul', 'mini-list');
         ch.daily.forEach(function (item) {
           var li = makeEl('li', 'mini-item');
@@ -2000,32 +2323,20 @@
           'Window closed · ' + st.won + ' of ' + ch.duration + ' days won.'));
       }
 
-      var canStart = st.kind === 'idle' || st.kind === 'scheduled' ||
-        st.kind === 'won' || st.kind === 'over';
-      if (canStart || manageChallenges) {
+      var canRestart = st.kind === 'won' || st.kind === 'over';
+      if (canRestart || manageChallenges) {
         var actions = makeEl('div', 'track-actions');
-        if (canStart) {
-          var start = makeEl('button', 'track-btn is-primary',
-            st.kind === 'idle' ? 'Start challenge'
-              : st.kind === 'scheduled' ? 'Start now'
-                : 'Run it again');
+        if (canRestart) {
+          var start = makeEl('button', 'track-btn is-primary', 'Run it again');
           start.type = 'button';
           start.addEventListener('click', function () {
-            var plannedFuture = st.kind === 'idle' && ch.startDate && ch.startDate > todayKey;
-            if (plannedFuture) {
-              ch.startedAt = ch.startDate;
-              save();
-              renderAll();
-              toast('✓ Challenge scheduled · ' + shortDate(ch.startDate));
-              return;
-            }
             ch.startDate = todayKey;
             ch.endDate = shiftKey(todayKey, ch.duration - 1);
             ch.startedAt = todayKey;
             ch.log = {};
             save();
             renderAll();
-            toast(st.kind === 'idle' ? '✓ Challenge started · day 1' : '✓ Challenge restarted');
+            toast('✓ Challenge restarted · day 1');
           });
           actions.appendChild(start);
         }
@@ -2046,22 +2357,23 @@
     els.challengesEmpty.hidden = state.challenges.length > 0;
   }
 
-  function toggleChallengeItem(ch, itemId) {
+  function toggleChallengeItem(ch, itemId, dayKey) {
     if (!ch.log) ch.log = {};
-    var list = (ch.log[todayKey] || []).slice();
+    var key = dayKey || todayKey;
+    var list = (ch.log[key] || []).slice();
     var index = list.indexOf(itemId);
     var adding = index === -1;
 
     if (adding) list.push(itemId);
     else list.splice(index, 1);
 
-    if (list.length) ch.log[todayKey] = list;
-    else delete ch.log[todayKey];
+    if (list.length) ch.log[key] = list;
+    else delete ch.log[key];
 
     save();
-    renderChallenges();
+    renderAll();
 
-    if (!adding) return;
+    if (!adding || key !== todayKey) return;
 
     var all = ch.daily.every(function (item) {
       return (ch.log[todayKey] || []).indexOf(item.id) !== -1;
@@ -2070,7 +2382,7 @@
     if (challengeWonDays(ch) >= ch.duration) {
       toast('Challenge won — every day cleared');
     } else if (all) {
-      toast('Day ' + (daysBetween(ch.startedAt, todayKey) + 1) + ' won');
+      toast('Day ' + (daysBetween(ch.startDate, todayKey) + 1) + ' won');
     } else {
       vibrate(8);
     }
@@ -2106,10 +2418,6 @@
     return !!entry && !workoutComplete(w, key);
   }
 
-  function workoutScheduledOn(w, key) {
-    return w.days.indexOf(fromKey(key).getDay()) !== -1;
-  }
-
   function workoutDose(exercise) {
     var unit = exercise.unit === 'sec' ? 's' : '';
     if (exercise.sets && exercise.reps) return exercise.sets + ' × ' + exercise.reps + unit;
@@ -2126,8 +2434,10 @@
 
   function workoutNextDay(w) {
     if (!w.days.length) return -1;
+    var lastKey = w.startDate ? shiftKey(w.startDate, w.weeks * 7 - 1) : '';
     var todayIndex = fromKey(todayKey).getDay();
     for (var step = 1; step <= 7; step += 1) {
+      if (lastKey && shiftKey(todayKey, step) > lastKey) return -1;
       var day = (todayIndex + step) % 7;
       if (w.days.indexOf(day) !== -1) return day;
     }
@@ -2138,6 +2448,9 @@
     if (workoutComplete(w, todayKey)) return { kind: 'done', label: 'Done today' };
     if (workoutPartial(w, todayKey)) return { kind: 'active', label: 'In session' };
     if (workoutScheduledOn(w, todayKey)) return { kind: 'today', label: 'Today' };
+    if (w.startDate && todayKey > shiftKey(w.startDate, w.weeks * 7 - 1)) {
+      return { kind: 'rest', label: 'Program over' };
+    }
     var next = workoutNextDay(w);
     return {
       kind: 'rest',
@@ -2172,7 +2485,7 @@
     if (completeNow) entry.finished = true;
 
     save();
-    renderWorkouts();
+    renderAll();
 
     if (adding) vibrate(8);
     if (completeNow) {
@@ -2388,7 +2701,8 @@
     schedule.appendChild(makeEl('span', 'workout-schedule-meta',
       w.exercises.length + ' exercise' + (w.exercises.length === 1 ? '' : 's') +
       ' · ' + workoutTotalSets(w) + ' sets' +
-      (w.target ? ' · ~' + w.target + ' min' : '')));
+      (w.target ? ' · ~' + w.target + ' min' : '') +
+      (w.weeks ? ' · ' + w.weeks + 'w' : '')));
     card.appendChild(schedule);
 
     var entry = workoutEntry(w, todayKey);
@@ -2498,6 +2812,8 @@
     title: '',
     why: '',
     days: [],
+    weeks: 4,
+    startDate: keyOf(new Date()),
     target: 35,
     exercises: [],
     filter: 'all',
@@ -2512,6 +2828,8 @@
       title: '',
       why: '',
       days: [],
+      weeks: 4,
+      startDate: keyOf(new Date()),
       target: 35,
       exercises: [],
       filter: 'all',
@@ -2653,6 +2971,8 @@
       builder.title = workout.title;
       builder.why = workout.why || '';
       builder.days = workout.days.slice();
+      builder.weeks = workout.weeks || 4;
+      builder.startDate = workout.startDate || keyOf(new Date());
       builder.target = workout.target || 35;
       builder.exercises = workout.exercises.map(function (exercise) {
         return {
@@ -2669,6 +2989,8 @@
       builder.title = '';
       builder.why = '';
       builder.days = [fromKey(todayKey).getDay()];
+      builder.weeks = 4;
+      builder.startDate = todayKey;
       builder.target = 35;
       builder.exercises = [];
     }
@@ -2743,6 +3065,8 @@
       existing.why = trimText(builder.why, MAX_WHY);
       existing.focus = focus;
       existing.days = builder.days.slice().sort(function (a, b) { return a - b; });
+      existing.weeks = builder.weeks;
+      existing.startDate = builder.startDate;
       existing.target = builder.target;
       existing.exercises = exercises;
 
@@ -2760,6 +3084,8 @@
         why: trimText(builder.why, MAX_WHY),
         focus: focus,
         days: builder.days.slice().sort(function (a, b) { return a - b; }),
+        weeks: builder.weeks,
+        startDate: builder.startDate,
         target: builder.target,
         exercises: exercises,
         log: {},
@@ -2901,6 +3227,88 @@
     estimate.textContent = '≈ ' + quality.minutes + ' min planned'
       + (builder.target >= 30 && builder.target <= 45 ? ' · in the target zone' : '');
     card.appendChild(estimate);
+    return card;
+  }
+
+  /* The program step: pick how many weeks it runs, then read the actual dates
+     as training days and rest days before the session is ever saved. */
+  function buildStudioSchedule() {
+    var sessions = builder.weeks * builder.days.length;
+    var card = studioCard('Program', builder.weeks + ' week' + (builder.weeks === 1 ? '' : 's'));
+
+    var row = makeEl('div', 'studio-time');
+    [2, 4, 6, 8].forEach(function (weeks) {
+      var active = builder.weeks === weeks;
+      var btn = makeEl('button', 'studio-preset' + (active ? ' is-on' : ''), weeks + 'w');
+      btn.type = 'button';
+      btn.dataset.week = String(weeks);
+      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+      btn.setAttribute('aria-label', weeks + ' weeks');
+      row.appendChild(btn);
+    });
+
+    var custom = makeEl('label', 'studio-minutes');
+    var num = makeEl('input');
+    num.id = 'studioWeeks';
+    num.type = 'number';
+    num.inputMode = 'numeric';
+    num.min = '1';
+    num.max = '12';
+    num.step = '1';
+    num.value = String(builder.weeks);
+    num.setAttribute('aria-label', 'Custom program weeks');
+    custom.appendChild(num);
+    custom.appendChild(makeEl('span', null, 'wk'));
+    row.appendChild(custom);
+    card.appendChild(row);
+
+    card.appendChild(makeEl('p', 'studio-estimate',
+      sessions + ' session' + (sessions === 1 ? '' : 's') + ' · ' +
+      (builder.days.length
+        ? builder.days.length + ' training day' + (builder.days.length === 1 ? '' : 's') + ' a week'
+        : 'pick at least one training day') +
+      ' · ' + builder.weeks * 7 + ' days'));
+
+    var start = fromKey(builder.startDate);
+    var first = new Date(start);
+    first.setDate(start.getDate() - start.getDay());
+    var lastKey = shiftKey(builder.startDate, builder.weeks * 7 - 1);
+
+    var head = makeEl('div', 'schedule-week schedule-head');
+    head.setAttribute('aria-hidden', 'true');
+    DAY_LABELS.forEach(function (label) {
+      head.appendChild(makeEl('span', 'schedule-weekday', label.slice(0, 1)));
+    });
+    card.appendChild(head);
+
+    for (var w = 0; w < builder.weeks; w += 1) {
+      var weekRow = makeEl('div', 'schedule-week');
+      for (var i = 0; i < 7; i += 1) {
+        var date = new Date(first);
+        date.setDate(first.getDate() + (w * 7) + i);
+        var key = keyOf(date);
+        var inWindow = key >= builder.startDate && key <= lastKey;
+        var training = inWindow && builder.days.indexOf(date.getDay()) !== -1;
+        var cell = makeEl('span', 'schedule-cell' +
+          (training ? ' is-workout' : '') +
+          (inWindow ? '' : ' is-out') +
+          (key === todayKey ? ' is-today' : ''), String(date.getDate()));
+        var label = date.toLocaleDateString(undefined, {
+          weekday: 'short', month: 'short', day: 'numeric'
+        });
+        label += !inWindow ? ' — before the program'
+          : training ? ' — training day' : ' — rest day';
+        cell.setAttribute('aria-label', label);
+        cell.title = label;
+        weekRow.appendChild(cell);
+      }
+      card.appendChild(weekRow);
+    }
+
+    var legend = makeEl('div', 'schedule-legend');
+    legend.appendChild(makeEl('span', 'schedule-key is-workout', 'Training'));
+    legend.appendChild(makeEl('span', 'schedule-key is-rest', 'Rest'));
+    card.appendChild(legend);
     return card;
   }
 
@@ -3212,9 +3620,9 @@
     var scroll = els.studioBody.scrollTop;
     els.studioBody.textContent = '';
     els.studioBody.appendChild(buildStudioSetup());
-    els.studioBody.appendChild(buildStudioTime());
-
     els.studioBody.appendChild(buildBalanceCard());
+    els.studioBody.appendChild(buildStudioSchedule());
+    els.studioBody.appendChild(buildStudioTime());
 
     var muscleCard = studioCard('Muscles', 'Tap a movement for its demo');
     var coverage = makeEl('div');
@@ -3321,7 +3729,7 @@
 
   function onStudioClick(event) {
     var target = event.target.closest && event.target.closest(
-      '[data-lib],[data-remove],[data-step],[data-target],[data-filter],[data-day],' +
+      '[data-lib],[data-remove],[data-step],[data-target],[data-week],[data-filter],[data-day],' +
       '[data-custom-add],[data-session-toggle],[data-studio-action]');
     if (!target) return;
 
@@ -3381,6 +3789,12 @@
       return;
     }
 
+    if (target.dataset.week) {
+      builder.weeks = Number(target.dataset.week);
+      renderStudio();
+      return;
+    }
+
     if (target.dataset.filter) {
       builder.filter = target.dataset.filter;
       renderStudio();
@@ -3425,6 +3839,13 @@
   function onStudioChange(event) {
     if (event.target.id === 'studioCustomGroup') {
       builder.customGroup = event.target.value;
+    }
+    if (event.target.id === 'studioWeeks') {
+      var weeks = parseInt(event.target.value, 10);
+      if (weeks >= 1 && weeks <= 12) {
+        builder.weeks = weeks;
+        renderStudio();
+      }
     }
   }
 
@@ -3772,10 +4193,93 @@
 
   /* -------------------------------- render all ---------------------------- */
 
+  /* A month of real outcomes: green for a cleared day, red for a lost one,
+     and quiet grey for a day that carried nothing to judge. */
+  function renderCalendar() {
+    var year = calCursor.getFullYear();
+    var month = calCursor.getMonth();
+    var title = new Date(year, month, 1).toLocaleDateString(undefined, {
+      month: 'long', year: 'numeric'
+    });
+    els.calMonth.textContent = title;
+
+    els.calWeekdays.textContent = '';
+    DAY_LABELS.forEach(function (label) {
+      els.calWeekdays.appendChild(makeEl('span', 'cal-weekday', label.slice(0, 1)));
+    });
+
+    els.calGrid.textContent = '';
+    var first = new Date(year, month, 1);
+    var offset = first.getDay();
+    var daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    for (var blank = 0; blank < offset; blank += 1) {
+      var gap = makeEl('span', 'cal-cell is-blank');
+      gap.setAttribute('aria-hidden', 'true');
+      els.calGrid.appendChild(gap);
+    }
+
+    var wins = 0;
+    var losses = 0;
+    for (var day = 1; day <= daysInMonth; day += 1) {
+      var date = new Date(year, month, day);
+      var key = keyOf(date);
+      var future = key > todayKey;
+      var result = future ? null : dayResult(key);
+      var stateName = future ? 'future'
+        : (result.total === 0 ? 'empty' : (result.won ? 'win' : 'loss'));
+      if (!future && result.total) {
+        if (result.won) wins += 1;
+        else losses += 1;
+      }
+
+      var cell = makeEl('button', 'cal-cell is-' + stateName +
+        (key === todayKey ? ' is-today' : '') +
+        (key === selectedKey ? ' is-selected' : ''));
+      cell.type = 'button';
+      cell.appendChild(makeEl('span', 'cal-day', String(day)));
+      if (!future) {
+        cell.appendChild(makeEl('span', 'cal-mark',
+          result.total === 0 ? '·' : (result.won ? 'W' : 'L')));
+      }
+
+      var label = date.toLocaleDateString(undefined, {
+        weekday: 'long', month: 'long', day: 'numeric'
+      });
+      label += future ? ' — not yet'
+        : result.total === 0 ? ' — nothing scheduled'
+          : ' — ' + (result.won ? 'WIN' : 'LOSS') + ', ' + result.done +
+            ' of ' + result.total + ' done';
+      cell.setAttribute('aria-label', label);
+      cell.title = label;
+      if (future) {
+        cell.disabled = true;
+      } else {
+        cell.dataset.key = key;
+        cell.addEventListener('click', function (event) {
+          selectedKey = event.currentTarget.dataset.key;
+          setView('today');
+        });
+      }
+      els.calGrid.appendChild(cell);
+    }
+
+    els.calWins.textContent = String(wins);
+    els.calLosses.textContent = String(losses);
+    if (els.calWinWord) els.calWinWord.textContent = wins === 1 ? 'win' : 'wins';
+    if (els.calLossWord) els.calLossWord.textContent = losses === 1 ? 'loss' : 'losses';
+    var decided = wins + losses;
+    els.calSub.textContent = decided
+      ? wins + ' win' + (wins === 1 ? '' : 's') + ' · ' + losses + ' loss' +
+        (losses === 1 ? '' : 'es') + ' in ' + title + '.'
+      : 'No judged days yet in ' + title + '.';
+  }
+
   function applyView() {
     els.viewToday.hidden = view !== 'today';
     els.viewChallenges.hidden = view !== 'challenges';
     els.viewWorkouts.hidden = view !== 'workouts';
+    els.viewCalendar.hidden = view !== 'calendar';
 
     var tabs = els.tabbar.querySelectorAll('.tab');
     Array.prototype.forEach.call(tabs, function (tab) {
@@ -3794,9 +4298,12 @@
     renderWeek();
     renderProgress();
     renderLists(flash);
+    renderTodayWorkouts(flash);
+    renderTodayChallenges();
     renderProgramToday(flash);
     renderChallenges();
     renderWorkouts();
+    renderCalendar();
     updateFocusCard();
 
     document.body.classList.toggle('editing', editMode);
@@ -3811,7 +4318,8 @@
   }
 
   function setView(next) {
-    view = next === 'challenges' || next === 'workouts' ? next : 'today';
+    view = next === 'challenges' || next === 'workouts' || next === 'calendar'
+      ? next : 'today';
     state.view = view;
     save();
     renderAll();
@@ -4001,6 +4509,7 @@
         why: data.why,
         time: data.time,
         recurring: data.recurring,
+        key: streakKeyFor(data.title),
         createdAt: Date.now()
       });
     }
@@ -4343,8 +4852,16 @@
   els.addBtn.addEventListener('click', function () { openTaskSheet(null, false); });
   els.addHabitBtn.addEventListener('click', function () { openTaskSheet(null, true); });
   els.addChallengeBtn.addEventListener('click', function () { openTrackSheet('challenge'); });
-  els.addWorkoutBtn.addEventListener('click', function () { openBuilder(null); });
   els.buildWorkoutBtn.addEventListener('click', function () { openBuilder(null); });
+
+  els.calPrev.addEventListener('click', function () {
+    calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() - 1, 1);
+    renderCalendar();
+  });
+  els.calNext.addEventListener('click', function () {
+    calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() + 1, 1);
+    renderCalendar();
+  });
 
   els.studioClose.addEventListener('click', closeStudio);
   els.studioBody.addEventListener('click', onStudioClick);

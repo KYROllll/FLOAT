@@ -208,6 +208,32 @@
         </p>
       </section>
 
+      <!-- ========================= TODAY'S WORKOUT ======================== -->
+      <section class="section section-workout-today" id="workoutTodaySection" aria-labelledby="workoutTodayTitle" hidden>
+        <header class="section-head">
+          <div>
+            <h2 class="section-title" id="workoutTodayTitle">
+              <span class="workout-mark" aria-hidden="true">▲</span> Today’s Workout
+            </h2>
+            <p class="section-sub" id="workoutTodayCount">0 exercises</p>
+          </div>
+        </header>
+        <div class="today-workout-list" id="workoutTodayList"></div>
+      </section>
+
+      <!-- ======================= ACTIVE CHALLENGES ======================== -->
+      <section class="section section-challenge-today" id="challengeTodaySection" aria-labelledby="challengeTodayTitle" hidden>
+        <header class="section-head">
+          <div>
+            <h2 class="section-title" id="challengeTodayTitle">
+              <span class="challenge-mark" aria-hidden="true">◆</span> Active Challenges
+            </h2>
+            <p class="section-sub" id="challengeTodayCount">0 actions</p>
+          </div>
+        </header>
+        <div class="today-challenge-list" id="challengeTodayList"></div>
+      </section>
+
       <!-- ========================= PROGRAM ROUTINE ======================== -->
       <section class="section section-program" id="programTodaySection" aria-labelledby="progTodayTitle" hidden>
         <header class="section-head">
@@ -259,30 +285,26 @@
           <h2>Workouts</h2>
           <p class="view-sub" id="workoutsSub">Build a session. Light up every muscle.</p>
         </div>
-        <div class="section-actions">
-          <button class="icon-btn edit-btn" id="editWorkouts" type="button" aria-pressed="false" title="Manage workouts">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M4 20h4.2L19 9.2a2.1 2.1 0 0 0 0-3l-1.2-1.2a2.1 2.1 0 0 0-3 0L4 15.8V20Z" />
-              <path d="m13.6 6.4 4 4" />
-            </svg>
-            <span class="sr-only">Manage workouts</span>
-          </button>
-          <button class="icon-btn add-btn" id="addWorkoutBtn" type="button" title="New workout">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            <span class="sr-only">New workout</span>
-          </button>
-        </div>
+                  <div class="section-actions">
+            <button class="icon-btn edit-btn" id="editWorkouts" type="button" aria-pressed="false" title="Manage workouts">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M4 20h4.2L19 9.2a2.1 2.1 0 0 0 0-3l-1.2-1.2a2.1 2.1 0 0 0-3 0L4 15.8V20Z" />
+                <path d="m13.6 6.4 4 4" />
+              </svg>
+              <span class="sr-only">Manage workouts</span>
+            </button>
+          </div>
       </header>
 
       <button class="workout-cta" id="buildWorkoutBtn" type="button">
         <span class="workout-cta-mark" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="18.4" cy="9.3" r="1.75" />
-            <path d="M16.9 10.1 9.6 13.2 3.2 17.1" />
-            <path d="M16.3 10.5 17 13.5 15.4 16.9" />
-            <path d="M2.6 17.6h18.8" />
+            <circle cx="5.4" cy="8.6" r="1.8" />
+            <path d="M7.4 9.7 18.2 14.3" />
+            <path d="M9.6 10.7 8.7 15.6" />
+            <path d="M11.4 11.5 11.1 15.6" />
+            <path d="M18.2 14.3 21 17.1" />
+            <path d="M2.8 17.4h18.4" />
           </svg>
         </span>
         <span class="workout-cta-copy">
@@ -295,6 +317,47 @@
       <div class="workout-summary" id="workoutSummary"></div>
       <div class="workout-list" id="workoutList"></div>
       <p class="empty" id="workoutsEmpty" hidden>No workouts yet. Build your first training session.</p>
+    </div>
+
+    <!-- ============================= CALENDAR ============================= -->
+    <div class="view" id="viewCalendar" hidden>
+      <header class="view-head calendar-head">
+        <div>
+          <p class="view-kicker">Month by month</p>
+          <h2>Calendar</h2>
+          <p class="view-sub" id="calSub">Every day, judged by what it held.</p>
+        </div>
+      </header>
+
+      <section class="calendar-card" aria-label="Monthly outcomes">
+        <div class="cal-nav">
+          <button class="cal-arrow" id="calPrev" type="button" aria-label="Previous month">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M14.5 5.5 8 12l6.5 6.5" />
+            </svg>
+          </button>
+          <div class="cal-title-wrap">
+            <p class="cal-month" id="calMonth">November 2026</p>
+            <p class="cal-tally" id="calTally"><b id="calWins">0</b> <span id="calWinWord">wins</span> · <b id="calLosses">0</b> <span id="calLossWord">losses</span></p>
+          </div>
+          <button class="cal-arrow" id="calNext" type="button" aria-label="Next month">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M9.5 5.5 16 12l-6.5 6.5" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="cal-weekdays" id="calWeekdays" aria-hidden="true"></div>
+        <div class="cal-grid" id="calGrid" role="grid" aria-label="Days of the month"></div>
+
+        <div class="cal-legend">
+          <span class="cal-key is-win">WIN</span>
+          <span class="cal-key is-loss">LOSS</span>
+          <span class="cal-key is-empty">Nothing scheduled</span>
+        </div>
+      </section>
+
+      <p class="cal-hint">Tap a day to open it on Today.</p>
     </div>
 
     <footer class="foot">
@@ -330,13 +393,25 @@
     <button class="tab" type="button" data-view="workouts">
       <span class="tab-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="18.4" cy="9.3" r="1.75" />
-          <path d="M16.9 10.1 9.6 13.2 3.2 17.1" />
-          <path d="M16.3 10.5 17 13.5 15.4 16.9" />
-          <path d="M2.6 17.6h18.8" />
+          <circle cx="5.4" cy="8.6" r="1.8" />
+          <path d="M7.4 9.7 18.2 14.3" />
+          <path d="M9.6 10.7 8.7 15.6" />
+          <path d="M11.4 11.5 11.1 15.6" />
+          <path d="M18.2 14.3 21 17.1" />
+          <path d="M2.8 17.4h18.4" />
         </svg>
       </span>
       <span class="tab-label">Workouts</span>
+    </button>
+    <button class="tab" type="button" data-view="calendar">
+      <span class="tab-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3.2" y="5.2" width="17.6" height="15.4" rx="3" />
+          <path d="M3.4 9.8h17.2M8 3.4v3.6M16 3.4v3.6" />
+          <path d="M7.6 13.4h.9M11.5 13.4h.9M15.4 13.4h.9M7.6 17h.9M11.5 17h.9" />
+        </svg>
+      </span>
+      <span class="tab-label">Calendar</span>
     </button>
   </nav>
 

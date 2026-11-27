@@ -559,30 +559,38 @@ button {
   text-shadow: 0 0 7px rgba(239, 68, 68, 0.6);
 }
 
+/* The selected day is a filled gold pill, so its marker gets its own bright
+   chip: white disc, saturated fill, no glow bleeding into the yellow. */
 .wk.is-selected .wk-dot {
+  background: rgba(255, 255, 255, 0.94);
   color: var(--gold-ink);
+  box-shadow: 0 0 0 1px rgba(20, 18, 24, 0.16);
 }
 
 .wk.is-selected .wk-dot::before {
-  background: rgba(20, 18, 24, 0.55);
+  width: 7px;
+  height: 7px;
+  background: #5d5668;
   box-shadow: none;
 }
 
 .wk.is-selected .wk-dot.is-win::before {
-  background: #0b3f20;
+  background: #0d8a3d;
+  box-shadow: none;
 }
 
 .wk.is-selected .wk-dot.is-loss::before {
-  background: #5c1410;
+  background: #d21f1f;
+  box-shadow: none;
 }
 
 .wk.is-selected .wk-dot.is-check {
-  color: #06331a;
+  color: #0a7a35;
   text-shadow: none;
 }
 
 .wk.is-selected .wk-dot.is-cross {
-  color: #5c1410;
+  color: #c61b1b;
   text-shadow: none;
 }
 
@@ -2598,8 +2606,9 @@ body.focus-open {
   width: min(430px, calc(100% - 22px));
   display: grid;
   /* minmax(0, …) lets a column shrink below the label's min-content width, so
-     "Challenges" / "Programs" can never push past the bar and get cut. */
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+     "Challenges" / "Workouts" / "Calendar" can never push past the bar and
+     get cut. */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 3px;
   padding: 6px 5px;
   /* Nothing in the bar may clip a label's descender. */
@@ -2686,15 +2695,26 @@ body.focus-open .tabbar {
   filter: drop-shadow(0 0 10px rgba(239, 122, 192, 0.55));
 }
 
-.tab[data-view="programs"].is-active {
-  color: #e9e2ff;
-  background: linear-gradient(180deg, rgba(139, 92, 246, 0.22), rgba(139, 92, 246, 0.06));
-  box-shadow: inset 0 0 0 1px rgba(139, 92, 246, 0.3);
+.tab[data-view="workouts"].is-active {
+  color: #f6e9bf;
+  background: linear-gradient(180deg, rgba(245, 201, 78, 0.2), rgba(245, 201, 78, 0.05));
+  box-shadow: inset 0 0 0 1px rgba(245, 201, 78, 0.3);
 }
 
-.tab[data-view="programs"].is-active .tab-icon {
-  color: var(--violet-bright);
-  filter: drop-shadow(0 0 9px rgba(167, 139, 250, 0.55));
+.tab[data-view="workouts"].is-active .tab-icon {
+  color: var(--gold-bright);
+  filter: drop-shadow(0 0 10px rgba(245, 201, 78, 0.6));
+}
+
+.tab[data-view="calendar"].is-active {
+  color: #d9fbe6;
+  background: linear-gradient(180deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.05));
+  box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.3);
+}
+
+.tab[data-view="calendar"].is-active .tab-icon {
+  color: var(--green-bright);
+  filter: drop-shadow(0 0 10px rgba(34, 197, 94, 0.55));
 }
 
 /* =========================== TRACK CARDS =============================== */
@@ -4206,8 +4226,21 @@ body.studio-open {
 
 .studio-time {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
+}
+
+.studio-time .studio-preset {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0 6px;
+}
+
+/* The custom field drops to its own compact chip instead of stretching. */
+.studio-time .studio-minutes {
+  flex: 0 0 104px;
+  min-width: 0;
 }
 
 .studio-preset {
@@ -4282,7 +4315,7 @@ body.studio-open {
 
 .muscle-map {
   flex: none;
-  width: 92px;
+  width: 100px;
 }
 
 .muscle-map svg {
@@ -4308,13 +4341,21 @@ body.studio-open {
   stroke-linecap: round;
 }
 
+.bodymap .body-seam {
+  stroke: rgba(168, 162, 180, 0.22);
+  stroke-width: 1.2;
+  stroke-dasharray: 2 3;
+}
+
 .bodymap .muscle {
-  fill: rgba(255, 255, 255, 0.055);
+  fill: rgba(255, 255, 255, 0.07);
   transition: fill 0.35s var(--ease), opacity 0.35s var(--ease);
 }
 
 .bodymap .muscle.is-on {
   fill: #22c55e;
+  stroke: rgba(8, 70, 33, 0.55);
+  stroke-width: 0.8;
   opacity: 0.95;
   filter: drop-shadow(0 0 5px rgba(34, 197, 94, 0.7));
   animation: muscleGlow 2.8s ease-in-out infinite;
@@ -5396,6 +5437,579 @@ body.demo-open {
 .field input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
+}
+
+/* ====================== TODAY · WORKOUT & CHALLENGE ==================== */
+
+.section-workout-today {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(245, 201, 78, 0.2);
+}
+
+.section-challenge-today {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(239, 122, 192, 0.2);
+}
+
+.workout-mark {
+  margin-inline-end: 5px;
+  font-size: 9px;
+  vertical-align: 1px;
+  color: var(--gold-bright);
+}
+
+.challenge-mark {
+  margin-inline-end: 5px;
+  font-size: 9px;
+  vertical-align: 1px;
+  color: #f7a6d6;
+}
+
+.today-workout-list,
+.today-challenge-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.today-workout-card {
+  padding: 13px;
+  border-radius: 18px;
+  border: 1px solid rgba(245, 201, 78, 0.24);
+  background:
+    radial-gradient(120% 110% at 100% 0%, rgba(245, 201, 78, 0.1), transparent 58%),
+    linear-gradient(160deg, #1a1726 0%, #121019 58%, #0b0a10 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transition: border-color 0.3s var(--ease);
+}
+
+.today-workout-card.is-done {
+  border-color: rgba(34, 197, 94, 0.34);
+}
+
+.today-workout-head,
+.today-challenge-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.today-workout-copy,
+.today-challenge-copy {
+  min-width: 0;
+}
+
+.today-workout-name,
+.today-challenge-name {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 760;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.today-workout-meta,
+.today-challenge-meta {
+  margin: 3px 0 0;
+  font-size: 9.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.today-workout-state,
+.today-challenge-chip {
+  flex: none;
+  padding: 4px 7px;
+  border-radius: 7px;
+  border: 1px solid rgba(245, 201, 78, 0.3);
+  background: rgba(245, 201, 78, 0.1);
+  color: var(--gold-bright);
+  font-size: 7.5px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  line-height: 1.2;
+}
+
+.today-challenge-chip {
+  border-color: rgba(239, 122, 192, 0.3);
+  background: rgba(239, 122, 192, 0.1);
+  color: #f7a6d6;
+}
+
+.today-workout-card.is-done .today-workout-state {
+  border-color: transparent;
+  background: linear-gradient(180deg, var(--green-bright), var(--green));
+  color: #04150b;
+}
+
+.today-workout-meter {
+  height: 6px;
+  margin: 10px 0;
+}
+
+.today-workout-card.is-done .today-workout-meter span {
+  background: linear-gradient(90deg, #22c55e, #00e676);
+}
+
+.today-workout-check {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 11px;
+  border-radius: 12px;
+  border: 1px solid rgba(245, 201, 78, 0.34);
+  background: rgba(245, 201, 78, 0.08);
+  color: #f6e9bf;
+  text-align: start;
+  font-size: 11.5px;
+  font-weight: 750;
+}
+
+.today-workout-card.is-done .today-workout-check {
+  border-color: rgba(34, 197, 94, 0.32);
+  background: rgba(34, 197, 94, 0.09);
+  color: #bbf7d0;
+}
+
+.today-workout-mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+}
+
+.today-workout-mark svg {
+  width: 13px;
+  height: 13px;
+  opacity: 0.2;
+  transform: scale(0.6);
+  transition: opacity 0.16s, transform 0.22s var(--pop);
+}
+
+.today-workout-card.is-done .today-workout-mark svg {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.today-ex-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.today-ex {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.today-ex-toggle {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 5px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(168, 162, 180, 0.1);
+  background: rgba(7, 6, 10, 0.4);
+  color: var(--ink-dim);
+  text-align: start;
+}
+
+.today-ex-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 11.5px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+  unicode-bidi: plaintext;
+}
+
+.today-ex-dose {
+  flex: none;
+  font-size: 8.5px;
+  font-weight: 650;
+  color: var(--muted-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.today-ex.is-done .today-ex-name {
+  color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-color: rgba(168, 162, 180, 0.45);
+}
+
+.today-ex.is-done .mini-check {
+  background: var(--green);
+  border-color: transparent;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.45);
+}
+
+.today-ex.is-done .mini-check svg {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.today-ex-guide {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(245, 201, 78, 0.22);
+  background: rgba(245, 201, 78, 0.08);
+  color: var(--gold-bright);
+}
+
+.today-ex-guide svg {
+  width: 15px;
+  height: 15px;
+}
+
+.today-challenge-card {
+  padding: 13px;
+  border-radius: 18px;
+  border: 1px solid rgba(239, 122, 192, 0.22);
+  background:
+    radial-gradient(120% 110% at 100% 0%, rgba(239, 122, 192, 0.09), transparent 58%),
+    linear-gradient(160deg, #1c1524 0%, #141019 58%, #0b0a10 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.today-challenge-card.is-done {
+  border-color: rgba(34, 197, 94, 0.32);
+}
+
+.today-challenge-items {
+  margin-top: 9px;
+}
+
+/* --------------------------- studio program ---------------------------- */
+
+.schedule-week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.schedule-head {
+  margin-top: 11px;
+}
+
+.schedule-weekday {
+  text-align: center;
+  font-size: 7.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-dim);
+}
+
+.schedule-cell {
+  display: grid;
+  place-items: center;
+  height: 26px;
+  border-radius: 8px;
+  border: 1px solid rgba(168, 162, 180, 0.1);
+  background: rgba(168, 162, 180, 0.05);
+  color: var(--muted-dim);
+  font-size: 9px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.schedule-cell.is-workout {
+  border-color: rgba(34, 197, 94, 0.34);
+  background: rgba(34, 197, 94, 0.16);
+  color: #bbf7d0;
+}
+
+.schedule-cell.is-rest {
+  color: var(--muted);
+}
+
+.schedule-cell.is-out {
+  opacity: 0.28;
+}
+
+.schedule-cell.is-today {
+  box-shadow: inset 0 0 0 1.5px var(--gold-bright);
+  color: var(--gold-bright);
+}
+
+.schedule-cell.is-workout.is-today {
+  background: rgba(34, 197, 94, 0.3);
+  color: #eafff0;
+}
+
+.schedule-legend {
+  display: flex;
+  gap: 10px;
+  margin-top: 9px;
+}
+
+.schedule-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 8px;
+  font-weight: 650;
+  color: var(--muted-dim);
+}
+
+.schedule-key::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: rgba(168, 162, 180, 0.2);
+}
+
+.schedule-key.is-workout::before {
+  background: #22c55e;
+}
+
+/* ------------------------------ calendar ------------------------------- */
+
+.calendar-head {
+  padding-bottom: 6px;
+}
+
+.calendar-card {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background:
+    radial-gradient(120% 110% at 100% 0%, rgba(34, 197, 94, 0.08), transparent 58%),
+    linear-gradient(160deg, #171a20 0%, #101216 58%, #0a0a0d 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.cal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cal-arrow {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 12px;
+  border: 1px solid rgba(168, 162, 180, 0.18);
+  background: rgba(168, 162, 180, 0.06);
+  color: var(--ink-dim);
+}
+
+.cal-arrow:active {
+  background: rgba(245, 201, 78, 0.12);
+  color: var(--gold-bright);
+}
+
+.cal-arrow svg {
+  width: 17px;
+  height: 17px;
+}
+
+.cal-title-wrap {
+  min-width: 0;
+  text-align: center;
+}
+
+.cal-month {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 780;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.cal-tally {
+  margin: 2px 0 0;
+  font-size: 9px;
+  font-weight: 650;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.cal-tally b {
+  color: var(--ink-dim);
+  font-weight: 800;
+}
+
+.cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 14px;
+}
+
+.cal-weekday {
+  text-align: center;
+  font-size: 7.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-dim);
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 5px;
+}
+
+.cal-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  height: 40px;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: rgba(168, 162, 180, 0.05);
+  color: var(--muted);
+  line-height: 1;
+}
+
+.cal-cell.is-blank {
+  background: transparent;
+  pointer-events: none;
+}
+
+.cal-day {
+  font-size: 11.5px;
+  font-weight: 720;
+  font-variant-numeric: tabular-nums;
+}
+
+.cal-mark {
+  font-size: 6.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  opacity: 0.9;
+}
+
+.cal-cell.is-win {
+  border-color: rgba(34, 197, 94, 0.34);
+  background: rgba(34, 197, 94, 0.15);
+  color: #bbf7d0;
+}
+
+.cal-cell.is-loss {
+  border-color: rgba(239, 68, 68, 0.34);
+  background: rgba(239, 68, 68, 0.15);
+  color: #fecaca;
+}
+
+.cal-cell.is-empty {
+  color: var(--muted-dim);
+}
+
+.cal-cell.is-empty .cal-mark {
+  opacity: 0.4;
+}
+
+.cal-cell.is-future {
+  opacity: 0.26;
+}
+
+.cal-cell.is-today {
+  box-shadow: inset 0 0 0 1.5px var(--gold-bright);
+}
+
+.cal-cell.is-today .cal-day {
+  color: #fff3cd;
+}
+
+.cal-cell.is-selected {
+  outline: 1px solid rgba(245, 201, 78, 0.5);
+  outline-offset: 1px;
+}
+
+.cal-cell:disabled {
+  cursor: default;
+}
+
+.cal-legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-top: 13px;
+  padding-top: 11px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cal-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 8px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.cal-key::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: rgba(168, 162, 180, 0.16);
+}
+
+.cal-key.is-win::before {
+  background: rgba(34, 197, 94, 0.7);
+}
+
+.cal-key.is-loss::before {
+  background: rgba(239, 68, 68, 0.7);
+}
+
+.cal-hint {
+  margin: 12px 0 0;
+  text-align: center;
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--muted-dim);
+}
+
+@media (max-width: 359px) {
+  .today-ex-dose {
+    display: none;
+  }
+
+  .cal-cell {
+    height: 36px;
+  }
 }
 
 /* ============================== RESPONSIVE ============================== */
