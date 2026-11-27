@@ -25,6 +25,80 @@
     ['#22c55e', '#00e676']
   ];
 
+  /* Five coverage buckets: the builder judges a session by what it trains,
+     not by how many exercises were thrown at it. */
+  var MUSCLE_GROUPS = [
+    { key: 'chest', label: 'Chest' },
+    { key: 'shoulders', label: 'Shoulders' },
+    { key: 'triceps', label: 'Triceps' },
+    { key: 'core', label: 'Core / Back' },
+    { key: 'legs', label: 'Legs / Glutes' }
+  ];
+
+  function groupLabel(key) {
+    for (var i = 0; i < MUSCLE_GROUPS.length; i += 1) {
+      if (MUSCLE_GROUPS[i].key === key) return MUSCLE_GROUPS[i].label;
+    }
+    return '';
+  }
+
+  function isGroup(key) {
+    return !!groupLabel(key);
+  }
+
+  /* Equipment-free library. `sets`/`reps` are only defaults; a hold counts its
+     reps as seconds, so a 30-second plank reads 3 × 30s. `also` adds a second
+     muscle bucket to a compound movement. */
+  var EXERCISE_LIBRARY = [
+    { name: 'Push-Up', group: 'chest', sets: 3, reps: 12 },
+    { name: 'Wide Push-Up', group: 'chest', sets: 3, reps: 12 },
+    { name: 'Diamond Push-Up', group: 'chest', also: ['triceps'], sets: 3, reps: 10 },
+    { name: 'Decline Push-Up', group: 'chest', also: ['shoulders'], sets: 3, reps: 10 },
+    { name: 'Archer Push-Up', group: 'chest', sets: 3, reps: 8 },
+    { name: 'Pike Push-Up', group: 'shoulders', also: ['triceps'], sets: 3, reps: 8 },
+    { name: 'Shoulder Tap', group: 'shoulders', also: ['core'], sets: 3, reps: 16 },
+    { name: 'Wall Handstand Hold', group: 'shoulders', sets: 3, reps: 30, unit: 'sec' },
+    { name: 'Bench Dip', group: 'triceps', sets: 3, reps: 12 },
+    { name: 'Close-Grip Push-Up', group: 'triceps', also: ['chest'], sets: 3, reps: 10 },
+    { name: 'Plank', group: 'core', sets: 3, reps: 45, unit: 'sec' },
+    { name: 'Hollow Hold', group: 'core', sets: 3, reps: 30, unit: 'sec' },
+    { name: 'Superman Hold', group: 'core', sets: 3, reps: 30, unit: 'sec' },
+    { name: 'Reverse Snow Angel', group: 'core', sets: 3, reps: 12 },
+    { name: 'Dead Bug', group: 'core', sets: 3, reps: 10 },
+    { name: 'Bird Dog', group: 'core', sets: 3, reps: 10 },
+    { name: 'Mountain Climber', group: 'core', also: ['legs'], sets: 3, reps: 30, unit: 'sec' },
+    { name: 'Squat', group: 'legs', sets: 4, reps: 15 },
+    { name: 'Reverse Lunge', group: 'legs', sets: 3, reps: 10 },
+    { name: 'Glute Bridge', group: 'legs', sets: 3, reps: 15 },
+    { name: 'Bulgarian Split Squat', group: 'legs', sets: 3, reps: 10 },
+    { name: 'Calf Raise', group: 'legs', sets: 3, reps: 20 },
+    { name: 'Jump Squat', group: 'legs', sets: 3, reps: 12 },
+    { name: 'Wall Sit', group: 'legs', sets: 3, reps: 45, unit: 'sec' }
+  ];
+
+  /* Legacy/gym names never stored a bucket, so read one from the movement. */
+  function groupFromName(name) {
+    var text = String(name || '').toLowerCase();
+    if (/push-up|pushup|press|push press|fly|chest/.test(text)) {
+      if (/overhead|shoulder|pike|handstand/.test(text)) return 'shoulders';
+      if (/tricep|dip|diamond|close-grip/.test(text)) return 'triceps';
+      return 'chest';
+    }
+    if (/tricep|dip|skull/.test(text)) return 'triceps';
+    if (/shoulder|lateral raise|face pull/.test(text)) return 'shoulders';
+    if (/squat|lunge|leg|calf|glute|hip thrust|deadlift|step-up/.test(text)) return 'legs';
+    if (/plank|hollow|superman|dead bug|bird dog|climber|crunch|row|pull|curl|back|core|angel/.test(text)) return 'core';
+    return '';
+  }
+
+  function libraryEntry(name) {
+    var key = String(name || '').toLowerCase();
+    for (var i = 0; i < EXERCISE_LIBRARY.length; i += 1) {
+      if (EXERCISE_LIBRARY[i].name.toLowerCase() === key) return EXERCISE_LIBRARY[i];
+    }
+    return null;
+  }
+
   var CHECK_SVG =
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" ' +
     'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
@@ -89,6 +163,7 @@
     addProgramBtn: document.getElementById('addProgramBtn'),
     editPrograms: document.getElementById('editPrograms'),
     addWorkoutBtn: document.getElementById('addWorkoutBtn'),
+    buildWorkoutBtn: document.getElementById('buildWorkoutBtn'),
     workoutSummary: document.getElementById('workoutSummary'),
     workoutList: document.getElementById('workoutList'),
     workoutsEmpty: document.getElementById('workoutsEmpty'),
@@ -142,15 +217,17 @@
     taskExtras: document.getElementById('taskExtras'),
     trackExtras: document.getElementById('trackExtras'),
     trackDates: document.getElementById('trackDates'),
-    workoutExtras: document.getElementById('workoutExtras'),
     fieldDuration: document.getElementById('fieldDuration'),
     fieldItems: document.getElementById('fieldItems'),
     fieldStartDate: document.getElementById('fieldStartDate'),
     fieldEndDate: document.getElementById('fieldEndDate'),
     dateHint: document.getElementById('dateHint'),
-    fieldFocus: document.getElementById('fieldFocus'),
-    fieldExercises: document.getElementById('fieldExercises'),
-    fieldDays: document.getElementById('fieldDays'),
+    studio: document.getElementById('studio'),
+    studioBody: document.getElementById('studioBody'),
+    studioFoot: document.getElementById('studioFoot'),
+    studioTitle: document.getElementById('studioTitle'),
+    studioKicker: document.getElementById('studioKicker'),
+    studioClose: document.getElementById('studioClose'),
     toast: document.getElementById('toast')
   };
 
@@ -343,8 +420,17 @@
   }
 
   function seedWorkouts() {
-    function exercise(name, sets, reps) {
-      return { id: uid(), name: name, sets: sets, reps: reps };
+    var now = Date.now();
+    function exercise(name) {
+      var entry = libraryEntry(name) || { group: 'chest', sets: 3, reps: 10 };
+      return {
+        id: uid(),
+        name: name,
+        sets: entry.sets,
+        reps: entry.reps,
+        group: entry.group,
+        unit: entry.unit === 'sec' ? 'sec' : 'reps'
+      };
     }
     return [
       {
@@ -353,44 +439,50 @@
         why: 'Drive the chest, shoulders and triceps with clean pressing volume.',
         focus: 'Chest · Shoulders · Triceps',
         days: [1, 4],
+        target: 40,
         exercises: [
-          exercise('Bench press', 4, 8),
-          exercise('Incline dumbbell press', 3, 10),
-          exercise('Overhead press', 3, 8),
-          exercise('Triceps pushdown', 3, 12)
+          exercise('Push-Up'),
+          exercise('Wide Push-Up'),
+          exercise('Pike Push-Up'),
+          exercise('Diamond Push-Up'),
+          exercise('Bench Dip')
         ],
         log: {},
-        createdAt: Date.now()
+        createdAt: now
       },
       {
         id: uid(),
-        title: 'Pull Day',
-        why: 'Build the back and arms that hold your posture tall.',
-        focus: 'Back · Biceps',
+        title: 'Core & Back',
+        why: 'Build the trunk and posture that hold every other session tall.',
+        focus: 'Core · Back',
         days: [2, 5],
+        target: 30,
         exercises: [
-          exercise('Deadlift', 3, 5),
-          exercise('Pull-ups', 3, 8),
-          exercise('Barbell row', 3, 8),
-          exercise('Dumbbell curls', 3, 12)
+          exercise('Superman Hold'),
+          exercise('Reverse Snow Angel'),
+          exercise('Bird Dog'),
+          exercise('Plank'),
+          exercise('Hollow Hold')
         ],
         log: {},
-        createdAt: Date.now()
+        createdAt: now
       },
       {
         id: uid(),
         title: 'Leg Day',
         why: 'Strong legs carry every other session and every long day.',
-        focus: 'Quads · Hamstrings · Calves',
+        focus: 'Legs · Glutes',
         days: [3, 6],
+        target: 40,
         exercises: [
-          exercise('Back squat', 4, 6),
-          exercise('Romanian deadlift', 3, 8),
-          exercise('Leg press', 3, 12),
-          exercise('Calf raise', 4, 15)
+          exercise('Squat'),
+          exercise('Reverse Lunge'),
+          exercise('Glute Bridge'),
+          exercise('Calf Raise'),
+          exercise('Wall Sit')
         ],
         log: {},
-        createdAt: Date.now()
+        createdAt: now
       }
     ];
   }
@@ -535,11 +627,19 @@
     var reps = Math.round(Number(raw.reps));
     if (!isFinite(sets) || sets < 1) sets = 0;
     if (!isFinite(reps) || reps < 1) reps = 0;
+    var entry = libraryEntry(name);
+    var group = isGroup(raw.group)
+      ? raw.group
+      : (entry ? entry.group : groupFromName(name));
+    var unit = raw.unit === 'sec' || (!raw.unit && entry && entry.unit === 'sec')
+      ? 'sec' : 'reps';
     return {
       id: typeof raw.id === 'string' && raw.id ? raw.id : uid(),
       name: name,
       sets: Math.min(20, sets),
-      reps: Math.min(100, reps)
+      reps: Math.min(100, reps),
+      group: group,
+      unit: unit
     };
   }
 
@@ -589,13 +689,18 @@
       });
     }
 
+    var target = Math.round(Number(raw.target));
+    if (!isFinite(target) || target < 10) target = 35;
+    target = Math.min(120, target);
+
     return {
       id: typeof raw.id === 'string' && raw.id ? raw.id : uid(),
       title: title,
       why: trimText(raw.why, MAX_WHY),
-      focus: trimText(raw.focus, 40),
+      focus: trimText(raw.focus, 60),
       days: days,
       exercises: exercises,
+      target: target,
       log: log,
       /* Days before this template existed were never training days, so they
          must never be counted as missed sessions. */
@@ -1367,23 +1472,60 @@
     return n;
   }
 
+  /* The same 67% standard the day scale uses, scaled to the whole window: a
+     challenge is won by clearing at least 67% of its days. */
+  function challengeThreshold(ch) {
+    return Math.max(1, Math.ceil(ch.duration * WON_AT / 100));
+  }
+
   function challengeStatus(ch) {
     var won = challengeWonDays(ch);
+    var threshold = challengeThreshold(ch);
     if (!ch.startedAt) {
-      return { kind: 'idle', label: 'Not started', day: 0, won: 0, pct: 0 };
+      return { kind: 'idle', label: 'Not started', day: 0, won: 0, pct: 0, threshold: threshold };
     }
     var raw = daysBetween(ch.startedAt, todayKey) + 1;
     var pct = Math.round((won / ch.duration) * 100);
     if (won >= ch.duration) {
-      return { kind: 'won', label: 'Won', day: ch.duration, won: won, pct: 100 };
+      return {
+        kind: 'won', label: 'Win', day: ch.duration, won: won, pct: 100,
+        threshold: threshold, verdict: 'win'
+      };
     }
     if (raw < 1) {
-      return { kind: 'scheduled', label: 'Scheduled', day: 0, won: won, pct: 0 };
+      return {
+        kind: 'scheduled', label: 'Scheduled', day: 0, won: won, pct: 0,
+        threshold: threshold
+      };
     }
     if (raw > ch.duration) {
-      return { kind: 'over', label: 'Closed', day: ch.duration, won: won, pct: pct };
+      var verdict = won >= threshold ? 'win' : 'loss';
+      return {
+        kind: 'over', label: verdict === 'win' ? 'Win' : 'Loss', day: ch.duration,
+        won: won, pct: pct, threshold: threshold, verdict: verdict
+      };
     }
-    return { kind: 'live', label: 'Day ' + raw, day: raw, won: won, pct: pct };
+    return {
+      kind: 'live', label: 'Day ' + raw, day: raw, won: won, pct: pct,
+      threshold: threshold
+    };
+  }
+
+  function buildChallengeVerdict(ch, st) {
+    if (!st.verdict) return null;
+    var win = st.verdict === 'win';
+    var box = makeEl('div', 'challenge-verdict is-' + st.verdict);
+    box.appendChild(makeEl('span', 'verdict-badge', win ? 'WIN' : 'LOSS'));
+    var copy = makeEl('div', 'verdict-copy');
+    copy.appendChild(makeEl('b', 'verdict-title',
+      st.won + ' of ' + ch.duration + ' days won'));
+    copy.appendChild(makeEl('span', 'verdict-note', win
+      ? (st.won === ch.duration
+        ? 'Every day cleared — target ' + st.threshold + ' met.'
+        : 'Target ' + st.threshold + ' days met. Window closed strong.')
+      : 'Target ' + st.threshold + ' days · ' + (st.threshold - st.won) + ' short.'));
+    box.appendChild(copy);
+    return box;
   }
 
   function deleteButton(label, handler) {
@@ -1426,7 +1568,8 @@
       var st = challengeStatus(ch);
       var accent = ACCENTS[index % ACCENTS.length];
       var card = makeEl('article', 'track-card' +
-        (st.kind === 'won' ? ' is-won' : '') +
+        (st.verdict === 'win' ? ' is-won' : '') +
+        (st.verdict === 'loss' ? ' is-loss' : '') +
         (st.kind === 'scheduled' ? ' is-scheduled' : ''));
       card.style.setProperty('--track-a', accent[0]);
       card.style.setProperty('--track-b', accent[1]);
@@ -1444,7 +1587,8 @@
         wrap.appendChild(why);
       }
       top.appendChild(wrap);
-      var statusEl = makeEl('span', 'track-status is-' + st.kind, st.label);
+      var statusKind = st.verdict === 'win' ? 'win' : st.verdict === 'loss' ? 'loss' : st.kind;
+      var statusEl = makeEl('span', 'track-status is-' + statusKind, st.label);
       statusEl.dir = 'auto';
       top.appendChild(statusEl);
       card.appendChild(top);
@@ -1456,6 +1600,9 @@
       dates.appendChild(dateChip('End', ch.endDate));
       dates.appendChild(makeEl('span', 'track-dates-len', ch.duration + ' days'));
       card.appendChild(dates);
+
+      var verdict = buildChallengeVerdict(ch, st);
+      if (verdict) card.appendChild(verdict);
 
       var meter = makeEl('div', 'track-meter');
       var fill = makeEl('span');
@@ -1472,7 +1619,8 @@
       var wins = makeEl('span');
       var winsNum = makeEl('b', null, String(st.won));
       wins.appendChild(winsNum);
-      wins.appendChild(document.createTextNode(' wins'));
+      wins.appendChild(document.createTextNode(
+        ' wins' + (st.verdict ? '' : ' · need ' + st.threshold)));
       meta.appendChild(wins);
       card.appendChild(meta);
 
@@ -1548,7 +1696,7 @@
         card.appendChild(makeEl('p', 'track-check-label', 'Every day won. Run it back?'));
       } else {
         card.appendChild(makeEl('p', 'track-check-label',
-          'Closed with ' + st.won + ' of ' + ch.duration + ' days won.'));
+          'Window closed · ' + st.won + ' of ' + ch.duration + ' days won.'));
       }
 
       var canStart = st.kind === 'idle' || st.kind === 'scheduled' ||
@@ -1662,8 +1810,9 @@
   }
 
   function workoutDose(exercise) {
-    if (exercise.sets && exercise.reps) return exercise.sets + ' × ' + exercise.reps;
-    if (exercise.reps) return exercise.reps + ' reps';
+    var unit = exercise.unit === 'sec' ? 's' : '';
+    if (exercise.sets && exercise.reps) return exercise.sets + ' × ' + exercise.reps + unit;
+    if (exercise.reps) return exercise.reps + (exercise.unit === 'sec' ? 's' : ' reps');
     if (exercise.sets) return exercise.sets + ' sets';
     return '';
   }
@@ -1696,12 +1845,7 @@
   }
 
   function startWorkout(w) {
-    if (!w.log) w.log = {};
-    var entry = w.log[todayKey];
-    if (!entry) entry = w.log[todayKey] = { started: true, done: [], finished: false };
-    entry.started = true;
-    save();
-    renderWorkouts();
+    openSession(w);
     toast('✓ Workout started · ' + w.title);
   }
 
@@ -1730,7 +1874,14 @@
     renderWorkouts();
 
     if (adding) vibrate(8);
-    if (completeNow) toast('✓ Workout complete · ' + w.title);
+    if (completeNow) {
+      toast('✓ Workout complete · ' + w.title);
+      /* Every exercise ticked: close the session and clear the builder so the
+         next workout starts from a clean plan. */
+      if (builder.sessionId === w.id) finishSession(w, true);
+    } else if (builder.sessionId === w.id) {
+      renderStudio();
+    }
   }
 
   function finishWorkout(w) {
@@ -1738,8 +1889,7 @@
     if (!entry) return;
     entry.finished = true;
     save();
-    renderWorkouts();
-    toast('✓ Workout logged · ' + workoutDoneIds(w, todayKey).length + ' of ' + w.exercises.length);
+    finishSession(w);
   }
 
   function removeWorkout(w) {
@@ -1936,7 +2086,8 @@
     }
     schedule.appendChild(makeEl('span', 'workout-schedule-meta',
       w.exercises.length + ' exercise' + (w.exercises.length === 1 ? '' : 's') +
-      ' · ' + workoutTotalSets(w) + ' sets'));
+      ' · ' + workoutTotalSets(w) + ' sets' +
+      (w.target ? ' · ~' + w.target + ' min' : '')));
     card.appendChild(schedule);
 
     var entry = workoutEntry(w, todayKey);
@@ -2012,7 +2163,7 @@
 
     if (managePrograms) {
       actions.appendChild(editButton('Edit ' + w.title, function () {
-        openWorkoutSheet(w);
+        openBuilder(w);
       }));
       actions.appendChild(deleteButton('Delete ' + w.title, function () {
         askDelete('workout', w.title, function () { removeWorkout(w); });
@@ -2033,6 +2184,898 @@
     els.workoutsEmpty.hidden = state.workouts.length > 0;
   }
 
+  /* ---------------------------- workout studio --------------------------- */
+
+  /* The builder is a draft until it is saved: exercises, target time and the
+     live coverage/quality scores all live here, not in the stored state. */
+  var builder = {
+    editId: null,
+    sessionId: null,
+    title: '',
+    why: '',
+    days: [],
+    target: 35,
+    exercises: [],
+    filter: 'all',
+    customGroup: 'chest',
+    error: ''
+  };
+
+  function resetBuilder() {
+    builder = {
+      editId: null,
+      sessionId: null,
+      title: '',
+      why: '',
+      days: [],
+      target: 35,
+      exercises: [],
+      filter: 'all',
+      customGroup: 'chest',
+      error: ''
+    };
+  }
+
+  function exerciseGroups(exercise) {
+    var out = [];
+    if (isGroup(exercise.group)) out.push(exercise.group);
+    var entry = libraryEntry(exercise.name);
+    if (entry) {
+      if (out.indexOf(entry.group) === -1) out.push(entry.group);
+      (entry.also || []).forEach(function (key) {
+        if (isGroup(key) && out.indexOf(key) === -1) out.push(key);
+      });
+    }
+    return out;
+  }
+
+  /* Rough clock model: a rep ≈ 3s of work, a hold is its own seconds, every
+     set gets 40s of rest, plus a warm-up and a transition per movement. */
+  function exerciseMinutes(exercise) {
+    var sets = exercise.sets || 0;
+    if (!sets) return 0;
+    var work = exercise.unit === 'sec' ? (exercise.reps || 30) : (exercise.reps || 10) * 3;
+    return (sets * (work + 40)) / 60;
+  }
+
+  function planMinutes(exercises) {
+    if (!exercises.length) return 0;
+    var minutes = 2;
+    exercises.forEach(function (exercise) { minutes += exerciseMinutes(exercise); });
+    return Math.max(1, Math.round(minutes + exercises.length * 0.75));
+  }
+
+  function planCoverage(exercises) {
+    var sets = {};
+    var counts = {};
+    MUSCLE_GROUPS.forEach(function (group) {
+      sets[group.key] = 0;
+      counts[group.key] = 0;
+    });
+    exercises.forEach(function (exercise) {
+      exerciseGroups(exercise).forEach(function (key) {
+        sets[key] += exercise.sets || 0;
+        counts[key] += 1;
+      });
+    });
+    var covered = MUSCLE_GROUPS.filter(function (group) {
+      return counts[group.key] > 0;
+    }).map(function (group) { return group.key; });
+    return { sets: sets, counts: counts, covered: covered };
+  }
+
+  function planQuality(exercises, target) {
+    var minutes = planMinutes(exercises);
+    var coverage = planCoverage(exercises);
+    var totalSets = exercises.reduce(function (sum, exercise) {
+      return sum + (exercise.sets || 0);
+    }, 0);
+
+    var coverageScore = coverage.covered.length / MUSCLE_GROUPS.length;
+    var groupedSets = MUSCLE_GROUPS.reduce(function (sum, group) {
+      return sum + coverage.sets[group.key];
+    }, 0);
+    var maxShare = 0;
+    MUSCLE_GROUPS.forEach(function (group) {
+      if (!groupedSets) return;
+      maxShare = Math.max(maxShare, coverage.sets[group.key] / groupedSets);
+    });
+    /* A single muscle swallowing most of the volume is not a balanced plan. */
+    var balanceScore = totalSets ? Math.max(0, 1 - Math.max(0, maxShare - 0.45) / 0.55) : 0;
+    var goal = Math.max(10, target || 35);
+    var fitScore = minutes ? Math.max(0, 1 - Math.abs(minutes - goal) / goal) : 0;
+    if (minutes >= goal * 0.85 && minutes <= goal * 1.15) fitScore = 1;
+    var varietyScore = Math.min(1, exercises.length / 6);
+
+    var score = exercises.length
+      ? Math.round(100 * (
+        coverageScore * 0.45 + balanceScore * 0.2 + fitScore * 0.2 + varietyScore * 0.15
+      ))
+      : 0;
+
+    var grade;
+    var tone;
+    if (!exercises.length) { grade = 'Empty'; tone = 'none'; }
+    else if (score < 45) { grade = 'Thin'; tone = 'low'; }
+    else if (score < 65) { grade = 'Building'; tone = 'mid'; }
+    else if (score < 80) { grade = 'Solid'; tone = 'good'; }
+    else if (score < 90) { grade = 'Balanced'; tone = 'great'; }
+    else { grade = 'Complete'; tone = 'peak'; }
+
+    var missing = MUSCLE_GROUPS.filter(function (group) {
+      return coverage.counts[group.key] === 0;
+    });
+    var tip;
+    if (!exercises.length) {
+      tip = 'Add movements from the library to score this session.';
+    } else if (missing.length && coverageScore < 0.8) {
+      tip = 'Add ' + groupLabel(missing[0].key).toLowerCase() + ' work to round it out.';
+    } else if (minutes < goal * 0.85) {
+      tip = '≈' + Math.max(1, goal - minutes) + ' min short — add a set or one more movement.';
+    } else if (minutes > goal * 1.15) {
+      tip = 'Over target — trim a set to land near ' + goal + ' min.';
+    } else {
+      tip = missing.length
+        ? 'Close — ' + groupLabel(missing[0].key).toLowerCase() + ' is still light.'
+        : 'Well rounded and on time. Ready to train.';
+    }
+
+    return {
+      score: score,
+      grade: grade,
+      tone: tone,
+      tip: tip,
+      minutes: minutes,
+      coverage: coverage,
+      fullBody: coverage.covered.length >= 4 && exercises.length >= 3
+    };
+  }
+
+  function openBuilder(workout) {
+    builder.filter = 'all';
+    builder.customGroup = 'chest';
+    builder.error = '';
+    builder.sessionId = null;
+
+    if (!workout) {
+      /* From the hub, start from today's scheduled session if there is one. */
+      workout = state.workouts.filter(function (w) {
+        return workoutScheduledOn(w, todayKey) && !workoutComplete(w, todayKey);
+      })[0] || null;
+    }
+
+    if (workout) {
+      builder.editId = workout.id;
+      builder.title = workout.title;
+      builder.why = workout.why || '';
+      builder.days = workout.days.slice();
+      builder.target = workout.target || 35;
+      builder.exercises = workout.exercises.map(function (exercise) {
+        return {
+          id: exercise.id,
+          name: exercise.name,
+          sets: exercise.sets,
+          reps: exercise.reps,
+          group: exercise.group || groupFromName(exercise.name),
+          unit: exercise.unit === 'sec' ? 'sec' : 'reps'
+        };
+      });
+    } else {
+      builder.editId = null;
+      builder.title = '';
+      builder.why = '';
+      builder.days = [fromKey(todayKey).getDay()];
+      builder.target = 35;
+      builder.exercises = [];
+    }
+
+    showStudio();
+    renderStudio();
+  }
+
+  function openSession(w) {
+    if (!w.log) w.log = {};
+    var entry = w.log[todayKey];
+    if (!entry) w.log[todayKey] = { started: true, done: [], finished: false };
+    else entry.started = true;
+    save();
+    renderWorkouts();
+
+    builder.sessionId = w.id;
+    builder.editId = null;
+    showStudio();
+    renderStudio();
+  }
+
+  function showStudio() {
+    els.studio.hidden = false;
+    document.body.classList.add('studio-open');
+  }
+
+  function closeStudio() {
+    els.studio.hidden = true;
+    document.body.classList.remove('studio-open');
+  }
+
+  function finishSession(w, quiet) {
+    var entry = workoutEntry(w, todayKey);
+    if (entry) {
+      entry.finished = true;
+      save();
+    }
+    closeStudio();
+    resetBuilder();
+    renderAll();
+    if (!quiet) {
+      toast('✓ Session logged · ' + w.title + ' · ' + planMinutes(w.exercises) + ' min');
+    }
+  }
+
+  function commitBuilderWorkout() {
+    var title = trimText(builder.title, MAX_TITLE) || 'Custom Session';
+    var coverage = planCoverage(builder.exercises);
+    var focus = coverage.covered.length === MUSCLE_GROUPS.length
+      ? 'Full body'
+      : (coverage.covered.length
+        ? coverage.covered.map(groupLabel).join(' · ')
+        : 'Full body');
+
+    var exercises = builder.exercises.map(function (exercise) {
+      return {
+        id: exercise.id,
+        name: exercise.name,
+        sets: exercise.sets,
+        reps: exercise.reps,
+        group: exercise.group,
+        unit: exercise.unit
+      };
+    });
+
+    var existing = builder.editId ? workoutById(builder.editId) : null;
+    if (existing) {
+      existing.title = title;
+      existing.why = trimText(builder.why, MAX_WHY);
+      existing.focus = focus;
+      existing.days = builder.days.slice().sort(function (a, b) { return a - b; });
+      existing.target = builder.target;
+      existing.exercises = exercises;
+
+      var valid = {};
+      exercises.forEach(function (exercise) { valid[exercise.id] = true; });
+      Object.keys(existing.log).forEach(function (key) {
+        var entry = existing.log[key];
+        entry.done = (entry.done || []).filter(function (id) { return valid[id]; });
+        if (!entry.started && !entry.done.length) delete existing.log[key];
+      });
+    } else {
+      existing = {
+        id: uid(),
+        title: title,
+        why: trimText(builder.why, MAX_WHY),
+        focus: focus,
+        days: builder.days.slice().sort(function (a, b) { return a - b; }),
+        target: builder.target,
+        exercises: exercises,
+        log: {},
+        createdAt: Date.now()
+      };
+      state.workouts.unshift(existing);
+      builder.editId = existing.id;
+    }
+
+    save();
+    return existing;
+  }
+
+  function addLibraryExercise(name) {
+    var entry = libraryEntry(name);
+    if (!entry) return;
+    var exercise = normalizeExercise({
+      name: entry.name,
+      sets: entry.sets,
+      reps: entry.reps,
+      group: entry.group,
+      unit: entry.unit
+    });
+    if (!exercise) return;
+    if (builder.exercises.length >= MAX_ITEMS) {
+      builder.error = 'A session holds up to ' + MAX_ITEMS + ' exercises.';
+      return;
+    }
+    builder.exercises.push(exercise);
+    builder.error = '';
+    vibrate(6);
+  }
+
+  function addCustomExercise() {
+    var nameEl = document.getElementById('studioCustomName');
+    var groupEl = document.getElementById('studioCustomGroup');
+    var setsEl = document.getElementById('studioCustomSets');
+    var repsEl = document.getElementById('studioCustomReps');
+    var name = trimText(nameEl ? nameEl.value : '', MAX_TITLE);
+    if (!name) {
+      builder.error = 'Name the custom exercise first.';
+      renderStudio();
+      return;
+    }
+
+    if (builder.exercises.length >= MAX_ITEMS) {
+      builder.error = 'A session holds up to ' + MAX_ITEMS + ' exercises.';
+      renderStudio();
+      return;
+    }
+
+    var entry = libraryEntry(name);
+    builder.exercises.push({
+      id: uid(),
+      name: name,
+      sets: clampInt(setsEl ? setsEl.value : 3, 1, 20, 3),
+      reps: clampInt(repsEl ? repsEl.value : 12, 1, 100, entry ? entry.reps : 12),
+      group: groupEl && isGroup(groupEl.value)
+        ? groupEl.value
+        : (entry ? entry.group : groupFromName(name)),
+      unit: entry && entry.unit === 'sec' ? 'sec' : 'reps'
+    });
+    builder.error = '';
+    vibrate(8);
+    renderStudio();
+  }
+
+  function studioCard(title, note) {
+    var card = makeEl('section', 'studio-card');
+    var head = makeEl('div', 'studio-card-head');
+    head.appendChild(makeEl('h3', null, title));
+    if (note) head.appendChild(makeEl('span', 'studio-card-note', note));
+    card.appendChild(head);
+    return card;
+  }
+
+  function buildStudioSetup() {
+    var card = studioCard('Session');
+    var label = makeEl('label', 'studio-field');
+    label.appendChild(makeEl('span', 'studio-field-label', 'Workout name'));
+    var input = makeEl('input', 'studio-input');
+    input.id = 'studioName';
+    input.type = 'text';
+    input.maxLength = MAX_TITLE;
+    input.dir = 'auto';
+    input.placeholder = 'e.g. Full Body Circuit';
+    input.value = builder.title;
+    input.setAttribute('enterkeyhint', 'done');
+    label.appendChild(input);
+    card.appendChild(label);
+
+    if (builder.error) card.appendChild(makeEl('p', 'studio-error', builder.error));
+
+    card.appendChild(makeEl('p', 'studio-field-label', 'Training days'));
+    var days = makeEl('div', 'studio-days');
+    DAY_LABELS.forEach(function (text, index) {
+      var on = builder.days.indexOf(index) !== -1;
+      var btn = makeEl('button', 'studio-day' + (on ? ' is-on' : ''), text);
+      btn.type = 'button';
+      btn.dataset.day = String(index);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      btn.setAttribute('aria-label', DAY_LABELS_LONG[index]);
+      days.appendChild(btn);
+    });
+    card.appendChild(days);
+    return card;
+  }
+
+  function buildStudioTime() {
+    var card = studioCard('Target time', '30–45 min sweet spot');
+    var row = makeEl('div', 'studio-time');
+    [30, 45].forEach(function (minutes) {
+      var active = builder.target === minutes;
+      var btn = makeEl('button', 'studio-preset' + (active ? ' is-on' : ''), minutes + 'm');
+      btn.type = 'button';
+      btn.dataset.target = String(minutes);
+      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+      row.appendChild(btn);
+    });
+
+    var custom = makeEl('label', 'studio-minutes');
+    var num = makeEl('input');
+    num.id = 'studioMinutes';
+    num.type = 'number';
+    num.inputMode = 'numeric';
+    num.min = '10';
+    num.max = '120';
+    num.step = '5';
+    num.value = String(builder.target);
+    num.setAttribute('aria-label', 'Custom target minutes');
+    custom.appendChild(num);
+    custom.appendChild(makeEl('span', null, 'min'));
+    row.appendChild(custom);
+    card.appendChild(row);
+
+    var quality = planQuality(builder.exercises, builder.target);
+    var estimate = makeEl('p', 'studio-estimate');
+    estimate.id = 'studioEstimate';
+    estimate.textContent = '≈ ' + quality.minutes + ' min planned'
+      + (builder.target >= 30 && builder.target <= 45 ? ' · in the target zone' : '');
+    card.appendChild(estimate);
+    return card;
+  }
+
+  function buildCoverage() {
+    var coverage = planCoverage(builder.exercises);
+    var wrap = makeEl('div', 'coverage-wrap');
+    var grid = makeEl('div', 'coverage-grid');
+    MUSCLE_GROUPS.forEach(function (group) {
+      var on = coverage.counts[group.key] > 0;
+      var tile = makeEl('div', 'coverage-tile' + (on ? ' is-on' : ''));
+      tile.appendChild(makeEl('span', 'coverage-name', group.label));
+      tile.appendChild(makeEl('span', 'coverage-count',
+        on ? coverage.counts[group.key] + ' ex' : '—'));
+      grid.appendChild(tile);
+    });
+    wrap.appendChild(grid);
+
+    var fullBody = coverage.covered.length >= 4 && builder.exercises.length >= 3;
+    var flag = makeEl('div', 'coverage-flag' + (fullBody ? ' is-full' : ''));
+    flag.appendChild(makeEl('span', 'coverage-flag-mark', fullBody ? '◆' : '◇'));
+    flag.appendChild(makeEl('span', null, fullBody
+      ? 'Full Body — well-rounded session'
+      : 'Full Body unlocks at 4 of 5 groups'));
+    wrap.appendChild(flag);
+    return wrap;
+  }
+
+  function buildQualityCard() {
+    var quality = planQuality(builder.exercises, builder.target);
+    var card = makeEl('section', 'studio-card studio-quality is-' + quality.tone);
+    card.id = 'studioQualityCard';
+
+    var head = makeEl('div', 'studio-card-head');
+    head.appendChild(makeEl('h3', null, 'Workout quality'));
+    head.appendChild(makeEl('span', 'quality-grade', quality.grade));
+    card.appendChild(head);
+
+    var score = makeEl('div', 'quality-score');
+    score.appendChild(makeEl('b', null, String(quality.score)));
+    score.appendChild(makeEl('span', 'quality-of', '/100'));
+    card.appendChild(score);
+
+    var meter = makeEl('div', 'quality-meter');
+    var fill = makeEl('span');
+    fill.style.width = quality.score + '%';
+    meter.appendChild(fill);
+    card.appendChild(meter);
+
+    card.appendChild(makeEl('p', 'quality-tip', quality.tip));
+    return card;
+  }
+
+  function buildStudioPlan() {
+    var card = studioCard('Session plan',
+      builder.exercises.length + ' exercise' + (builder.exercises.length === 1 ? '' : 's'));
+
+    if (!builder.exercises.length) {
+      card.appendChild(makeEl('p', 'studio-empty',
+        'Nothing selected yet. Tap an exercise below or add your own.'));
+      return card;
+    }
+
+    var list = makeEl('ul', 'plan-list');
+    builder.exercises.forEach(function (exercise) {
+      var row = makeEl('li', 'plan-row');
+      var main = makeEl('div', 'plan-main');
+      main.dir = 'auto';
+      main.appendChild(makeEl('span', 'plan-name', exercise.name));
+      var groups = exerciseGroups(exercise).map(groupLabel).filter(Boolean);
+      if (groups.length) {
+        main.appendChild(makeEl('span', 'plan-groups', groups.join(' · ')));
+      }
+      row.appendChild(main);
+
+      var controls = makeEl('div', 'plan-controls');
+      controls.dir = 'ltr';
+      controls.appendChild(planStepper('Sets', exercise, 'sets', 1, 20));
+      controls.appendChild(planStepper(exercise.unit === 'sec' ? 'Sec' : 'Reps',
+        exercise, 'reps', 1, 100));
+      row.appendChild(controls);
+
+      var remove = makeEl('button', 'plan-remove');
+      remove.type = 'button';
+      remove.dataset.remove = exercise.id;
+      remove.setAttribute('aria-label', 'Remove ' + exercise.name);
+      remove.innerHTML = X_SVG;
+      row.appendChild(remove);
+      list.appendChild(row);
+    });
+    card.appendChild(list);
+
+    var custom = makeEl('div', 'studio-custom');
+    custom.appendChild(makeEl('p', 'studio-field-label', 'Custom exercise'));
+    var name = makeEl('input', 'studio-input');
+    name.id = 'studioCustomName';
+    name.type = 'text';
+    name.maxLength = MAX_TITLE;
+    name.dir = 'auto';
+    name.placeholder = 'e.g. Chair Dips';
+    custom.appendChild(name);
+
+    var customRow = makeEl('div', 'studio-custom-row');
+    var select = makeEl('select', 'studio-select');
+    select.id = 'studioCustomGroup';
+    select.setAttribute('aria-label', 'Muscle group');
+    MUSCLE_GROUPS.forEach(function (group) {
+      var option = makeEl('option', null, group.label);
+      option.value = group.key;
+      if (builder.customGroup === group.key) option.selected = true;
+      select.appendChild(option);
+    });
+    customRow.appendChild(select);
+
+    [['studioCustomSets', '3', 'sets'], ['studioCustomReps', '12', 'reps']].forEach(function (item) {
+      var input = makeEl('input', 'studio-number');
+      input.id = item[0];
+      input.type = 'number';
+      input.inputMode = 'numeric';
+      input.min = '1';
+      input.max = item[0].indexOf('Sets') !== -1 ? '20' : '100';
+      input.value = item[1];
+      input.setAttribute('aria-label', 'Custom exercise ' + item[2]);
+      customRow.appendChild(input);
+    });
+
+    var add = makeEl('button', 'studio-add-custom', 'Add');
+    add.type = 'button';
+    add.dataset.customAdd = '1';
+    customRow.appendChild(add);
+    custom.appendChild(customRow);
+    card.appendChild(custom);
+    return card;
+  }
+
+  function planStepper(label, exercise, field, min, max) {
+    var wrap = makeEl('span', 'plan-stepper');
+    wrap.appendChild(makeEl('span', 'plan-step-label', label));
+    var down = makeEl('button', null, '−');
+    down.type = 'button';
+    down.dataset.step = field;
+    down.dataset.id = exercise.id;
+    down.dataset.delta = '-1';
+    down.setAttribute('aria-label', 'Fewer ' + field);
+    wrap.appendChild(down);
+    wrap.appendChild(makeEl('b', 'plan-step-value', String(exercise[field] || 0)));
+    var up = makeEl('button', null, '+');
+    up.type = 'button';
+    up.dataset.step = field;
+    up.dataset.id = exercise.id;
+    up.dataset.delta = '1';
+    up.setAttribute('aria-label', 'More ' + field);
+    wrap.appendChild(up);
+    return wrap;
+  }
+
+  function buildStudioLibrary() {
+    var card = studioCard('Exercise library', 'Bodyweight · no equipment');
+
+    var filters = makeEl('div', 'library-filters');
+    filters.setAttribute('role', 'group');
+    filters.setAttribute('aria-label', 'Filter exercises');
+    [{ key: 'all', label: 'All' }].concat(MUSCLE_GROUPS).forEach(function (group) {
+      var on = builder.filter === group.key;
+      var btn = makeEl('button', 'library-filter' + (on ? ' is-on' : ''), group.label);
+      btn.type = 'button';
+      btn.dataset.filter = group.key;
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      filters.appendChild(btn);
+    });
+    card.appendChild(filters);
+
+    var counts = {};
+    builder.exercises.forEach(function (exercise) {
+      counts[exercise.name.toLowerCase()] = (counts[exercise.name.toLowerCase()] || 0) + 1;
+    });
+
+    var list = makeEl('ul', 'library-list');
+    EXERCISE_LIBRARY.forEach(function (entry) {
+      if (builder.filter !== 'all' && exerciseGroups(entry).indexOf(builder.filter) === -1) return;
+      var row = makeEl('li', 'library-row');
+      var main = makeEl('div', 'library-main');
+      main.dir = 'auto';
+      main.appendChild(makeEl('span', 'library-name', entry.name));
+      main.appendChild(makeEl('span', 'library-tag',
+        exerciseGroups(entry).map(groupLabel).join(' · ')));
+      row.appendChild(main);
+
+      row.appendChild(makeEl('span', 'library-dose',
+        entry.sets + ' × ' + entry.reps + (entry.unit === 'sec' ? 's' : '')));
+
+      var added = counts[entry.name.toLowerCase()] || 0;
+      var btn = makeEl('button', 'library-add' + (added ? ' is-added' : ''),
+        added ? '+' + added : '+');
+      btn.type = 'button';
+      btn.dataset.lib = entry.name;
+      btn.setAttribute('aria-label', 'Add ' + entry.name);
+      row.appendChild(btn);
+      list.appendChild(row);
+    });
+    card.appendChild(list);
+    return card;
+  }
+
+  function renderStudioFoot() {
+    els.studioFoot.textContent = '';
+
+    var w = builder.sessionId ? workoutById(builder.sessionId) : null;
+    if (w) {
+      var done = workoutDoneIds(w, todayKey).length;
+      var stats = makeEl('div', 'studio-foot-stats');
+      stats.appendChild(makeEl('b', null, done + ' / ' + w.exercises.length));
+      stats.appendChild(makeEl('span', null, 'exercises done'));
+      els.studioFoot.appendChild(stats);
+
+      var finish = makeEl('button', 'studio-action is-primary', 'Finish workout');
+      finish.type = 'button';
+      finish.dataset.studioAction = 'finish';
+      els.studioFoot.appendChild(finish);
+      return;
+    }
+
+    var quality = planQuality(builder.exercises, builder.target);
+    var stats = makeEl('div', 'studio-foot-stats');
+    stats.appendChild(makeEl('b', null, '≈ ' + quality.minutes + ' min'));
+    stats.appendChild(makeEl('span', null, quality.score + '/100 · ' + quality.grade));
+    els.studioFoot.appendChild(stats);
+
+    var save = makeEl('button', 'studio-action is-ghost', builder.editId ? 'Save' : 'Save only');
+    save.type = 'button';
+    save.dataset.studioAction = 'save';
+    els.studioFoot.appendChild(save);
+
+    var start = makeEl('button', 'studio-action is-primary', 'Start workout');
+    start.type = 'button';
+    start.dataset.studioAction = 'start';
+    els.studioFoot.appendChild(start);
+  }
+
+  function paintStudioStats() {
+    var estimate = document.getElementById('studioEstimate');
+    if (estimate) {
+      var quality = planQuality(builder.exercises, builder.target);
+      estimate.textContent = '≈ ' + quality.minutes + ' min planned'
+        + (builder.target >= 30 && builder.target <= 45 ? ' · in the target zone' : '');
+    }
+
+    var coverage = document.getElementById('studioCoverage');
+    if (coverage) {
+      coverage.textContent = '';
+      coverage.appendChild(buildCoverage());
+    }
+
+    var qualityCard = document.getElementById('studioQualityCard');
+    if (qualityCard) qualityCard.parentNode.replaceChild(buildQualityCard(), qualityCard);
+
+    renderStudioFoot();
+  }
+
+  function renderStudio() {
+    if (els.studio.hidden) return;
+
+    if (builder.sessionId) {
+      renderSessionStudio();
+      return;
+    }
+
+    els.studioKicker.textContent = builder.editId ? 'Edit session' : 'Workout builder';
+    els.studioTitle.textContent = 'Build a workout';
+    els.studioTitle.dir = 'auto';
+
+    var scroll = els.studioBody.scrollTop;
+    els.studioBody.textContent = '';
+    els.studioBody.appendChild(buildStudioSetup());
+    els.studioBody.appendChild(buildStudioTime());
+
+    var coverageCard = studioCard('Muscle coverage',
+      planCoverage(builder.exercises).covered.length + ' of ' + MUSCLE_GROUPS.length + ' hit');
+    var coverage = makeEl('div');
+    coverage.id = 'studioCoverage';
+    coverage.appendChild(buildCoverage());
+    coverageCard.appendChild(coverage);
+    els.studioBody.appendChild(coverageCard);
+
+    els.studioBody.appendChild(buildQualityCard());
+    els.studioBody.appendChild(buildStudioPlan());
+    els.studioBody.appendChild(buildStudioLibrary());
+    els.studioBody.scrollTop = scroll;
+
+    renderStudioFoot();
+  }
+
+  function renderSessionStudio() {
+    var w = workoutById(builder.sessionId);
+    if (!w) {
+      closeStudio();
+      resetBuilder();
+      return;
+    }
+
+    els.studioKicker.textContent = 'In session';
+    els.studioTitle.textContent = w.title;
+    els.studioTitle.dir = 'auto';
+
+    var done = workoutDoneIds(w, todayKey);
+    var pct = w.exercises.length
+      ? Math.round((done.length / w.exercises.length) * 100)
+      : 0;
+
+    var scroll = els.studioBody.scrollTop;
+    els.studioBody.textContent = '';
+
+    var summary = makeEl('section', 'studio-card session-summary');
+    var summaryTop = makeEl('div', 'session-summary-top');
+    var summaryCopy = makeEl('div');
+    summaryCopy.appendChild(makeEl('p', 'studio-field-label',
+      w.focus || 'Training session'));
+    var count = makeEl('p', 'session-count');
+    count.appendChild(makeEl('b', null, String(done.length)));
+    count.appendChild(document.createTextNode(' of ' + w.exercises.length + ' done'));
+    summaryCopy.appendChild(count);
+    summaryTop.appendChild(summaryCopy);
+    var target = makeEl('span', 'session-target', '~' + (w.target || 35) + ' min');
+    summaryTop.appendChild(target);
+    summary.appendChild(summaryTop);
+
+    var meter = makeEl('div', 'quality-meter session-meter');
+    var fill = makeEl('span');
+    fill.style.width = pct + '%';
+    meter.appendChild(fill);
+    summary.appendChild(meter);
+    els.studioBody.appendChild(summary);
+
+    var listCard = studioCard('Exercises', 'Tap to tick off each set');
+    var list = makeEl('ul', 'session-list');
+    w.exercises.forEach(function (exercise) {
+      var complete = done.indexOf(exercise.id) !== -1;
+      var row = makeEl('li', 'session-row' + (complete ? ' is-done' : ''));
+      var btn = makeEl('button', 'session-toggle');
+      btn.type = 'button';
+      btn.dataset.sessionToggle = exercise.id;
+      btn.setAttribute('role', 'checkbox');
+      btn.setAttribute('aria-checked', complete ? 'true' : 'false');
+      btn.setAttribute('aria-label',
+        (complete ? 'Undo: ' : 'Complete: ') + exercise.name);
+
+      var mark = makeEl('span', 'mini-check');
+      mark.innerHTML = CHECK_SVG;
+      btn.appendChild(mark);
+
+      var main = makeEl('span', 'session-main');
+      main.dir = 'auto';
+      main.appendChild(makeEl('span', 'session-name', exercise.name));
+      main.appendChild(makeEl('span', 'session-groups',
+        exerciseGroups(exercise).map(groupLabel).join(' · ')));
+      btn.appendChild(main);
+
+      btn.appendChild(makeEl('span', 'session-dose', workoutDose(exercise)));
+      row.appendChild(btn);
+      list.appendChild(row);
+    });
+    listCard.appendChild(list);
+    els.studioBody.appendChild(listCard);
+
+    var note = makeEl('p', 'session-note',
+      'Every exercise auto-completes the session. Finish early and it still logs what you did.');
+    els.studioBody.appendChild(note);
+    els.studioBody.scrollTop = scroll;
+
+    renderStudioFoot();
+  }
+
+  function onStudioClick(event) {
+    var target = event.target.closest && event.target.closest(
+      '[data-lib],[data-remove],[data-step],[data-target],[data-filter],[data-day],' +
+      '[data-custom-add],[data-session-toggle],[data-studio-action]');
+    if (!target) return;
+
+    if (target.dataset.studioAction) {
+      var action = target.dataset.studioAction;
+      if (action === 'save' || action === 'start') {
+        if (!builder.exercises.length) {
+          builder.error = 'Add at least one exercise before saving or starting.';
+          renderStudio();
+          return;
+        }
+        var workout = commitBuilderWorkout();
+        if (action === 'start') {
+          openSession(workout);
+        } else {
+          closeStudio();
+          resetBuilder();
+          renderAll();
+          toast('✓ Workout saved · ' + workout.title);
+        }
+      } else if (action === 'finish') {
+        var session = builder.sessionId ? workoutById(builder.sessionId) : null;
+        if (session) finishWorkout(session);
+      }
+      return;
+    }
+
+    if (target.dataset.lib) {
+      addLibraryExercise(target.dataset.lib);
+      renderStudio();
+      return;
+    }
+
+    if (target.dataset.remove) {
+      builder.exercises = builder.exercises.filter(function (exercise) {
+        return exercise.id !== target.dataset.remove;
+      });
+      renderStudio();
+      return;
+    }
+
+    if (target.dataset.step) {
+      var exercise = builder.exercises.filter(function (item) {
+        return item.id === target.dataset.id;
+      })[0];
+      if (!exercise) return;
+      var field = target.dataset.step === 'sets' ? 'sets' : 'reps';
+      var next = (exercise[field] || 0) + Number(target.dataset.delta || 0);
+      exercise[field] = Math.max(1, Math.min(field === 'sets' ? 20 : 100, next));
+      renderStudio();
+      return;
+    }
+
+    if (target.dataset.target) {
+      builder.target = Number(target.dataset.target);
+      renderStudio();
+      return;
+    }
+
+    if (target.dataset.filter) {
+      builder.filter = target.dataset.filter;
+      renderStudio();
+      return;
+    }
+
+    if (target.dataset.day != null) {
+      var day = Number(target.dataset.day);
+      var index = builder.days.indexOf(day);
+      if (index === -1) builder.days.push(day);
+      else builder.days.splice(index, 1);
+      renderStudio();
+      return;
+    }
+
+    if (target.dataset.customAdd) {
+      addCustomExercise();
+      return;
+    }
+
+    if (target.dataset.sessionToggle) {
+      var current = builder.sessionId ? workoutById(builder.sessionId) : null;
+      if (current) toggleWorkoutExercise(current, target.dataset.sessionToggle);
+    }
+  }
+
+  function onStudioInput(event) {
+    var target = event.target;
+    if (target.id === 'studioName') {
+      builder.title = target.value;
+      return;
+    }
+    if (target.id === 'studioMinutes') {
+      var minutes = parseInt(target.value, 10);
+      if (minutes >= 10 && minutes <= 120) {
+        builder.target = minutes;
+        paintStudioStats();
+      }
+    }
+  }
+
+  function onStudioChange(event) {
+    if (event.target.id === 'studioCustomGroup') {
+      builder.customGroup = event.target.value;
+    }
+  }
+
+  /* -------------------------------- programs ----------------------------- */
   /* -------------------------------- programs ----------------------------- */
 
   function programDay(p) {
@@ -2801,40 +3844,6 @@
     els.formError.hidden = true;
   }
 
-  function buildDayPicker() {
-    if (!els.fieldDays) return;
-    els.fieldDays.textContent = '';
-    DAY_LABELS.forEach(function (label, index) {
-      var btn = makeEl('button', 'day-pick', label);
-      btn.type = 'button';
-      btn.dataset.day = String(index);
-      btn.setAttribute('aria-pressed', 'false');
-      btn.setAttribute('aria-label', DAY_LABELS_LONG[index]);
-      btn.addEventListener('click', function () {
-        var on = btn.getAttribute('aria-pressed') !== 'true';
-        btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-        btn.classList.toggle('is-on', on);
-      });
-      els.fieldDays.appendChild(btn);
-    });
-  }
-
-  function setPickedDays(days) {
-    Array.prototype.forEach.call(els.fieldDays.querySelectorAll('[data-day]'), function (btn) {
-      var on = days.indexOf(Number(btn.dataset.day)) !== -1;
-      btn.classList.toggle('is-on', on);
-      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-    });
-  }
-
-  function pickedDays() {
-    var out = [];
-    Array.prototype.forEach.call(els.fieldDays.querySelectorAll('[data-day]'), function (btn) {
-      if (btn.getAttribute('aria-pressed') === 'true') out.push(Number(btn.dataset.day));
-    });
-    return out;
-  }
-
   function updateDateHint() {
     var start = validDateKey(els.fieldStartDate.value);
     var end = validDateKey(els.fieldEndDate.value);
@@ -2878,35 +3887,13 @@
     updateDateHint();
   }
 
-  function exerciseLine(exercise) {
-    var text = exercise.name;
-    if (exercise.sets && exercise.reps) text += ' ' + exercise.sets + '×' + exercise.reps;
-    return text;
-  }
-
-  function parseExerciseLine(line) {
-    var text = trimText(line, MAX_TITLE);
-    if (!text) return null;
-    var match = text.match(/^(.*?)\s+(\d{1,2})\s*[x×]\s*(\d{1,3})$/i);
-    if (match && trimText(match[1], MAX_TITLE)) {
-      return {
-        name: trimText(match[1], MAX_TITLE),
-        sets: clampInt(match[2], 1, 20, 0),
-        reps: clampInt(match[3], 1, 100, 0)
-      };
-    }
-    return { name: text, sets: 0, reps: 0 };
-  }
-
   function applySheetMode() {
     var isTask = sheetMode === 'task';
     var isChallenge = sheetMode === 'challenge';
-    var isWorkout = sheetMode === 'workout';
 
     els.taskExtras.hidden = !isTask;
-    els.trackExtras.hidden = isTask || isWorkout;
+    els.trackExtras.hidden = !isChallenge && sheetMode !== 'program';
     els.trackDates.hidden = !isChallenge;
-    els.workoutExtras.hidden = !isWorkout;
 
     if (isTask) {
       els.sheetTitle.textContent = editingId ? 'Edit task' : (newRecurring ? 'New non-negotiable' : 'New task');
@@ -2914,15 +3901,6 @@
       els.labelWhy.textContent = 'Why it matters';
       els.fieldTitle.placeholder = 'What are you doing?';
       els.fieldWhy.placeholder = 'Where does this take you?';
-      return;
-    }
-
-    if (isWorkout) {
-      els.sheetTitle.textContent = editingId ? 'Edit workout' : 'New workout';
-      els.labelTitle.textContent = 'Workout name';
-      els.labelWhy.textContent = 'Why this session matters';
-      els.fieldTitle.placeholder = 'e.g. Push Day';
-      els.fieldWhy.placeholder = 'What does this session build?';
       return;
     }
 
@@ -2988,24 +3966,6 @@
     showSheet();
   }
 
-  function openWorkoutSheet(item) {
-    sheetMode = 'workout';
-    editingId = item ? item.id : null;
-
-    els.fieldTitle.value = item ? item.title : '';
-    els.fieldWhy.value = item ? item.why : '';
-    els.fieldFocus.value = item ? item.focus : '';
-    els.fieldExercises.value = item
-      ? item.exercises.map(exerciseLine).join('\n')
-      : '';
-    setPickedDays(item ? item.days : [fromKey(todayKey).getDay()]);
-
-    els.sheetDelete.hidden = true;
-    clearError();
-    applySheetMode();
-    showSheet();
-  }
-
   function showSheet() {
     els.sheet.hidden = false;
     document.body.classList.add('sheet-open');
@@ -3064,88 +4024,6 @@
     closeSheet();
     renderAll();
     toast(wasEditing ? 'Task updated' : 'Task added');
-  }
-
-  function saveWorkout() {
-    var wasEditing = !!editingId;
-    var title = trimText(els.fieldTitle.value, MAX_TITLE);
-    if (!title) {
-      showError('Give the workout a name first.');
-      els.fieldTitle.focus();
-      return;
-    }
-
-    var exercises = els.fieldExercises.value.split('\n')
-      .map(parseExerciseLine)
-      .filter(Boolean)
-      .slice(0, MAX_ITEMS);
-
-    if (!exercises.length) {
-      showError('Add at least one exercise.');
-      els.fieldExercises.focus();
-      return;
-    }
-
-    var existing = editingId ? workoutById(editingId) : null;
-    var oldIds = {};
-    if (existing) {
-      existing.exercises.forEach(function (exercise) {
-        oldIds[exercise.name.toLowerCase()] = exercise.id;
-      });
-    }
-
-    var used = {};
-    var nextExercises = exercises.map(function (exercise) {
-      var id = oldIds[exercise.name.toLowerCase()] || uid();
-      if (used[id]) id = uid();
-      used[id] = true;
-      return {
-        id: id,
-        name: exercise.name,
-        sets: exercise.sets,
-        reps: exercise.reps
-      };
-    });
-
-    var data = {
-      title: title,
-      why: trimText(els.fieldWhy.value, MAX_WHY),
-      focus: trimText(els.fieldFocus.value, 40),
-      days: pickedDays(),
-      exercises: nextExercises
-    };
-
-    if (existing) {
-      existing.title = data.title;
-      existing.why = data.why;
-      existing.focus = data.focus;
-      existing.days = data.days;
-      existing.exercises = data.exercises;
-
-      var valid = {};
-      data.exercises.forEach(function (exercise) { valid[exercise.id] = true; });
-      Object.keys(existing.log).forEach(function (key) {
-        var entry = existing.log[key];
-        entry.done = (entry.done || []).filter(function (id) { return valid[id]; });
-        if (!entry.started && !entry.done.length) delete existing.log[key];
-      });
-    } else {
-      state.workouts.unshift({
-        id: uid(),
-        title: data.title,
-        why: data.why,
-        focus: data.focus,
-        days: data.days,
-        exercises: data.exercises,
-        log: {},
-        createdAt: Date.now()
-      });
-    }
-
-    save();
-    closeSheet();
-    renderAll();
-    toast(wasEditing ? 'Workout updated' : 'Workout added');
   }
 
   function saveTrack() {
@@ -3256,7 +4134,6 @@
   function saveSheet(event) {
     event.preventDefault();
     if (sheetMode === 'task') saveTask();
-    else if (sheetMode === 'workout') saveWorkout();
     else saveTrack();
   }
 
@@ -3482,7 +4359,14 @@
   els.addHabitBtn.addEventListener('click', function () { openTaskSheet(null, true); });
   els.addChallengeBtn.addEventListener('click', function () { openTrackSheet('challenge'); });
   els.addProgramBtn.addEventListener('click', function () { openTrackSheet('program'); });
-  els.addWorkoutBtn.addEventListener('click', function () { openWorkoutSheet(null); });
+  els.addWorkoutBtn.addEventListener('click', function () { openBuilder(null); });
+  els.buildWorkoutBtn.addEventListener('click', function () { openBuilder(null); });
+
+  els.studioClose.addEventListener('click', closeStudio);
+  els.studioBody.addEventListener('click', onStudioClick);
+  els.studioBody.addEventListener('input', onStudioInput);
+  els.studioBody.addEventListener('change', onStudioChange);
+  els.studioFoot.addEventListener('click', onStudioClick);
 
   els.editBtn.addEventListener('click', function () {
     editMode = !editMode;
@@ -3592,6 +4476,7 @@
   document.addEventListener('keydown', function (event) {
     if (event.key !== 'Escape') return;
     if (!els.confirm.hidden) closeConfirm(true);
+    else if (!els.studio.hidden) closeStudio();
     else if (!els.sheet.hidden) closeSheet();
     else if (!els.focusLength.hidden) closeLengthPanel();
     else if (focus.open) exitFocus();
@@ -3635,7 +4520,7 @@
   }
 
   function canPull() {
-    if (pull.loading || focus.open || !els.sheet.hidden || !els.confirm.hidden) return false;
+    if (pull.loading || focus.open || !els.sheet.hidden || !els.confirm.hidden || !els.studio.hidden) return false;
     return (window.scrollY || document.documentElement.scrollTop || 0) <= 0;
   }
 
@@ -3741,7 +4626,6 @@
     });
   }
 
-  buildDayPicker();
   ensureProgramLinks();
   renderAll();
   updateFocus();

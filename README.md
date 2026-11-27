@@ -22,7 +22,7 @@ Open **http://localhost:8080**. The service worker and Home Screen install need 
 2. **Share → Add to Home Screen**.
 3. Launch it from the Home Screen — it runs standalone, respects the notch and home indicator, and works offline.
 
-The service worker uses cache `aura-v13` and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the current palette, the new app icons and the in-app mark on the next launch.
+The service worker uses cache `aura-v14` and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the current palette, the new app icons and the in-app mark on the next launch.
 
 ---
 
@@ -31,8 +31,8 @@ The service worker uses cache `aura-v13` and calls `skipWaiting` + `clients.clai
 | Tab | What lives there |
 | --- | --- |
 | **Today** | Week strip, progress card with the LOSS → WIN scale and same-day verdict, Superfocus, Ideal Day, Non-Negotiables, and Program Routine for the selected day |
-| **Challenges** | Short, high-pressure tracks (`7-Day No Sugar`, `14-Day Deep Work`) with a daily checklist, day bar and win count |
-| **Programs / Workouts** | A dedicated training hub: workout templates with exercises and sets×reps, active workout days, today's session and completion, plus the longer structured `Programs` tracks with their multi-day roadmap and day log |
+| **Challenges** | Short, high-pressure tracks (`7-Day No Sugar`, `14-Day Deep Work`) with a daily checklist, day bar, win count and a clear **WIN / LOSS** verdict when the window closes |
+| **Programs / Workouts** | A dedicated training hub: a bodyweight workout builder with muscle coverage, target time and a live quality score, full session flow, plus the longer structured `Programs` tracks with their multi-day roadmap and day log |
 
 Each tab keeps its own **+** button, and Challenges plus Programs/Workouts have a pencil to reveal delete buttons on their cards; a challenge card also gets a configure button for its dates and checklist.
 
@@ -73,9 +73,9 @@ The task sheet has four fields: **Task**, **Why it matters** (the purpose line u
 
 **Program Routine** — shows the selected day's program items, grouped under a violet **◆ Program name** header with `Day N of length · X of Y done`. Each card carries the program badge, cannot be opened or deleted as a standalone ad-hoc task, and checks off in step with the program card in both directions. Checking a day writes only that date's record, so a new calendar day starts with every routine item unchecked while earlier days keep their own ticks. When the program ends, its items retire from Today and the day's totals (they are not deleted); past days keep them, and they return if the program is started again.
 
-**Challenges** — short, high-pressure tracks. Each card shows its explicit **start** and **end** date, status (Not started / Scheduled / Day N / Won / Closed), a violet-to-gold progress meter, one mark per challenge day (won = emerald, missed = red, today = gold), and today's checklist. Checking every daily action wins the day; winning every day wins the challenge. Creating or configuring a challenge takes a start date and an end date (or a start date plus length), and the card always states both.
+**Challenges** — short, high-pressure tracks. Each card shows its explicit **start** and **end** date, status (Not started / Scheduled / Day N / Win / Loss), a violet-to-gold progress meter, one mark per challenge day (won = emerald, missed = red, today = gold), and today's checklist. Checking every daily action wins the day. When the window closes, a verdict banner declares **WIN** or **LOSS** against the same 67% standard as the daily scale: the target is at least 67% of the challenge's days won (5 of 7, 10 of 14), and the banner states the days won, the target and how far it landed. Clearing every day wins early and shows the same banner. Creating or configuring a challenge takes a start date and an end date (or a start date plus length), and the card always states both.
 
-**Programs / Workouts** — the Programs tab is now a training and physique hub. At the top, **Workouts** holds your training sessions: each template has a focus line, its active weekdays, and exercises written as `name sets×reps`. A live week strip shows cleared sessions (`✓`), today's training day, scheduled future days, missed sessions (`✕`) and rest days. Start a scheduled session (or **Train today** off-schedule) and tick each exercise; the progress bar and `N of M exercises` tally update in place, and the session closes itself when every exercise is done (or when you tap **Finish workout**). Below it, **Programs** keeps the longer structured tracks with their roadmap: a large **Day N / length** headline, active phase (Foundation → Build → Peak, or Foundation → Finish), overall completion, phase rail and legend, today's scheduled items, and a day-by-day log with a `N of M cleared · K missed` tally. Tapping a log tile shows exactly which routine items were ticked (✓) or left unchecked on that date. **Start** links any missing routine items (deduped by title — a matching standalone task is adopted rather than duplicated) and stamps the start date; those tasks appear in Today's Program Routine block, never in Non-Negotiables. A running program has no restart control, so its day count cannot be reset by accident; only a completed program offers **Start again**, which reopens day 1 with a clean routine. Deleting a program removes its linked tasks from today; earlier days keep the record they were lived with, so the day log stays truthful.
+**Programs / Workouts** — the Programs tab is a training and physique hub. At the top, **Workouts** opens the **workout builder**: **Start a workout** opens a full-screen studio with 23 equipment-free movements (push-ups, pike and diamond push-ups, dips, squats, lunges, glute bridges, planks, hollow holds, supermans, bird dogs and more), a filter by muscle, and custom exercise entry with its own muscle group and sets/reps. Every movement can be tuned with per-exercise sets/reps steppers. As the plan grows, **Muscle coverage** lights up Chest, Shoulders, Triceps, Core/Back and Legs/Glutes, and a **Full Body** flag appears once 4 of 5 groups are covered with 3+ movements. **Target time** offers 30m and 45m presets plus any custom minutes; the live **Workout quality** scale scores the plan out of 100 from coverage, balance, fit to target and variety, with a plain-language tip (e.g. add legs, add a set, trim for time). **Save** stores the session as a reusable template; **Start workout** saves and opens the session view, where tapping an exercise ticks it, the meter and `N of M done` tally update, and ticking the last exercise or tapping **Finish workout** logs the session, closes the studio and clears the builder so the next session starts clean. The weekly strip and per-template cards still show cleared sessions (`✓`), today's training day, scheduled future days, missed sessions (`✕`) and rest days, and off-schedule templates can still be trained with **Train today**. Below it, **Programs** keeps the longer structured tracks with their roadmap: a large **Day N / length** headline, active phase (Foundation → Build → Peak, or Foundation → Finish), overall completion, phase rail and legend, today's scheduled items, and a day-by-day log with a `N of M cleared · K missed` tally. Tapping a log tile shows exactly which routine items were ticked (✓) or left unchecked on that date. **Start** links any missing routine items (deduped by title — a matching standalone task is adopted rather than duplicated) and stamps the start date; those tasks appear in Today's Program Routine block, never in Non-Negotiables. A running program has no restart control, so its day count cannot be reset by accident; only a completed program offers **Start again**, which reopens day 1 with a clean routine. Deleting a program removes its linked tasks from today; earlier days keep the record they were lived with, so the day log stays truthful.
 
 Starting a challenge or program, and every deletion, confirms with a green `✓` toast. Deleting anything is deliberately slow: the **×** opens a confirmation panel whose red button fills only while you keep pressing, and releasing early cancels.
 
@@ -154,8 +154,10 @@ Key: `aura.daily.v3` (the app reads the old `arena.daily.v2` — or `arena.daily
       "why": "Drive pressing volume",
       "focus": "Chest · Shoulders · Triceps",
       "days": [1, 4],
+      "target": 40,
       "exercises": [
-        { "id": "t...", "name": "Bench press", "sets": 4, "reps": 8 }
+        { "id": "t...", "name": "Push-Up", "sets": 3, "reps": 12,
+          "group": "chest", "unit": "reps" }
       ],
       "createdAt": 1764200000000,
       "log": {
@@ -182,7 +184,7 @@ style.css                  Near-black palette, ambient indigo/gold aura, header 
 app.js                     State, migration, per-day snapshots, verdicts, streaks,
                            challenges, workouts, programs, focus timer, chime, zoom lock
 manifest.json              PWA manifest (AURA, standalone, portrait)
-sw.js                      Offline cache — aura-v13
+sw.js                      Offline cache — aura-v14
 AURALOGO.png               Official logo tile (source for every app icon)
 AURALOGO-ONLY.png          Wordmark alone, alpha cut (source for the in-app mark)
 assets/aura-mark.png       Header/footer mark, trimmed and scaled from AURALOGO-ONLY
