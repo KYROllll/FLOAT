@@ -2460,6 +2460,293 @@ body.focus-open {
   color: var(--muted-dim);
 }
 
+/* App blocker — a quiet bar under the controls, plus the apps it holds while
+   a session runs. The OS note steps aside so the stage still fits a short
+   phone once the blocked chips are on screen. */
+.blocker {
+  width: min(100%, 330px);
+  margin-top: 14px;
+}
+
+.focus-view.is-blocking .focus-note {
+  display: none;
+}
+
+.blocker-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 46px;
+  padding: 7px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(168, 162, 180, 0.18);
+  background: rgba(168, 162, 180, 0.05);
+  color: var(--ink-dim);
+  text-align: start;
+  transition: border-color 0.2s var(--ease), background 0.2s var(--ease);
+}
+
+.blocker-bar.is-on {
+  border-color: rgba(245, 201, 78, 0.42);
+  background: rgba(245, 201, 78, 0.08);
+}
+
+.blocker-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: rgba(168, 162, 180, 0.1);
+  color: var(--muted);
+  transition: background 0.2s var(--ease), color 0.2s var(--ease);
+}
+
+.blocker-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.blocker-bar.is-on .blocker-icon {
+  background: rgba(245, 201, 78, 0.16);
+  color: var(--gold-bright);
+}
+
+.blocker-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.blocker-name {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--ink);
+}
+
+.blocker-sub {
+  font-size: 9.5px;
+  line-height: 1.35;
+  color: var(--muted-dim);
+  overflow-wrap: anywhere;
+}
+
+.blocker-badge {
+  flex: none;
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted-dim);
+  background: rgba(168, 162, 180, 0.08);
+}
+
+.blocker-badge.is-on {
+  color: var(--gold-ink);
+  background: var(--gold);
+}
+
+.blocker-chips {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0 0 2px;
+  list-style: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.blocker-chips[hidden] {
+  display: none;
+}
+
+.blocker-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.blocker-chip {
+  flex: none;
+  min-height: 28px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(245, 201, 78, 0.34);
+  background: rgba(245, 201, 78, 0.1);
+  color: var(--gold-bright);
+  font-size: 10.5px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.blocker-chip.is-denied {
+  border-color: rgba(239, 68, 68, 0.6);
+  background: rgba(239, 68, 68, 0.12);
+  color: #ffb4b4;
+  animation: blockShake 0.36s var(--ease);
+}
+
+@keyframes blockShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  60% { transform: translateX(4px); }
+  82% { transform: translateX(-2px); }
+}
+
+/* The management panel, built on the same glass sheet as the length picker. */
+.blocker-panel-sub {
+  margin: 8px 0 12px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.blocker-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.blocker-presets button {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(168, 162, 180, 0.2);
+  background: rgba(168, 162, 180, 0.06);
+  color: var(--ink-dim);
+  font-size: 11.5px;
+  font-weight: 650;
+}
+
+.blocker-presets button.is-on {
+  border-color: rgba(245, 201, 78, 0.5);
+  background: rgba(245, 201, 78, 0.14);
+  color: var(--gold-bright);
+}
+
+.blocker-custom {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.blocker-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 11px;
+  border: 1px solid rgba(168, 162, 180, 0.2);
+  background: rgba(12, 11, 16, 0.72);
+  color: var(--ink);
+  font-family: inherit;
+  /* 16px keeps iOS Safari from zooming the focus screen on focus. */
+  font-size: 16px;
+}
+
+.blocker-input:focus-visible {
+  outline: none;
+  border-color: rgba(245, 201, 78, 0.55);
+}
+
+.blocker-input::placeholder {
+  color: var(--muted-dim);
+}
+
+.blocker-add {
+  flex: none;
+  min-height: 40px;
+  padding: 0 15px;
+  border-radius: 11px;
+  border: 1px solid rgba(245, 201, 78, 0.35);
+  background: rgba(245, 201, 78, 0.12);
+  color: var(--gold-bright);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.blocker-selected {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.blocker-empty {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px dashed rgba(168, 162, 180, 0.2);
+  font-size: 11px;
+  color: var(--muted-dim);
+}
+
+.blocker-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 6px 8px 6px 12px;
+  border-radius: 11px;
+  background: rgba(7, 10, 16, 0.42);
+}
+
+.blocker-row-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+
+.blocker-row-state {
+  flex: none;
+  font-size: 8.5px;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted-dim);
+}
+
+.blocker-row.is-locked .blocker-row-state {
+  color: var(--gold-bright);
+}
+
+.blocker-remove {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 50%;
+  border: none;
+  background: rgba(168, 162, 180, 0.08);
+  color: var(--muted);
+}
+
+.blocker-remove svg {
+  width: 11px;
+  height: 11px;
+}
+
+.blocker-note {
+  margin: 12px 0 0;
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--muted-dim);
+}
+
 .focus-foot {
   position: relative;
   display: flex;
@@ -5798,7 +6085,7 @@ body.demo-open {
   }
 }
 
-@media (max-height: 640px) {
+@media (max-height: 720px) {
   .focus-ring {
     width: 210px;
     height: 210px;
@@ -5824,6 +6111,61 @@ body.demo-open {
 
   .focus-note {
     margin-top: 10px;
+  }
+
+  .blocker {
+    margin-top: 12px;
+  }
+
+  .blocker-bar {
+    min-height: 44px;
+  }
+}
+
+@media (max-height: 640px) {
+  .focus-ring {
+    width: 166px;
+    height: 166px;
+  }
+
+  .focus-goal {
+    margin-top: 10px;
+  }
+
+  .focus-task-picker {
+    margin-top: 6px;
+    gap: 5px;
+  }
+
+  .focus-task-select {
+    min-height: 38px;
+    font-size: 13px;
+  }
+
+  .focus-controls {
+    margin-top: 12px;
+  }
+
+  .focus-note {
+    margin-top: 8px;
+  }
+
+  .blocker {
+    margin-top: 10px;
+  }
+
+  .blocker-bar {
+    min-height: 42px;
+    padding: 6px 10px;
+  }
+
+  .blocker-icon {
+    width: 27px;
+    height: 27px;
+  }
+
+  .blocker-chip {
+    min-height: 26px;
   }
 }
 

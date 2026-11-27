@@ -208,34 +208,6 @@
         </p>
       </section>
 
-      <!-- ========================= TODAY'S WORKOUT ======================== -->
-      <section class="section section-workout-today" id="workoutTodaySection" aria-labelledby="workoutTodayTitle" hidden>
-        <header class="section-head">
-          <div>
-            <h2 class="section-title" id="workoutTodayTitle">
-              <span class="workout-mark" aria-hidden="true">▲</span> Today’s Workout
-            </h2>
-            <p class="section-sub" id="workoutTodayCount">0 exercises</p>
-          </div>
-          <div class="section-actions">
-            <button class="icon-btn edit-btn" id="editWorkouts" type="button" aria-pressed="false" title="Manage workouts">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M4 20h4.2L19 9.2a2.1 2.1 0 0 0 0-3l-1.2-1.2a2.1 2.1 0 0 0-3 0L4 15.8V20Z" />
-                <path d="m13.6 6.4 4 4" />
-              </svg>
-              <span class="sr-only">Manage workouts</span>
-            </button>
-            <button class="icon-btn add-btn" id="buildWorkoutBtn" type="button" title="Start a workout">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-              <span class="sr-only">Start a workout</span>
-            </button>
-          </div>
-        </header>
-        <div class="today-workout-list" id="workoutTodayList"></div>
-      </section>
-
       <!-- ======================= ACTIVE CHALLENGES ======================== -->
       <section class="section section-challenge-today" id="challengeTodaySection" aria-labelledby="challengeTodayTitle" hidden>
         <header class="section-head">
@@ -247,19 +219,6 @@
           </div>
         </header>
         <div class="today-challenge-list" id="challengeTodayList"></div>
-      </section>
-
-      <!-- ========================= PROGRAM ROUTINE ======================== -->
-      <section class="section section-program" id="programTodaySection" aria-labelledby="progTodayTitle" hidden>
-        <header class="section-head">
-          <div>
-            <h2 class="section-title" id="progTodayTitle">
-              <span class="prog-mark" aria-hidden="true">◆</span> Program Routine
-            </h2>
-            <p class="section-sub" id="progTodayCount">0 program items</p>
-          </div>
-        </header>
-        <div class="prog-today-list" id="progTodayList"></div>
       </section>
     </div>
 
@@ -417,8 +376,32 @@
         <button class="focus-btn focus-btn-ghost" id="focusReset" type="button">Reset</button>
       </div>
 
+      <!-- App blocker: chosen distractions are locked while the timer runs. -->
+      <div class="blocker" id="blocker">
+        <button
+          class="blocker-bar"
+          id="blockerToggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="blockerPanel"
+        >
+          <span class="blocker-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="5" y="10.5" width="14" height="9.8" rx="3" />
+              <path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" />
+            </svg>
+          </span>
+          <span class="blocker-copy">
+            <span class="blocker-name">App Blocker</span>
+            <span class="blocker-sub" id="blockerSub">Choose apps to lock out</span>
+          </span>
+          <span class="blocker-badge" id="blockerBadge">OFF</span>
+        </button>
+        <ul class="blocker-chips" id="blockerChips" aria-label="Blocked apps" hidden></ul>
+      </div>
+
       <p class="focus-note">
-        Enable iOS Focus mode to block system notifications — AURA can only quiet itself.
+        AURA can’t force-close other apps — pair the blocker with iOS Focus or a Screen Time limit for that.
       </p>
     </div>
 
@@ -492,6 +475,55 @@
       <div class="length-actions">
         <button class="focus-btn focus-btn-ghost" id="lengthCancel" type="button">Cancel</button>
         <button class="focus-btn focus-btn-main" id="lengthSet" type="button">Set timer</button>
+      </div>
+    </section>
+
+    <!-- App blocker list: pick distractions to lock while a session runs. -->
+    <section class="focus-length blocker-panel" id="blockerPanel" hidden aria-label="App Blocker">
+      <div class="length-head">
+        <p class="length-title">App Blocker</p>
+        <button class="length-close" id="blockerClose" type="button" aria-label="Close app blocker">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
+            <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" />
+          </svg>
+        </button>
+      </div>
+
+      <p class="blocker-panel-sub" id="blockerPanelSub">
+        Pick the distractions that stay locked while your session runs.
+      </p>
+
+      <div class="blocker-presets" id="blockerPresets" role="group" aria-label="Suggested apps">
+        <button type="button" data-app="YouTube" aria-pressed="false">YouTube</button>
+        <button type="button" data-app="Instagram" aria-pressed="false">Instagram</button>
+        <button type="button" data-app="TikTok" aria-pressed="false">TikTok</button>
+        <button type="button" data-app="X" aria-pressed="false">X</button>
+        <button type="button" data-app="Reddit" aria-pressed="false">Reddit</button>
+        <button type="button" data-app="Games" aria-pressed="false">Games</button>
+      </div>
+
+      <div class="blocker-custom">
+        <input
+          class="blocker-input"
+          id="blockerInput"
+          type="text"
+          maxlength="28"
+          autocomplete="off"
+          placeholder="Add any other app"
+          aria-label="App name to block"
+        />
+        <button class="blocker-add" id="blockerAdd" type="button">Add</button>
+      </div>
+
+      <ul class="blocker-selected" id="blockerSelected"></ul>
+
+      <p class="blocker-note">
+        A web app can’t force-close apps outside the browser. AURA locks them here — add a
+        Screen Time limit or iOS Focus rule to block them system-wide.
+      </p>
+
+      <div class="length-actions">
+        <button class="focus-btn focus-btn-main" id="blockerDone" type="button">Done</button>
       </div>
     </section>
   </div>

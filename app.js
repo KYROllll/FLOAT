@@ -18,6 +18,8 @@
   var WON_AT = 67;
   var MAX_FOCUS_MINUTES = 600;
   var MIN_FOCUS_TOTAL = 10;
+  var MAX_BLOCK_APPS = 12;
+  var MAX_BLOCK_NAME = 28;
   var ACCENTS = [
     ['#8b5cf6', '#f5c94e'],
     ['#f5c94e', '#ff9f1c'],
@@ -444,15 +446,9 @@
     nnList: document.getElementById('nnList'),
     nnEmpty: document.getElementById('nnEmpty'),
     nnCount: document.getElementById('nnCount'),
-    workoutTodaySection: document.getElementById('workoutTodaySection'),
-    workoutTodayList: document.getElementById('workoutTodayList'),
-    workoutTodayCount: document.getElementById('workoutTodayCount'),
     challengeTodaySection: document.getElementById('challengeTodaySection'),
     challengeTodayList: document.getElementById('challengeTodayList'),
     challengeTodayCount: document.getElementById('challengeTodayCount'),
-    progTodaySection: document.getElementById('programTodaySection'),
-    progTodayList: document.getElementById('progTodayList'),
-    progTodayCount: document.getElementById('progTodayCount'),
     addBtn: document.getElementById('addBtn'),
     addHabitBtn: document.getElementById('addHabitBtn'),
     editBtn: document.getElementById('editBtn'),
@@ -474,8 +470,6 @@
     challengesEmpty: document.getElementById('challengesEmpty'),
     addChallengeBtn: document.getElementById('addChallengeBtn'),
     editChallenges: document.getElementById('editChallenges'),
-    editWorkouts: document.getElementById('editWorkouts'),
-    buildWorkoutBtn: document.getElementById('buildWorkoutBtn'),
     tabbar: document.getElementById('tabbar'),
     focusView: document.getElementById('focusView'),
     focusExit: document.getElementById('focusExit'),
@@ -484,6 +478,17 @@
     focusTime: document.getElementById('focusTime'),
     focusMinutesLabel: document.getElementById('focusMinutesLabel'),
     focusGoal: document.getElementById('focusGoal'),
+    blockerToggle: document.getElementById('blockerToggle'),
+    blockerSub: document.getElementById('blockerSub'),
+    blockerBadge: document.getElementById('blockerBadge'),
+    blockerChips: document.getElementById('blockerChips'),
+    blockerPanel: document.getElementById('blockerPanel'),
+    blockerClose: document.getElementById('blockerClose'),
+    blockerDone: document.getElementById('blockerDone'),
+    blockerPresets: document.getElementById('blockerPresets'),
+    blockerSelected: document.getElementById('blockerSelected'),
+    blockerInput: document.getElementById('blockerInput'),
+    blockerAdd: document.getElementById('blockerAdd'),
     focusTask: document.getElementById('focusTask'),
     focusTaskPicker: document.getElementById('focusTaskPicker'),
     focusToggle: document.getElementById('focusToggle'),
@@ -562,7 +567,6 @@
   })();
   var editMode = false;
   var manageChallenges = false;
-  var manageWorkouts = false;
   var editingId = null;
   var sheetMode = 'task';
   var newRecurring = false;
@@ -614,6 +618,22 @@
 
   function trimText(value, max) {
     return String(value == null ? '' : value).replace(/\s+/g, ' ').trim().slice(0, max);
+  }
+
+  /* Distraction names are user-typed, so keep them trimmed, unique and
+     bounded before they reach the blocker list. */
+  function normalizeBlockApps(raw) {
+    if (!Array.isArray(raw)) return [];
+    var seen = {};
+    var apps = [];
+    raw.forEach(function (entry) {
+      var name = trimText(entry, MAX_BLOCK_NAME);
+      var key = name.toLowerCase();
+      if (!name || seen[key]) return;
+      seen[key] = true;
+      apps.push(name);
+    });
+    return apps.slice(0, MAX_BLOCK_APPS);
   }
 
   function normalizeTime(value) {
@@ -840,7 +860,14 @@
       challenges: seedChallenges(),
       programs: seedPrograms(),
       workouts: seedWorkouts(),
-      focus: { sessions: 0, date: keyOf(new Date()), minutes: 25, seconds: 0, taskId: '' }
+      focus: {
+        sessions: 0,
+        date: keyOf(new Date()),
+        minutes: 25,
+        seconds: 0,
+        taskId: '',
+        blockApps: []
+      }
     };
   }
 
@@ -1230,7 +1257,8 @@
         date: /^\d{4}-\d{2}-\d{2}$/.test(focusRaw.date) ? focusRaw.date : keyOf(new Date()),
         minutes: minutes,
         seconds: seconds,
-        taskId: typeof focusRaw.taskId === 'string' ? focusRaw.taskId : ''
+        taskId: typeof focusRaw.taskId === 'string' ? focusRaw.taskId : '',
+        blockApps: normalizeBlockApps(focusRaw.blockApps)
       }
     };
   }
@@ -1354,17 +1382,23 @@
     return dayItems(key);
   }
 
+  /* Legacy program items still belong to their day record, but Today no longer
+     renders a Program Routine block, so they stay out of the live score. */
+  function scoreTasksOn(key) {
+    return activeTasksOn(key).filter(function (task) { return !task.programId; });
+  }
+
   function doneCount(key) {
     var ids = completionsFor(key);
     var n = 0;
-    activeTasksOn(key).forEach(function (task) {
+    scoreTasksOn(key).forEach(function (task) {
       if (ids.indexOf(task.id) !== -1) n += 1;
     });
     return n;
   }
 
   function allDone(key) {
-    var tasks = activeTasksOn(key);
+    var tasks = scoreTasksOn(key);
     if (!tasks.length) return false;
     return doneCount(key) === tasks.length;
   }
@@ -1529,25 +1563,12 @@
     }
   }
 
-  /* Workouts expose their own scheduled window, and every scheduled session
-     is one line on the day's scale. */
+  /* Workouts keep their own scheduled window; the studio uses it to preload
+     today's session. They are no longer part of the Today score. */
   function workoutScheduledOn(w, key) {
     if (w.days.indexOf(fromKey(key).getDay()) === -1) return false;
     if (!w.startDate) return true;
     return key >= w.startDate && key <= shiftKey(w.startDate, w.weeks * 7 - 1);
-  }
-
-  function workoutsOn(key) {
-    return state.workouts.filter(function (w) {
-      return workoutExistedOn(w, key) &&
-        (workoutScheduledOn(w, key) || !!workoutEntry(w, key));
-    });
-  }
-
-  function workoutDayStats(key) {
-    var list = workoutsOn(key);
-    var done = list.filter(function (w) { return workoutComplete(w, key); }).length;
-    return { total: list.length, done: done, list: list };
   }
 
   /* Challenges run by their own dates, and every daily action is part of the
@@ -1577,12 +1598,11 @@
   /* One verdict for a day, shared by the scale, the week strip and the monthly
      calendar, so all three always agree on WIN vs LOSS. */
   function dayResult(key) {
-    var taskTotal = activeTasksOn(key).length;
+    var taskTotal = scoreTasksOn(key).length;
     var taskDone = doneCount(key);
     var challenge = challengeDayStats(key);
-    var workout = workoutDayStats(key);
-    var total = taskTotal + challenge.total + workout.total;
-    var done = taskDone + challenge.done + workout.done;
+    var total = taskTotal + challenge.total;
+    var done = taskDone + challenge.done;
     var pct = total ? Math.round((done / total) * 100) : 0;
     return {
       total: total,
@@ -1590,7 +1610,6 @@
       pct: pct,
       tasks: { total: taskTotal, done: taskDone },
       challenge: challenge,
-      workout: workout,
       /* No items at all is not a failure: the day simply carries no score. */
       empty: total === 0,
       won: total > 0 && pct >= WON_AT,
@@ -1778,177 +1797,6 @@
     return li;
   }
 
-  /* ------------------------- Today · active blocks ----------------------- */
-
-  /* A scheduled session lands on Today with one honest check plus each
-     exercise, so the same tick works from either screen. */
-  function toggleWorkoutAll(w) {
-    var complete = workoutComplete(w, todayKey);
-    if (!w.log) w.log = {};
-    if (complete) {
-      delete w.log[todayKey];
-    } else {
-      w.log[todayKey] = {
-        started: true,
-        done: w.exercises.map(function (exercise) { return exercise.id; }),
-        finished: true
-      };
-    }
-    save();
-    renderAll();
-    vibrate(10);
-    toast(complete ? '✓ Workout reopened · ' + w.title : '✓ Workout complete · ' + w.title);
-  }
-
-  function renderTodayWorkouts() {
-    var show = selectedKey === todayKey;
-    els.workoutTodaySection.hidden = !show;
-    if (!show) return;
-
-    els.workoutTodayList.textContent = '';
-    els.workoutTodayList.classList.toggle('is-managing', manageWorkouts);
-
-    if (manageWorkouts) {
-      renderWorkoutTemplates();
-      return;
-    }
-
-    var stats = workoutDayStats(todayKey);
-    var list = stats.list;
-
-    if (!list.length) {
-      els.workoutTodayCount.textContent = 'Rest day';
-      els.workoutTodayList.appendChild(makeEl('p', 'today-workout-rest',
-        'No session scheduled today. Start a workout to train anyway.'));
-      return;
-    }
-
-    var totalExercises = 0;
-    var doneExercises = 0;
-    list.forEach(function (w) {
-      totalExercises += w.exercises.length;
-      doneExercises += workoutDoneIds(w, todayKey).length;
-    });
-    els.workoutTodayCount.textContent = doneExercises + ' of ' + totalExercises +
-      ' exercises · ' + list.length + ' session' + (list.length === 1 ? '' : 's');
-
-    list.forEach(function (w) {
-      var complete = workoutComplete(w, todayKey);
-      var doneIds = workoutDoneIds(w, todayKey);
-      var card = makeEl('article', 'today-workout-card' + (complete ? ' is-done' : ''));
-
-      var head = makeEl('div', 'today-workout-head');
-      var wrap = makeEl('div', 'today-workout-copy');
-      var title = makeEl('h3', 'today-workout-name', w.title);
-      title.dir = 'auto';
-      wrap.appendChild(title);
-      wrap.appendChild(makeEl('p', 'today-workout-meta',
-        w.focus || 'Training session'));
-      head.appendChild(wrap);
-      head.appendChild(makeEl('span', 'today-workout-state',
-        complete ? 'WIN' : doneIds.length ? 'IN SESSION' : 'SCHEDULED'));
-      card.appendChild(head);
-
-      var meter = makeEl('div', 'quality-meter today-workout-meter');
-      var fill = makeEl('span');
-      fill.style.width = (w.exercises.length
-        ? Math.round((doneIds.length / w.exercises.length) * 100)
-        : 0) + '%';
-      meter.appendChild(fill);
-      card.appendChild(meter);
-
-      var master = makeEl('button', 'today-workout-check');
-      master.type = 'button';
-      master.setAttribute('role', 'checkbox');
-      master.setAttribute('aria-checked', complete ? 'true' : 'false');
-      master.setAttribute('aria-label',
-        (complete ? 'Reopen workout: ' : 'Complete workout: ') + w.title);
-      var mark = makeEl('span', 'today-workout-mark');
-      mark.innerHTML = CHECK_SVG;
-      master.appendChild(mark);
-      master.appendChild(makeEl('span', 'today-workout-check-text',
-        complete ? 'Workout complete · tap to reopen' : 'Mark workout complete'));
-      master.addEventListener('click', function () { toggleWorkoutAll(w); });
-      card.appendChild(master);
-
-      var exList = makeEl('ul', 'today-ex-list');
-      w.exercises.forEach(function (exercise) {
-        var done = doneIds.indexOf(exercise.id) !== -1;
-        var row = makeEl('li', 'today-ex' + (done ? ' is-done' : ''));
-        var btn = makeEl('button', 'today-ex-toggle');
-        btn.type = 'button';
-        btn.setAttribute('role', 'checkbox');
-        btn.setAttribute('aria-checked', done ? 'true' : 'false');
-        btn.setAttribute('aria-label',
-          (done ? 'Undo: ' : 'Complete: ') + exercise.name);
-        var mini = makeEl('span', 'mini-check');
-        mini.innerHTML = CHECK_SVG;
-        btn.appendChild(mini);
-        var name = makeEl('span', 'today-ex-name', exercise.name);
-        name.dir = 'auto';
-        btn.appendChild(name);
-        btn.appendChild(makeEl('span', 'today-ex-dose', workoutDose(exercise)));
-        btn.addEventListener('click', function () {
-          toggleWorkoutExercise(w, exercise.id);
-        });
-        row.appendChild(btn);
-
-        var guide = makeEl('button', 'today-ex-guide');
-        guide.type = 'button';
-        guide.dataset.demo = exercise.name;
-        guide.setAttribute('aria-label', 'How to do ' + exercise.name);
-        guide.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
-          'stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-          '<circle cx="12" cy="12" r="9"/><path d="M10 8.6l5 3.4-5 3.4z"/></svg>';
-        row.appendChild(guide);
-        exList.appendChild(row);
-      });
-      card.appendChild(exList);
-      els.workoutTodayList.appendChild(card);
-    });
-  }
-
-  /* Manage mode on Today: every saved session in one compact list, so editing
-     and deleting stay reachable without a separate Workouts page. */
-  function renderWorkoutTemplates() {
-    var count = state.workouts.length;
-    els.workoutTodayCount.textContent = count +
-      ' saved session' + (count === 1 ? '' : 's');
-
-    if (!count) {
-      els.workoutTodayList.appendChild(makeEl('p', 'today-workout-rest',
-        'No workouts yet. Start a workout to build the first one.'));
-      return;
-    }
-
-    state.workouts.forEach(function (w) {
-      var row = makeEl('div', 'today-workout-manage');
-      var copy = makeEl('div', 'today-workout-manage-copy');
-      var name = makeEl('h3', 'today-workout-manage-name', w.title);
-      name.dir = 'auto';
-      copy.appendChild(name);
-
-      var days = w.days.length
-        ? w.days.slice().sort(function (a, b) { return a - b; }).map(function (day) {
-          return DAY_LABELS[day];
-        }).join(' · ')
-        : 'Any day';
-      copy.appendChild(makeEl('p', 'today-workout-manage-meta',
-        days + ' · ' + w.exercises.length + ' exercise' +
-        (w.exercises.length === 1 ? '' : 's')));
-      row.appendChild(copy);
-
-      var actions = makeEl('div', 'today-workout-manage-actions');
-      actions.appendChild(editButton('Edit ' + w.title, function () {
-        openBuilder(w);
-      }));
-      actions.appendChild(deleteButton('Delete ' + w.title, function () {
-        askDelete('workout', w.title, function () { removeWorkout(w); });
-      }));
-      row.appendChild(actions);
-      els.workoutTodayList.appendChild(row);
-    });
-  }
 
   function renderTodayChallenges() {
     var show = selectedKey === todayKey;
@@ -2049,86 +1897,6 @@
     els.planCount.textContent = countLabel(plan, 'task');
     els.nnCount.textContent = countLabel(habits, 'habit');
   }
-
-  /* Program items get their own block, grouped by track, instead of being
-     mixed into the user's Non-Negotiables. Reading the selected day's record
-     means a past day still shows the routine it actually carried. */
-  function renderProgramToday(flash) {
-    var items = dayItems(selectedKey);
-    var groups = [];
-    var byId = {};
-
-    items.forEach(function (item) {
-      if (!item.programId) return;
-      var group = byId[item.programId];
-      if (!group) {
-        group = byId[item.programId] = {
-          program: programById(item.programId),
-          title: item.programTitle || '',
-          tasks: []
-        };
-        if (!group.title && group.program) group.title = group.program.title;
-        groups.push(group);
-      }
-      group.tasks.push(item);
-    });
-
-    els.progTodaySection.hidden = groups.length === 0;
-    els.progTodayList.textContent = '';
-
-    var total = 0;
-    var doneTotal = 0;
-
-    groups.forEach(function (group) {
-      var p = group.program;
-      var done = group.tasks.filter(function (t) {
-        return isDone(t.id, selectedKey);
-      }).length;
-      total += group.tasks.length;
-      doneTotal += done;
-
-      /* Creation unshifts newest first; show the program's own item order. */
-      var order = {};
-      if (p) {
-        p.items.forEach(function (title, i) {
-          order[String(title).toLowerCase()] = i;
-        });
-      }
-      group.tasks.sort(function (a, b) {
-        var ai = order[String(a.programItem || a.title).toLowerCase()];
-        var bi = order[String(b.programItem || b.title).toLowerCase()];
-        if (ai === undefined) ai = 999;
-        if (bi === undefined) bi = 999;
-        return ai - bi;
-      });
-
-      var box = makeEl('div', 'prog-today-group');
-      var head = makeEl('div', 'prog-today-head');
-      var name = makeEl('span', 'prog-today-name', '◆ ' + (group.title || 'Program'));
-      name.dir = 'auto';
-      var dayNo = p && p.startedAt ? daysBetween(p.startedAt, selectedKey) + 1 : 0;
-      var metaText = dayNo > 0
-        ? 'Day ' + dayNo + ' of ' + p.duration + ' · ' + done + ' of ' + group.tasks.length + ' done'
-        : done + ' of ' + group.tasks.length + ' done';
-      var meta = makeEl('span', 'prog-today-meta', metaText);
-      meta.dir = 'ltr';
-      head.appendChild(name);
-      head.appendChild(meta);
-      box.appendChild(head);
-
-      var list = makeEl('ul', 'task-list task-list-prog');
-      group.tasks.forEach(function (task) {
-        list.appendChild(buildCard(task, flash));
-      });
-      box.appendChild(list);
-      els.progTodayList.appendChild(box);
-    });
-
-    els.progTodayCount.textContent = total
-      ? total + ' program item' + (total === 1 ? '' : 's') + ' · ' + doneTotal + ' done'
-      : '0 program items';
-  }
-
   /* ------------------------------ challenges ----------------------------- */
 
   function challengeWonDays(ch) {
@@ -2326,13 +2094,12 @@
         preview.appendChild(makeEl('p', 'track-check-label',
           'Starts ' + shortDate(ch.startDate) + ' · daily checklist'));
         var previewList = makeEl('ul', 'mini-list');
+        /* Read-only here: no check circle. Ticking happens on Today. */
         ch.daily.forEach(function (item) {
           var li = makeEl('li', 'mini-item');
           li.dir = textDir(item.title);
-          var dot = makeEl('span', 'mini-check');
           var text = makeEl('span', 'mini-text', item.title);
           text.dir = 'auto';
-          li.appendChild(dot);
           li.appendChild(text);
           previewList.appendChild(li);
         });
@@ -2344,16 +2111,14 @@
           'Today · day ' + st.day + ' · check off on Today'));
         var listEl = makeEl('ul', 'mini-list');
         var doneIds = ch.log[todayKey] || [];
+        /* Status only, never a control: the Challenges tab carries no check
+           circle at all. Today is the one place a daily action is ticked. */
         ch.daily.forEach(function (item) {
           var done = doneIds.indexOf(item.id) !== -1;
           var li = makeEl('li', 'mini-item' + (done ? ' is-done' : ''));
           li.dir = textDir(item.title);
-          var mark = makeEl('span', 'mini-check');
-          mark.setAttribute('aria-hidden', 'true');
-          mark.innerHTML = CHECK_SVG;
           var text = makeEl('span', 'mini-text', item.title);
           text.dir = 'auto';
-          li.appendChild(mark);
           li.appendChild(text);
           listEl.appendChild(li);
         });
@@ -2517,13 +2282,6 @@
     save();
     renderAll();
     toast('✓ Workout deleted');
-  }
-
-  /* The training week, Sunday-to-Saturday, with each day's session state. */
-  /* A session only exists from the day its template was created. Days before
-     that are rest, not missed workouts. */
-  function workoutExistedOn(w, key) {
-    return !w.createdAt || keyOf(new Date(w.createdAt)) <= key;
   }
 
   /* ---------------------------- workout studio --------------------------- */
@@ -3644,8 +3402,8 @@
   function linkTaskToProgram(task, p, title) {
     task.programId = p.id;
     task.programItem = title;
-    /* Program items are owned by the track: they appear only in Today's
-       Program Routine block, never among the user's Non-Negotiables. */
+    /* Program items are owned by the track: they stay out of the user's
+       Non-Negotiables and off the live Today score. */
     task.recurring = true;
   }
 
@@ -3750,6 +3508,154 @@
     els.focusGoal.textContent = focusGoalText();
   }
 
+  /* ----------------------------- app blocker ----------------------------- */
+
+  /* Blocking is derived from the timer, never stored as an ON flag: the list
+     of apps persists, but it only locks while a session is actually running. */
+  function focusBlockerActive() {
+    return focus.running && state.focus.blockApps.length > 0;
+  }
+
+  function blockAppNamed(name) {
+    var key = String(name || '').toLowerCase();
+    for (var i = 0; i < state.focus.blockApps.length; i++) {
+      if (state.focus.blockApps[i].toLowerCase() === key) return state.focus.blockApps[i];
+    }
+    return null;
+  }
+
+  function setBlockApps(next) {
+    state.focus.blockApps = normalizeBlockApps(next);
+    save();
+    renderBlocker();
+  }
+
+  function addBlockApp(raw) {
+    var name = trimText(raw, MAX_BLOCK_NAME);
+    if (!name) return false;
+    if (blockAppNamed(name)) {
+      toast(name + ' is already on the blocker list');
+      return false;
+    }
+    if (state.focus.blockApps.length >= MAX_BLOCK_APPS) {
+      toast('Block up to ' + MAX_BLOCK_APPS + ' apps at a time');
+      return false;
+    }
+    setBlockApps(state.focus.blockApps.concat([name]));
+    toast(focus.running ? 'Locked now · ' + name : 'Added to App Blocker · ' + name);
+    return true;
+  }
+
+  function removeBlockApp(name) {
+    var target = blockAppNamed(name);
+    if (!target) return;
+    setBlockApps(state.focus.blockApps.filter(function (app) { return app !== target; }));
+    if (focus.running && !state.focus.blockApps.length) {
+      toast('Blocker off · nothing left to lock');
+    }
+  }
+
+  function toggleBlockApp(name) {
+    if (blockAppNamed(name)) removeBlockApp(name);
+    else addBlockApp(name);
+  }
+
+  function renderBlocker() {
+    if (!els.blockerToggle) return;
+    var apps = state.focus.blockApps;
+    var active = focusBlockerActive();
+    var count = apps.length;
+
+    els.focusView.classList.toggle('is-blocking', active);
+    els.blockerToggle.classList.toggle('is-on', active);
+    els.blockerToggle.setAttribute('aria-expanded', els.blockerPanel.hidden ? 'false' : 'true');
+
+    els.blockerBadge.textContent = active ? 'LOCKED' : count ? 'READY' : 'OFF';
+    els.blockerBadge.classList.toggle('is-on', active);
+
+    els.blockerSub.textContent = active
+      ? 'Blocking ' + count + ' app' + (count === 1 ? '' : 's') + ' while the timer runs'
+      : count
+        ? count + ' app' + (count === 1 ? '' : 's') + ' ready to lock'
+        : 'Choose apps to lock out';
+
+    els.blockerChips.textContent = '';
+    els.blockerChips.hidden = !active;
+    if (active) {
+      apps.forEach(function (app) {
+        var li = makeEl('li');
+        var chip = makeEl('button', 'blocker-chip', app);
+        chip.type = 'button';
+        chip.setAttribute('aria-label', app + ' — blocked until the session ends');
+        chip.addEventListener('click', function (event) {
+          var target = event.currentTarget;
+          target.classList.remove('is-denied');
+          void target.offsetWidth; /* replay the shake on a repeat tap */
+          target.classList.add('is-denied');
+          window.setTimeout(function () { target.classList.remove('is-denied'); }, 420);
+          vibrate(16);
+          toast('Blocked · ' + app + ' stays locked until this session ends');
+        });
+        li.appendChild(chip);
+        els.blockerChips.appendChild(li);
+      });
+    }
+
+    renderBlockerPanel(apps, active);
+  }
+
+  function renderBlockerPanel(apps, active) {
+    if (!els.blockerPanel) return;
+    Array.prototype.forEach.call(els.blockerPresets.querySelectorAll('[data-app]'), function (btn) {
+      var on = !!blockAppNamed(btn.dataset.app);
+      btn.classList.toggle('is-on', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+
+    els.blockerSelected.textContent = '';
+    if (!apps.length) {
+      els.blockerSelected.appendChild(makeEl('li', 'blocker-empty',
+        'No apps yet. Tap a suggestion or add your own.'));
+      return;
+    }
+
+    apps.forEach(function (app) {
+      var li = makeEl('li', 'blocker-row' + (active ? ' is-locked' : ''));
+      li.appendChild(makeEl('span', 'blocker-row-name', app));
+      li.appendChild(makeEl('span', 'blocker-row-state', active ? 'Blocked' : 'Ready'));
+      var del = makeEl('button', 'blocker-remove');
+      del.type = 'button';
+      del.dataset.remove = app;
+      del.setAttribute('aria-label', 'Remove ' + app);
+      del.innerHTML = X_SVG;
+      li.appendChild(del);
+      els.blockerSelected.appendChild(li);
+    });
+  }
+
+  function openBlockerPanel() {
+    closeLengthPanel();
+    els.blockerPanel.hidden = false;
+    els.blockerInput.value = '';
+    renderBlocker();
+  }
+
+  function closeBlockerPanel() {
+    if (!els.blockerPanel || els.blockerPanel.hidden) return;
+    els.blockerPanel.hidden = true;
+    els.blockerToggle.setAttribute('aria-expanded', 'false');
+  }
+
+  function commitBlockInput() {
+    var name = trimText(els.blockerInput.value, MAX_BLOCK_NAME);
+    if (!name) {
+      els.blockerInput.focus();
+      return;
+    }
+    if (addBlockApp(name)) els.blockerInput.value = '';
+    els.blockerInput.focus();
+  }
+
   function updateFocus() {
     var progress = focus.total ? (focus.total - focus.left) / focus.total : 0;
     els.focusTime.textContent = mmss(focus.left);
@@ -3771,10 +3677,12 @@
     els.focusSessions.textContent = sessionsLabel();
     els.focusFootSessions.textContent = sessionsLabel();
     els.focusMinutesLabel.textContent = durationLabel(false);
+    renderBlocker();
   }
 
   function openFocus() {
     closeLengthPanel();
+    closeBlockerPanel();
     focus.open = true;
     els.focusView.hidden = false;
     document.body.classList.add('focus-open');
@@ -3789,6 +3697,7 @@
   function exitFocus() {
     pauseFocus();
     closeLengthPanel();
+    closeBlockerPanel();
     focus.open = false;
     els.focusView.hidden = true;
     document.body.classList.remove('focus-open');
@@ -3804,6 +3713,13 @@
     window.clearInterval(focus.timer);
     focus.timer = window.setInterval(tickFocus, 250);
     updateFocus();
+
+    if (state.focus.blockApps.length) {
+      toast('App blocker on · ' +
+        state.focus.blockApps.length + ' app' +
+        (state.focus.blockApps.length === 1 ? '' : 's') + ' locked');
+      vibrate(14);
+    }
   }
 
   function pauseFocus() {
@@ -3851,7 +3767,8 @@
     chime();
     window.setTimeout(chime, 420);
     vibrate(22);
-    toast('Session complete — ' + durationLabel(true) + ' banked');
+    toast('Session complete — ' + durationLabel(true) + ' banked' +
+      (state.focus.blockApps.length ? ' · apps unlocked' : ''));
     updateFocus();
     els.focusState.textContent = 'Session complete';
     els.focusState.className = 'focus-state is-done';
@@ -3889,6 +3806,7 @@
   }
 
   function openLengthPanel() {
+    closeBlockerPanel();
     els.focusLength.hidden = false;
     els.focusChange.setAttribute('aria-expanded', 'true');
     els.lengthMinutes.value = String(state.focus.minutes);
@@ -4051,9 +3969,7 @@
     renderWeek();
     renderProgress();
     renderLists(flash);
-    renderTodayWorkouts(flash);
     renderTodayChallenges();
-    renderProgramToday(flash);
     renderChallenges();
     renderCalendar();
     updateFocusCard();
@@ -4064,8 +3980,6 @@
     els.editBtn.setAttribute('aria-pressed', editMode ? 'true' : 'false');
     els.editChallenges.classList.toggle('is-on', manageChallenges);
     els.editChallenges.setAttribute('aria-pressed', manageChallenges ? 'true' : 'false');
-    els.editWorkouts.classList.toggle('is-on', manageWorkouts);
-    els.editWorkouts.setAttribute('aria-pressed', manageWorkouts ? 'true' : 'false');
 
     applyView();
   }
@@ -4604,7 +4518,6 @@
   els.addBtn.addEventListener('click', function () { openTaskSheet(null, false); });
   els.addHabitBtn.addEventListener('click', function () { openTaskSheet(null, true); });
   els.addChallengeBtn.addEventListener('click', function () { openTrackSheet('challenge'); });
-  els.buildWorkoutBtn.addEventListener('click', function () { openBuilder(null); });
 
   els.calPrev.addEventListener('click', function () {
     calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() - 1, 1);
@@ -4632,14 +4545,6 @@
     renderChallenges();
     els.editChallenges.classList.toggle('is-on', manageChallenges);
     els.editChallenges.setAttribute('aria-pressed', manageChallenges ? 'true' : 'false');
-  });
-
-  els.editWorkouts.addEventListener('click', function () {
-    manageWorkouts = !manageWorkouts;
-    renderTodayWorkouts();
-    els.editWorkouts.classList.toggle('is-on', manageWorkouts);
-    els.editWorkouts.setAttribute('aria-pressed', manageWorkouts ? 'true' : 'false');
-    if (manageWorkouts) toast('Tap the pencil to edit, × to delete');
   });
 
   /* Any exercise name can open the animated guide, from the page or the studio. */
@@ -4725,6 +4630,31 @@
   els.focusChange.addEventListener('click', function () {
     if (els.focusLength.hidden) openLengthPanel();
     else closeLengthPanel();
+  });
+
+  els.blockerToggle.addEventListener('click', function () {
+    if (els.blockerPanel.hidden) openBlockerPanel();
+    else closeBlockerPanel();
+  });
+
+  els.blockerClose.addEventListener('click', closeBlockerPanel);
+  els.blockerDone.addEventListener('click', closeBlockerPanel);
+
+  els.blockerPresets.addEventListener('click', function (event) {
+    var preset = event.target.closest('[data-app]');
+    if (preset) toggleBlockApp(preset.dataset.app);
+  });
+
+  els.blockerSelected.addEventListener('click', function (event) {
+    var remove = event.target.closest('[data-remove]');
+    if (remove) removeBlockApp(remove.dataset.remove);
+  });
+
+  els.blockerAdd.addEventListener('click', commitBlockInput);
+  els.blockerInput.addEventListener('keydown', function (event) {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    commitBlockInput();
   });
 
   els.lengthClose.addEventListener('click', closeLengthPanel);
