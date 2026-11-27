@@ -70,6 +70,30 @@
 
     <!-- ============================== TODAY ============================== -->
     <div class="view" id="viewToday">
+      <!-- In-page Superfocus: only the chosen tasks stay sharp. -->
+      <section class="focus-bar" id="focusBar" aria-label="Superfocus active" hidden>
+        <div class="focus-bar-copy">
+          <p class="focus-bar-kicker"><span class="focus-spark" aria-hidden="true"></span>Superfocus</p>
+          <p class="focus-bar-sub" id="focusBarSub">0 tasks in focus</p>
+        </div>
+        <div class="focus-bar-actions">
+          <button class="focus-bar-btn" id="focusBarChange" type="button">Change</button>
+          <button class="focus-bar-btn is-exit" id="focusBarExit" type="button">Exit</button>
+        </div>
+      </section>
+
+      <section class="sf-picker" id="sfPicker" aria-label="Choose Superfocus tasks" hidden>
+        <div class="sf-picker-head">
+          <div>
+            <p class="sf-picker-kicker">In Superfocus</p>
+            <p class="sf-picker-sub" id="sfPickerSub">Only the tasks you pick stay sharp.</p>
+          </div>
+          <button class="sf-picker-done" id="sfPickerDone" type="button">Done</button>
+        </div>
+        <ul class="sf-picker-list" id="sfPickerList"></ul>
+        <p class="sf-picker-empty" id="sfPickerEmpty" hidden>Nothing to focus on today. Add a task first.</p>
+      </section>
+
       <nav class="weekstrip" id="weekStrip" aria-label="Week selector"></nav>
 
       <section class="progress-card" aria-labelledby="progressCount">
@@ -143,7 +167,7 @@
           <div class="focus-card-copy">
             <p class="focus-kicker"><span class="focus-spark" aria-hidden="true"></span>Superfocus</p>
             <h2>One thing. No noise.</h2>
-            <p class="focus-sub" id="focusSub">25 minutes of unbroken work · then a clean break.</p>
+            <p class="focus-sub" id="focusSub">Pick tasks on Today. Everything else fades back.</p>
           </div>
           <label class="focus-switch">
             <input id="focusSwitch" type="checkbox" role="switch" aria-label="Superfocus mode" />
@@ -154,9 +178,9 @@
           </label>
         </div>
         <div class="focus-card-foot">
-          <span id="focusSessions">0 sessions today</span>
+          <span id="focusModeNote">Today only · tabs locked while on</span>
           <span class="focus-dot" aria-hidden="true"></span>
-          <span class="focus-tip">Dimmed, timed, quiet</span>
+          <span class="focus-tip">Blurred, quiet, locked</span>
         </div>
       </section>
 
@@ -339,200 +363,6 @@
       <span class="tab-label">Calendar</span>
     </button>
   </nav>
-
-  <!-- ============================ SUPERFOCUS =========================== -->
-  <div class="focus-view" id="focusView" hidden>
-    <div class="focus-aura" aria-hidden="true"></div>
-
-    <header class="focus-top">
-      <img class="focus-mark" src="./assets/aura-mark.png" alt="AURA Superfocus" width="720" height="150" />
-      <button class="focus-exit" id="focusExit" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
-          <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" />
-        </svg>
-        <span>Exit</span>
-      </button>
-    </header>
-
-    <div class="focus-stage">
-      <p class="focus-state" id="focusState">Ready when you are</p>
-
-      <div class="focus-ring">
-        <svg viewBox="0 0 200 200" aria-hidden="true">
-          <circle class="ring-track" cx="100" cy="100" r="88" />
-          <circle class="ring-progress" id="focusRing" cx="100" cy="100" r="88" />
-        </svg>
-        <div class="focus-clock">
-          <span id="focusTime">25:00</span>
-          <small id="focusMinutesLabel">minutes</small>
-        </div>
-      </div>
-
-      <p class="focus-goal" id="focusGoal">Clear the next thing.</p>
-
-      <div class="focus-task-picker" id="focusTaskPicker">
-        <label class="focus-task-label" for="focusTask">Focus on</label>
-        <select id="focusTask" class="focus-task-select" aria-label="Choose a task to focus on">
-          <option value="general">General focus (no linked task)</option>
-        </select>
-      </div>
-
-      <div class="focus-controls">
-        <button class="focus-btn focus-btn-main" id="focusToggle" type="button">Start</button>
-        <button class="focus-btn focus-btn-ghost" id="focusReset" type="button">Reset</button>
-      </div>
-
-      <!-- App blocker: chosen distractions are locked while the timer runs. -->
-      <div class="blocker" id="blocker">
-        <button
-          class="blocker-bar"
-          id="blockerToggle"
-          type="button"
-          aria-expanded="false"
-          aria-controls="blockerPanel"
-        >
-          <span class="blocker-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="5" y="10.5" width="14" height="9.8" rx="3" />
-              <path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" />
-            </svg>
-          </span>
-          <span class="blocker-copy">
-            <span class="blocker-name">App Blocker</span>
-            <span class="blocker-sub" id="blockerSub">Choose apps to lock out</span>
-          </span>
-          <span class="blocker-badge" id="blockerBadge">OFF</span>
-        </button>
-        <ul class="blocker-chips" id="blockerChips" aria-label="Blocked apps" hidden></ul>
-      </div>
-
-      <p class="focus-note">
-        A browser can’t force-close other apps. Open App Blocker for the 3-step iOS setup.
-      </p>
-    </div>
-
-    <footer class="focus-foot">
-      <span id="focusFootSessions">0 sessions today</span>
-      <button
-        class="focus-mini"
-        id="focusChange"
-        type="button"
-        aria-expanded="false"
-        aria-controls="focusLength"
-      >Change length</button>
-    </footer>
-
-    <!-- Exact focus length: quick presets plus minute/second steppers. -->
-    <section class="focus-length" id="focusLength" hidden aria-label="Session length">
-      <div class="length-head">
-        <p class="length-title">Session length</p>
-        <button class="length-close" id="lengthClose" type="button" aria-label="Close length picker">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
-            <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" />
-          </svg>
-        </button>
-      </div>
-
-      <div class="length-presets" role="group" aria-label="Quick lengths">
-        <button type="button" data-preset="15" aria-pressed="false">15m</button>
-        <button type="button" data-preset="25" aria-pressed="false">25m</button>
-        <button type="button" data-preset="45" aria-pressed="false">45m</button>
-        <button type="button" data-preset="60" aria-pressed="false">60m</button>
-      </div>
-
-      <div class="length-row">
-        <span class="length-label" id="lengthMinLabel">Minutes</span>
-        <div class="stepper">
-          <button type="button" data-step="min-down" aria-label="Fewer minutes">−</button>
-          <input
-            id="lengthMinutes"
-            type="number"
-            inputmode="numeric"
-            min="0"
-            max="600"
-            step="1"
-            value="25"
-            aria-labelledby="lengthMinLabel"
-          />
-          <button type="button" data-step="min-up" aria-label="More minutes">+</button>
-        </div>
-      </div>
-
-      <div class="length-row">
-        <span class="length-label" id="lengthSecLabel">Seconds</span>
-        <div class="stepper">
-          <button type="button" data-step="sec-down" aria-label="Fewer seconds">−</button>
-          <input
-            id="lengthSeconds"
-            type="number"
-            inputmode="numeric"
-            min="0"
-            max="59"
-            step="1"
-            value="0"
-            aria-labelledby="lengthSecLabel"
-          />
-          <button type="button" data-step="sec-up" aria-label="More seconds">+</button>
-        </div>
-      </div>
-
-      <p class="length-error" id="lengthError" role="alert" hidden>Set at least 10 seconds.</p>
-
-      <div class="length-actions">
-        <button class="focus-btn focus-btn-ghost" id="lengthCancel" type="button">Cancel</button>
-        <button class="focus-btn focus-btn-main" id="lengthSet" type="button">Set timer</button>
-      </div>
-    </section>
-
-    <!-- App blocker list: pick distractions to lock while a session runs. -->
-    <section class="focus-length blocker-panel" id="blockerPanel" hidden aria-label="App Blocker">
-      <div class="length-head">
-        <p class="length-title">App Blocker</p>
-        <button class="blocker-done" id="blockerDone" type="button">Done</button>
-      </div>
-
-      <p class="blocker-panel-sub" id="blockerPanelSub">
-        Pick the distractions that stay locked while your session runs. A browser can’t close
-        other apps, so pair this list with iOS once:
-      </p>
-
-      <div class="blocker-presets" id="blockerPresets" role="group" aria-label="Suggested apps">
-        <button type="button" data-app="YouTube" aria-pressed="false">YouTube</button>
-        <button type="button" data-app="Instagram" aria-pressed="false">Instagram</button>
-        <button type="button" data-app="TikTok" aria-pressed="false">TikTok</button>
-        <button type="button" data-app="X" aria-pressed="false">X</button>
-        <button type="button" data-app="Reddit" aria-pressed="false">Reddit</button>
-        <button type="button" data-app="Games" aria-pressed="false">Games</button>
-      </div>
-
-      <div class="blocker-custom">
-        <input
-          class="blocker-input"
-          id="blockerInput"
-          type="text"
-          maxlength="28"
-          autocomplete="off"
-          placeholder="Add any other app"
-          aria-label="App name to block"
-        />
-        <button class="blocker-add" id="blockerAdd" type="button">Add</button>
-      </div>
-
-      <ul class="blocker-selected" id="blockerSelected"></ul>
-
-      <div class="blocker-guide">
-        <p class="blocker-guide-title">iPhone: make it system-wide</p>
-        <ol class="blocker-steps">
-          <li><b>Focus</b> — Settings → Focus → + → Custom, named Superfocus. It silences everything else.</li>
-          <li><b>Block apps</b> — Settings → Screen Time → App Limits → Add Limit, then pick the same apps. This is the real block.</li>
-          <li><b>Automate</b> — Shortcuts → Automation → + → App → AURA → Set Focus → Superfocus. Opening AURA turns the Focus on.</li>
-        </ol>
-        <p class="blocker-guide-foot">
-          Start the timer here: AURA locks this list instantly, while iOS enforces the block.
-        </p>
-      </div>
-    </section>
-  </div>
 
   <!-- ============================ EDIT SHEET ============================ -->
   <div class="sheet" id="sheet" hidden>

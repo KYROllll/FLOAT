@@ -14,12 +14,7 @@
   var MAX_STREAK = 3650;
   var MIN_DAYS = 2;
   var MAX_DAYS = 90;
-  var RING_LEN = 552.92;
   var WON_AT = 67;
-  var MAX_FOCUS_MINUTES = 600;
-  var MIN_FOCUS_TOTAL = 10;
-  var MAX_BLOCK_APPS = 12;
-  var MAX_BLOCK_NAME = 28;
   var ACCENTS = [
     ['#8b5cf6', '#f5c94e'],
     ['#f5c94e', '#ff9f1c'],
@@ -439,9 +434,18 @@
     restToggle: document.getElementById('restToggle'),
     restToggleText: document.getElementById('restToggleText'),
     focusSub: document.getElementById('focusSub'),
-    focusSessions: document.getElementById('focusSessions'),
+    focusModeNote: document.getElementById('focusModeNote'),
     focusSwitch: document.getElementById('focusSwitch'),
     focusSwitchText: document.getElementById('focusSwitchText'),
+    focusBar: document.getElementById('focusBar'),
+    focusBarSub: document.getElementById('focusBarSub'),
+    focusBarChange: document.getElementById('focusBarChange'),
+    focusBarExit: document.getElementById('focusBarExit'),
+    sfPicker: document.getElementById('sfPicker'),
+    sfPickerSub: document.getElementById('sfPickerSub'),
+    sfPickerList: document.getElementById('sfPickerList'),
+    sfPickerDone: document.getElementById('sfPickerDone'),
+    sfPickerEmpty: document.getElementById('sfPickerEmpty'),
     planList: document.getElementById('planList'),
     planEmpty: document.getElementById('planEmpty'),
     planCount: document.getElementById('planCount'),
@@ -475,36 +479,6 @@
     addChallengeBtn: document.getElementById('addChallengeBtn'),
     editChallenges: document.getElementById('editChallenges'),
     tabbar: document.getElementById('tabbar'),
-    focusView: document.getElementById('focusView'),
-    focusExit: document.getElementById('focusExit'),
-    focusState: document.getElementById('focusState'),
-    focusRing: document.getElementById('focusRing'),
-    focusTime: document.getElementById('focusTime'),
-    focusMinutesLabel: document.getElementById('focusMinutesLabel'),
-    focusGoal: document.getElementById('focusGoal'),
-    blockerToggle: document.getElementById('blockerToggle'),
-    blockerSub: document.getElementById('blockerSub'),
-    blockerBadge: document.getElementById('blockerBadge'),
-    blockerChips: document.getElementById('blockerChips'),
-    blockerPanel: document.getElementById('blockerPanel'),
-    blockerDone: document.getElementById('blockerDone'),
-    blockerPresets: document.getElementById('blockerPresets'),
-    blockerSelected: document.getElementById('blockerSelected'),
-    blockerInput: document.getElementById('blockerInput'),
-    blockerAdd: document.getElementById('blockerAdd'),
-    focusTask: document.getElementById('focusTask'),
-    focusTaskPicker: document.getElementById('focusTaskPicker'),
-    focusToggle: document.getElementById('focusToggle'),
-    focusReset: document.getElementById('focusReset'),
-    focusChange: document.getElementById('focusChange'),
-    focusFootSessions: document.getElementById('focusFootSessions'),
-    focusLength: document.getElementById('focusLength'),
-    lengthClose: document.getElementById('lengthClose'),
-    lengthCancel: document.getElementById('lengthCancel'),
-    lengthSet: document.getElementById('lengthSet'),
-    lengthMinutes: document.getElementById('lengthMinutes'),
-    lengthSeconds: document.getElementById('lengthSeconds'),
-    lengthError: document.getElementById('lengthError'),
     boot: document.getElementById('boot'),
     ptr: document.getElementById('ptr'),
     ptrText: document.getElementById('ptrText'),
@@ -577,16 +551,8 @@
   var sheetChallengeMode = 'habit';
   var newRecurring = false;
   var toastTimer = 0;
-  var audioCtx = null;
 
-  var focus = {
-    open: false,
-    running: false,
-    total: focusDuration(),
-    left: focusDuration(),
-    endAt: 0,
-    timer: 0
-  };
+  var sfPickerOpen = false;
 
   /* ------------------------------- helpers ------------------------------- */
 
@@ -624,22 +590,6 @@
 
   function trimText(value, max) {
     return String(value == null ? '' : value).replace(/\s+/g, ' ').trim().slice(0, max);
-  }
-
-  /* Distraction names are user-typed, so keep them trimmed, unique and
-     bounded before they reach the blocker list. */
-  function normalizeBlockApps(raw) {
-    if (!Array.isArray(raw)) return [];
-    var seen = {};
-    var apps = [];
-    raw.forEach(function (entry) {
-      var name = trimText(entry, MAX_BLOCK_NAME);
-      var key = name.toLowerCase();
-      if (!name || seen[key]) return;
-      seen[key] = true;
-      apps.push(name);
-    });
-    return apps.slice(0, MAX_BLOCK_APPS);
   }
 
   function normalizeTime(value) {
@@ -682,11 +632,6 @@
     return strong && RTL_CHAR.test(strong[0]) ? 'rtl' : 'ltr';
   }
 
-  function mmss(seconds) {
-    var s = Math.max(0, seconds);
-    return pad(Math.floor(s / 60)) + ':' + pad(s % 60);
-  }
-
   /* A habit keeps a stable key across renames, so its streak follows the
      routine itself instead of a raw record id. */
   function streakKeyFor(title) {
@@ -705,8 +650,12 @@
 
   function seedTasks() {
     var now = Date.now();
+    var today = keyOf(new Date(now));
     function task(title, why, time, recurring) {
-      return { id: uid(), title: title, why: why, time: time, recurring: recurring, createdAt: now };
+      return {
+        id: uid(), title: title, why: why, time: time, recurring: recurring,
+        createdAt: now, date: recurring ? '' : today
+      };
     }
     return [
       task('Morning workout', 'Builds discipline and stamina — starts the day strong', '06:30', false),
@@ -872,12 +821,8 @@
       programs: seedPrograms(),
       workouts: seedWorkouts(),
       focus: {
-        sessions: 0,
-        date: keyOf(new Date()),
-        minutes: 25,
-        seconds: 0,
-        taskId: '',
-        blockApps: []
+        active: false,
+        targets: []
       }
     };
   }
@@ -888,13 +833,19 @@
     if (!raw || typeof raw !== 'object') return null;
     var title = trimText(raw.title, MAX_TITLE);
     if (!title) return null;
+    var recurring = !!raw.recurring;
+    /* A one-day task belongs to the date it was created for. Tasks saved by
+       older builds carried no date, so they enter today once instead of
+       silently rolling forward with every render. */
+    var date = validDateKey(raw.date) || keyOf(new Date());
     return {
       id: typeof raw.id === 'string' && raw.id ? raw.id : uid(),
       title: title,
       why: trimText(raw.why, MAX_WHY),
       time: normalizeTime(raw.time),
-      recurring: !!raw.recurring,
+      recurring: recurring,
       createdAt: Number(raw.createdAt) || Date.now(),
+      date: recurring ? '' : date,
       key: trimText(raw.key, 80) || streakKeyFor(title),
       programId: typeof raw.programId === 'string' ? raw.programId : '',
       programItem: trimText(raw.programItem, MAX_TITLE)
@@ -1274,17 +1225,18 @@
       });
     }
 
+    /* Superfocus stores the ids of the tasks it keeps sharp. A single task
+       picked by the old timer build is carried over as one target. */
     var focusRaw = raw.focus && typeof raw.focus === 'object' ? raw.focus : {};
-    var minutes = Math.round(Number(focusRaw.minutes));
-    var seconds = Math.round(Number(focusRaw.seconds));
-    if (!isFinite(minutes)) minutes = 25;
-    if (!isFinite(seconds)) seconds = 0;
-    minutes = Math.max(0, Math.min(MAX_FOCUS_MINUTES, minutes));
-    seconds = Math.max(0, Math.min(59, seconds));
-    /* An exact length is allowed; a zero (or nonsense) one is not. */
-    if (minutes * 60 + seconds < MIN_FOCUS_TOTAL) {
-      minutes = 25;
-      seconds = 0;
+    var focusTargets = [];
+    if (Array.isArray(focusRaw.targets)) {
+      focusRaw.targets.forEach(function (id) {
+        if (typeof id === 'string' && id && focusTargets.indexOf(id) === -1) {
+          focusTargets.push(id);
+        }
+      });
+    } else if (typeof focusRaw.taskId === 'string' && focusRaw.taskId) {
+      focusTargets.push('task:' + focusRaw.taskId);
     }
 
     /* Rest days are deliberate recovery dates. They carry no verdict, so
@@ -1307,12 +1259,8 @@
       programs: programs,
       workouts: workouts,
       focus: {
-        sessions: Math.max(0, Math.min(999, Number(focusRaw.sessions) || 0)),
-        date: /^\d{4}-\d{2}-\d{2}$/.test(focusRaw.date) ? focusRaw.date : keyOf(new Date()),
-        minutes: minutes,
-        seconds: seconds,
-        taskId: typeof focusRaw.taskId === 'string' ? focusRaw.taskId : '',
-        blockApps: normalizeBlockApps(focusRaw.blockApps)
+        active: !!focusRaw.active && focusTargets.length > 0,
+        targets: focusTargets
       }
     };
   }
@@ -1351,10 +1299,12 @@
     var sameDays = JSON.stringify(stored.days) === JSON.stringify(state.days);
     var sameTasks = JSON.stringify(stored.tasks) === JSON.stringify(state.tasks);
     var sameRest = JSON.stringify(stored.restDays) === JSON.stringify(state.restDays);
-    if (sameDays && sameTasks && sameRest) return;
+    var sameFocus = JSON.stringify(stored.focus) === JSON.stringify(state.focus);
+    if (sameDays && sameTasks && sameRest && sameFocus) return;
     state.tasks = stored.tasks;
     state.days = stored.days;
     state.restDays = stored.restDays;
+    state.focus = stored.focus;
     renderAll();
   }
 
@@ -1385,8 +1335,10 @@
   }
 
   function taskActiveOn(task, key) {
-    if (!task.programId) return true;
-    return programCoversDay(programById(task.programId), key);
+    if (task.programId) return programCoversDay(programById(task.programId), key);
+    /* Only non-negotiables recur. A regular task lives on its own date. */
+    if (task.recurring) return true;
+    return task.date === key;
   }
 
   /* Freeze a task into a day's own record, naming its program now so a past
@@ -1645,7 +1597,7 @@
 
       btn.addEventListener('click', function (event) {
         var target = event.currentTarget;
-        if (target.disabled) return;
+        if (target.disabled || superfocusOn()) return;
         selectedKey = target.dataset.key;
         renderAll();
       });
@@ -1686,7 +1638,7 @@
   /* Habit mode repeats one checklist every day. Build mode gives every date
      its own slot, so only that day's milestone counts. */
   function challengeItemsFor(ch, key) {
-    if (!ch) return [];
+    if (!ch || !challengeActiveOn(ch, key)) return [];
     if (challengeMode(ch) === 'habit') return ch.daily || [];
     var index = ch.startDate ? daysBetween(ch.startDate, key) : -1;
     if (index < 0 || index >= ch.duration) return [];
@@ -1861,6 +1813,11 @@
     var li = document.createElement('li');
     li.className = 'task-card';
     li.dataset.id = task.id;
+    var focusId = 'task:' + task.id;
+    li.dataset.focusId = focusId;
+    if (superfocusOn()) {
+      li.classList.add(isFocusTarget(focusId) ? 'is-focus-target' : 'is-focus-dim');
+    }
     if (done) li.classList.add('is-done');
     if (isProgram) li.classList.add('is-program');
     if (flash && flash === task.id) li.classList.add('just-done');
@@ -1992,6 +1949,10 @@
       var complete = !rest && done === items.length && items.length > 0;
       var build = challengeMode(ch) === 'build';
       var dayNo = daysBetween(ch.startDate, todayKey) + 1;
+      var focusTargets = focusTargetsToday();
+      var cardFocus = items.some(function (item) {
+        return focusTargets.indexOf('challenge:' + ch.id + ':' + item.id) !== -1;
+      });
 
       /* The whole header follows the title's direction, so a Hebrew title
          starts at the right edge and the win chip moves to the left. */
@@ -1999,6 +1960,9 @@
       var card = makeEl('article', 'today-challenge-card' +
         (complete ? ' is-done' : '') + (rest ? ' is-rest' : ''));
       card.dir = dir;
+      if (superfocusOn()) {
+        card.classList.add(cardFocus ? 'is-focus-target' : 'is-focus-dim');
+      }
       var head = makeEl('div', 'today-challenge-head');
       head.dir = dir;
       var wrap = makeEl('div', 'today-challenge-copy');
@@ -2014,7 +1978,7 @@
       wrap.appendChild(meta);
       head.appendChild(wrap);
       var chip = makeEl('span', 'today-challenge-chip',
-        rest ? 'REST DAY' : complete ? 'DAY WON' : st.won + ' WINS');
+        rest ? 'REST DAY' : complete ? '✓ DAY WON' : st.won + ' WINS');
       /* Keep “0 WINS” in reading order inside a right-to-left header. */
       chip.dir = 'ltr';
       head.appendChild(chip);
@@ -2024,6 +1988,12 @@
       items.forEach(function (item) {
         var ticked = log.indexOf(item.id) !== -1;
         var li = makeEl('li', 'mini-item' + (ticked ? ' is-done' : ''));
+        var focusId = 'challenge:' + ch.id + ':' + item.id;
+        li.dataset.focusId = focusId;
+        if (superfocusOn()) {
+          li.classList.add(focusTargets.indexOf(focusId) !== -1
+            ? 'is-focus-target' : 'is-focus-dim');
+        }
         /* Every row in the card follows the challenge direction, so the
            check controls stay on one side even with mixed-language items. */
         li.dir = dir;
@@ -3623,437 +3593,198 @@
 
   var PROGRAM_PHASES = ['Foundation', 'Build', 'Peak'];
 
-  /* --------------------------------- focus ------------------------------- */
+  /* ------------------------------ superfocus ----------------------------- */
 
-  function sessionsLabel() {
-    var n = state.focus.sessions;
-    return n + ' session' + (n === 1 ? '' : 's') + ' today';
-  }
-
-  function ensureFocusDay() {
-    if (state.focus.date === todayKey) return;
-    state.focus.date = todayKey;
-    state.focus.sessions = 0;
-    save();
-  }
-
-  /* The timer supports an exact length, not just the four presets: minutes
-     0–600 plus 0–59 seconds, stored alongside the legacy minutes field. */
-  function focusDuration() {
-    var total = (state.focus.minutes * 60) + (state.focus.seconds || 0);
-    return total >= MIN_FOCUS_TOTAL ? total : 25 * 60;
-  }
-
-  function durationLabel(long) {
-    var minutes = state.focus.minutes;
-    var seconds = state.focus.seconds || 0;
-    if (!seconds) {
-      return long ? minutes + ' minute' + (minutes === 1 ? '' : 's') : minutes + ' min';
-    }
-    if (!minutes) return seconds + ' sec';
-    return minutes + ' min ' + seconds + ' sec';
-  }
-
-  function updateFocusCard() {
-    els.focusSub.textContent = durationLabel(false) +
-      ' of unbroken work · then a clean break.';
-    els.focusSessions.textContent = sessionsLabel();
-    els.focusFootSessions.textContent = sessionsLabel();
-    els.focusMinutesLabel.textContent = durationLabel(false);
-  }
-
-  /* Superfocus is linked to one task from Today, chosen before the timer
-     starts. "General focus" is the clean fallback: no task, no clutter. */
-  function focusSelectedTask() {
-    var id = state.focus.taskId;
-    if (!id) return null;
-    var tasks = activeTasksOn(todayKey);
-    for (var i = 0; i < tasks.length; i++) {
-      if (tasks[i].id === id) return tasks[i];
-    }
-    return null;
-  }
-
-  function focusGoalText() {
-    var picked = focusSelectedTask();
-    return picked ? picked.title : 'Clear the next thing.';
-  }
-
-  function renderFocusTasks() {
-    if (!els.focusTask) return;
-    var tasks = activeTasksOn(todayKey);
-    var picked = focusSelectedTask();
-
-    els.focusTask.textContent = '';
-    var general = makeEl('option', null, 'General focus · no linked task');
-    general.value = 'general';
-    els.focusTask.appendChild(general);
-
-    tasks.forEach(function (task) {
-      var opt = makeEl('option', null,
-        task.title + (isDone(task.id, todayKey) ? ' · done' : ''));
-      opt.value = task.id;
-      els.focusTask.appendChild(opt);
-    });
-
-    els.focusTask.value = picked ? picked.id : 'general';
-    els.focusTask.disabled = focus.running;
-    els.focusGoal.textContent = focusGoalText();
-  }
-
-  /* ----------------------------- app blocker ----------------------------- */
-
-  /* Blocking is derived from the timer, never stored as an ON flag: the list
-     of apps persists, but it only locks while a session is actually running. */
-  function focusBlockerActive() {
-    return focus.running && state.focus.blockApps.length > 0;
-  }
-
-  function blockAppNamed(name) {
-    var key = String(name || '').toLowerCase();
-    for (var i = 0; i < state.focus.blockApps.length; i++) {
-      if (state.focus.blockApps[i].toLowerCase() === key) return state.focus.blockApps[i];
-    }
-    return null;
-  }
-
-  function setBlockApps(next) {
-    state.focus.blockApps = normalizeBlockApps(next);
-    save();
-    renderBlocker();
-  }
-
-  function addBlockApp(raw) {
-    var name = trimText(raw, MAX_BLOCK_NAME);
-    if (!name) return false;
-    if (blockAppNamed(name)) {
-      toast(name + ' is already on the blocker list');
-      return false;
-    }
-    if (state.focus.blockApps.length >= MAX_BLOCK_APPS) {
-      toast('Block up to ' + MAX_BLOCK_APPS + ' apps at a time');
-      return false;
-    }
-    setBlockApps(state.focus.blockApps.concat([name]));
-    toast(focus.running ? 'Locked now · ' + name : 'Added to App Blocker · ' + name);
-    return true;
-  }
-
-  function removeBlockApp(name) {
-    var target = blockAppNamed(name);
-    if (!target) return;
-    setBlockApps(state.focus.blockApps.filter(function (app) { return app !== target; }));
-    if (focus.running && !state.focus.blockApps.length) {
-      toast('Blocker off · nothing left to lock');
-    }
-  }
-
-  function toggleBlockApp(name) {
-    if (blockAppNamed(name)) removeBlockApp(name);
-    else addBlockApp(name);
-  }
-
-  function renderBlocker() {
-    if (!els.blockerToggle) return;
-    var apps = state.focus.blockApps;
-    var active = focusBlockerActive();
-    var count = apps.length;
-
-    els.focusView.classList.toggle('is-blocking', active);
-    els.blockerToggle.classList.toggle('is-on', active);
-    els.blockerToggle.setAttribute('aria-expanded', els.blockerPanel.hidden ? 'false' : 'true');
-
-    els.blockerBadge.textContent = active ? 'LOCKED' : count ? 'READY' : 'OFF';
-    els.blockerBadge.classList.toggle('is-on', active);
-
-    els.blockerSub.textContent = active
-      ? 'Blocking ' + count + ' app' + (count === 1 ? '' : 's') + ' while the timer runs'
-      : count
-        ? count + ' app' + (count === 1 ? '' : 's') + ' ready to lock'
-        : 'Choose apps to lock out';
-
-    els.blockerChips.textContent = '';
-    els.blockerChips.hidden = !active;
-    if (active) {
-      apps.forEach(function (app) {
-        var li = makeEl('li');
-        var chip = makeEl('button', 'blocker-chip', app);
-        chip.type = 'button';
-        chip.setAttribute('aria-label', app + ' — blocked until the session ends');
-        chip.addEventListener('click', function (event) {
-          var target = event.currentTarget;
-          target.classList.remove('is-denied');
-          void target.offsetWidth; /* replay the shake on a repeat tap */
-          target.classList.add('is-denied');
-          window.setTimeout(function () { target.classList.remove('is-denied'); }, 420);
-          vibrate(16);
-          toast('Blocked · ' + app + ' stays locked until this session ends');
-        });
-        li.appendChild(chip);
-        els.blockerChips.appendChild(li);
+  /* Every task and challenge action on Today can be chosen for focus. */
+  function focusablesToday() {
+    var out = [];
+    dayItems(todayKey).forEach(function (task) {
+      if (task.programId) return;
+      out.push({
+        id: 'task:' + task.id,
+        title: task.title,
+        done: isDone(task.id, todayKey),
+        kind: 'task'
       });
-    }
-
-    renderBlockerPanel(apps, active);
+    });
+    challengesOn(todayKey).forEach(function (ch) {
+      var log = ch.log[todayKey] || [];
+      challengeItemsFor(ch, todayKey).forEach(function (item) {
+        out.push({
+          id: 'challenge:' + ch.id + ':' + item.id,
+          title: item.title,
+          done: log.indexOf(item.id) !== -1,
+          kind: 'challenge'
+        });
+      });
+    });
+    return out;
   }
 
-  function renderBlockerPanel(apps, active) {
-    if (!els.blockerPanel) return;
-    Array.prototype.forEach.call(els.blockerPresets.querySelectorAll('[data-app]'), function (btn) {
-      var on = !!blockAppNamed(btn.dataset.app);
-      btn.classList.toggle('is-on', on);
-      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-    });
-
-    els.blockerSelected.textContent = '';
-    if (!apps.length) {
-      els.blockerSelected.appendChild(makeEl('li', 'blocker-empty',
-        'No apps yet. Tap a suggestion or add your own.'));
-      return;
-    }
-
-    apps.forEach(function (app) {
-      var li = makeEl('li', 'blocker-row' + (active ? ' is-locked' : ''));
-      li.appendChild(makeEl('span', 'blocker-row-name', app));
-      li.appendChild(makeEl('span', 'blocker-row-state', active ? 'Blocked' : 'Ready'));
-      var del = makeEl('button', 'blocker-remove');
-      del.type = 'button';
-      del.dataset.remove = app;
-      del.setAttribute('aria-label', 'Remove ' + app);
-      del.innerHTML = X_SVG;
-      li.appendChild(del);
-      els.blockerSelected.appendChild(li);
+  /* Stored targets are ids, so a task renamed or removed today can never
+     leave a stale blur target behind. */
+  function focusTargetsToday() {
+    var valid = {};
+    focusablesToday().forEach(function (item) { valid[item.id] = true; });
+    return (state.focus.targets || []).filter(function (id) {
+      return !!valid[id];
     });
   }
 
-  function openBlockerPanel() {
-    closeLengthPanel();
-    els.blockerPanel.hidden = false;
-    els.blockerInput.value = '';
-    renderBlocker();
+  function superfocusOn() {
+    return !!state.focus.active && view === 'today' && selectedKey === todayKey;
   }
 
-  function closeBlockerPanel() {
-    if (!els.blockerPanel || els.blockerPanel.hidden) return;
-    els.blockerPanel.hidden = true;
-    els.blockerToggle.setAttribute('aria-expanded', 'false');
+  function isFocusTarget(id) {
+    return superfocusOn() && focusTargetsToday().indexOf(id) !== -1;
   }
 
-  function commitBlockInput() {
-    var name = trimText(els.blockerInput.value, MAX_BLOCK_NAME);
-    if (!name) {
-      els.blockerInput.focus();
-      return;
-    }
-    if (addBlockApp(name)) els.blockerInput.value = '';
-    els.blockerInput.focus();
+  /* Turning it on with nothing chosen defaults to the unfinished work, so the
+     screen never opens with every card dimmed and nothing to act on. */
+  function defaultFocusTargets() {
+    var items = focusablesToday();
+    var open = items.filter(function (item) { return !item.done; });
+    return (open.length ? open : items).map(function (item) { return item.id; });
   }
 
-  function updateFocus() {
-    var progress = focus.total ? (focus.total - focus.left) / focus.total : 0;
-    els.focusTime.textContent = mmss(focus.left);
-    els.focusRing.style.strokeDashoffset = String(RING_LEN * progress);
-    els.focusToggle.textContent = focus.running
-      ? 'Pause'
-      : focus.left <= 0 ? 'Start again' : focus.left < focus.total ? 'Resume' : 'Start';
-    if (els.focusTask) els.focusTask.disabled = focus.running;
-
-    var statusText = focus.running
-      ? 'Focus running'
-      : focus.left <= 0 ? 'Session complete'
-        : focus.left < focus.total ? 'Paused' : 'Ready when you are';
-
-    els.focusState.textContent = statusText;
-    els.focusState.className = 'focus-state' +
-      (focus.running ? ' is-live' : '') +
-      (!focus.running && focus.left <= 0 ? ' is-done' : '');
-    els.focusSessions.textContent = sessionsLabel();
-    els.focusFootSessions.textContent = sessionsLabel();
-    els.focusMinutesLabel.textContent = durationLabel(false);
-    renderBlocker();
-  }
-
-  function openFocus() {
-    closeLengthPanel();
-    closeBlockerPanel();
-    focus.open = true;
-    els.focusView.hidden = false;
-    document.body.classList.add('focus-open');
-    if (focus.left <= 0) focus.left = focus.total;
-    renderFocusTasks();
-    els.focusGoal.dir = 'auto';
-    els.focusSwitch.checked = true;
-    els.focusSwitchText.textContent = 'ON';
-    updateFocus();
-  }
-
-  function exitFocus() {
-    pauseFocus();
-    closeLengthPanel();
-    closeBlockerPanel();
-    focus.open = false;
-    els.focusView.hidden = true;
-    document.body.classList.remove('focus-open');
-    els.focusSwitch.checked = false;
-    els.focusSwitchText.textContent = 'OFF';
-  }
-
-  function startFocus() {
-    if (focus.running) return;
-    if (focus.left <= 0) focus.left = focus.total;
-    focus.running = true;
-    focus.endAt = Date.now() + focus.left * 1000;
-    window.clearInterval(focus.timer);
-    focus.timer = window.setInterval(tickFocus, 250);
-    updateFocus();
-
-    if (state.focus.blockApps.length) {
-      toast('App blocker on · ' +
-        state.focus.blockApps.length + ' app' +
-        (state.focus.blockApps.length === 1 ? '' : 's') + ' locked');
-      vibrate(14);
-    }
-  }
-
-  function pauseFocus() {
-    if (focus.running && focus.endAt) {
-      focus.left = Math.max(0, Math.round((focus.endAt - Date.now()) / 1000));
-    }
-    focus.running = false;
-    focus.endAt = 0;
-    window.clearInterval(focus.timer);
-    focus.timer = 0;
-    if (focus.open) updateFocus();
-  }
-
-  function resetFocus() {
-    window.clearInterval(focus.timer);
-    focus.timer = 0;
-    focus.running = false;
-    focus.endAt = 0;
-    focus.total = focusDuration();
-    focus.left = focus.total;
-    updateFocus();
-  }
-
-  function tickFocus() {
-    if (!focus.running) return;
-    focus.left = Math.max(0, Math.round((focus.endAt - Date.now()) / 1000));
-    if (focus.left <= 0) {
-      finishFocus();
-      return;
-    }
-    updateFocus();
-  }
-
-  function finishFocus() {
-    window.clearInterval(focus.timer);
-    focus.timer = 0;
-    focus.running = false;
-    focus.endAt = 0;
-    focus.left = 0;
-
-    ensureFocusDay();
-    state.focus.sessions += 1;
+  function setFocusTargets(next) {
+    var seen = {};
+    state.focus.targets = (next || []).filter(function (id) {
+      if (typeof id !== 'string' || seen[id]) return false;
+      seen[id] = true;
+      return true;
+    });
     save();
-
-    chime();
-    window.setTimeout(chime, 420);
-    vibrate(22);
-    toast('Session complete — ' + durationLabel(true) + ' banked' +
-      (state.focus.blockApps.length ? ' · apps unlocked' : ''));
-    updateFocus();
-    els.focusState.textContent = 'Session complete';
-    els.focusState.className = 'focus-state is-done';
+    renderAll();
   }
 
-  function stopFocusClock() {
-    window.clearInterval(focus.timer);
-    focus.timer = 0;
-    focus.running = false;
-    focus.endAt = 0;
-  }
-
-  function clampInt(value, min, max, fallback) {
-    var n = Math.round(Number(value));
-    if (!isFinite(n)) return fallback;
-    return Math.max(min, Math.min(max, n));
-  }
-
-  function readLengthInputs() {
-    return {
-      minutes: clampInt(els.lengthMinutes.value, 0, MAX_FOCUS_MINUTES, state.focus.minutes),
-      seconds: clampInt(els.lengthSeconds.value, 0, 59, state.focus.seconds)
-    };
-  }
-
-  function syncPresetMarks(picked) {
-    var minutes = picked ? picked.minutes : state.focus.minutes;
-    var seconds = picked ? picked.seconds : (state.focus.seconds || 0);
-    var presets = els.focusLength.querySelectorAll('[data-preset]');
-    Array.prototype.forEach.call(presets, function (btn) {
-      var on = !seconds && Number(btn.dataset.preset) === minutes;
-      btn.classList.toggle('is-current', on);
-      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-    });
-  }
-
-  function openLengthPanel() {
-    closeBlockerPanel();
-    els.focusLength.hidden = false;
-    els.focusChange.setAttribute('aria-expanded', 'true');
-    els.lengthMinutes.value = String(state.focus.minutes);
-    els.lengthSeconds.value = String(state.focus.seconds);
-    els.lengthError.hidden = true;
-    syncPresetMarks();
-  }
-
-  function closeLengthPanel() {
-    if (els.focusLength.hidden) return;
-    els.focusLength.hidden = true;
-    els.focusChange.setAttribute('aria-expanded', 'false');
-  }
-
-  function applyFocusLength(minutes, seconds) {
-    stopFocusClock();
-    state.focus.minutes = minutes;
-    state.focus.seconds = seconds;
-    save();
-    focus.total = focusDuration();
-    focus.left = focus.total;
-    updateFocus();
-    updateFocusCard();
-    closeLengthPanel();
-    toast(durationLabel(false) + ' session ready');
-  }
-
-  function commitLengthInputs() {
-    var picked = readLengthInputs();
-    if (picked.minutes * 60 + picked.seconds < MIN_FOCUS_TOTAL) {
-      els.lengthError.hidden = false;
+  function startSuperfocus() {
+    if (!focusablesToday().length) {
+      state.focus.active = false;
+      save();
+      renderAll();
+      toast('Add a task first · Superfocus needs something to hold');
       return;
     }
-    els.lengthError.hidden = true;
-    applyFocusLength(picked.minutes, picked.seconds);
+    selectedKey = todayKey;
+    view = 'today';
+    state.view = view;
+    state.focus.active = true;
+    if (!focusTargetsToday().length) {
+      state.focus.targets = defaultFocusTargets();
+    }
+    sfPickerOpen = false;
+    save();
+    renderAll();
+    window.scrollTo(0, 0);
+    toast('Superfocus on · only your chosen tasks stay sharp');
+    vibrate(10);
   }
 
-  function stepLength(step) {
-    var picked = readLengthInputs();
-    if (step === 'min-up') picked.minutes = clampInt(picked.minutes + 1, 0, MAX_FOCUS_MINUTES, picked.minutes);
-    else if (step === 'min-down') picked.minutes = clampInt(picked.minutes - 1, 0, MAX_FOCUS_MINUTES, picked.minutes);
-    else if (step === 'sec-up') picked.seconds = clampInt(picked.seconds + 5, 0, 59, picked.seconds);
-    else if (step === 'sec-down') picked.seconds = clampInt(picked.seconds - 5, 0, 59, picked.seconds);
-    else return;
-
-    els.lengthMinutes.value = String(picked.minutes);
-    els.lengthSeconds.value = String(picked.seconds);
-    els.lengthError.hidden = true;
-    syncPresetMarks(picked);
+  function stopSuperfocus() {
+    state.focus.active = false;
+    sfPickerOpen = false;
+    save();
+    renderAll();
+    toast('Superfocus off');
   }
 
-  function onLengthInput() {
-    els.lengthError.hidden = true;
-    syncPresetMarks(readLengthInputs());
+  function toggleFocusTarget(id) {
+    var list = focusTargetsToday().slice();
+    var index = list.indexOf(id);
+    if (index === -1) list.push(id);
+    else list.splice(index, 1);
+    setFocusTargets(list);
+  }
+
+  function openSfPicker() {
+    sfPickerOpen = true;
+    renderSuperfocus();
+  }
+
+  function closeSfPicker() {
+    sfPickerOpen = false;
+    renderSuperfocus();
+  }
+
+  function renderSuperfocusPicker() {
+    if (!els.sfPickerList) return;
+    els.sfPickerList.textContent = '';
+    var items = focusablesToday();
+    var targets = focusTargetsToday();
+    els.sfPickerEmpty.hidden = items.length > 0;
+
+    items.forEach(function (item) {
+      var on = targets.indexOf(item.id) !== -1;
+      var li = makeEl('li', 'sf-picker-item' + (on ? ' is-on' : '') +
+        (item.done ? ' is-done' : ''));
+      var btn = makeEl('button', 'sf-picker-toggle');
+      btn.type = 'button';
+      btn.setAttribute('role', 'checkbox');
+      btn.setAttribute('aria-checked', on ? 'true' : 'false');
+      btn.setAttribute('aria-label',
+        (on ? 'Remove from Superfocus: ' : 'Add to Superfocus: ') + item.title);
+      var mark = makeEl('span', 'sf-picker-check');
+      mark.innerHTML = CHECK_SVG;
+      var text = makeEl('span', 'sf-picker-name', item.title);
+      text.dir = 'auto';
+      var tag = makeEl('span', 'sf-picker-tag',
+        item.done ? 'done' : item.kind === 'challenge' ? 'challenge' : 'task');
+      btn.appendChild(mark);
+      btn.appendChild(text);
+      btn.appendChild(tag);
+      btn.addEventListener('click', function () { toggleFocusTarget(item.id); });
+      li.appendChild(btn);
+      els.sfPickerList.appendChild(li);
+    });
+
+    els.sfPickerSub.textContent = targets.length
+      ? targets.length + ' of ' + items.length + ' tasks stay sharp'
+      : 'Pick at least one task to keep in focus.';
+  }
+
+  function renderSuperfocus() {
+    var on = superfocusOn();
+    var targets = on ? focusTargetsToday() : [];
+
+    if (els.focusSwitch) {
+      els.focusSwitch.checked = on;
+      els.focusSwitch.disabled = on;
+    }
+    if (els.focusSwitchText) els.focusSwitchText.textContent = on ? 'ON' : 'OFF';
+
+    document.body.classList.toggle('superfocus', on);
+    if (els.viewToday) els.viewToday.classList.toggle('is-focusing', on);
+    if (els.focusBar) els.focusBar.hidden = !on;
+    if (els.sfPicker) els.sfPicker.hidden = !on || !sfPickerOpen;
+
+    Array.prototype.forEach.call(
+      document.querySelectorAll('.sf-keep'),
+      function (el) { el.classList.remove('sf-keep'); }
+    );
+    if (!on) {
+      sfPickerOpen = false;
+      return;
+    }
+
+    /* A section stays crisp only when it holds a chosen task; everything
+       inside it that was not chosen fades back with the rest of Today. */
+    Array.prototype.forEach.call(
+      document.querySelectorAll('.is-focus-target'),
+      function (el) {
+        var section = el.closest ? el.closest('.section') : null;
+        if (section) section.classList.add('sf-keep');
+      }
+    );
+
+    if (els.focusBarSub) {
+      els.focusBarSub.textContent = targets.length
+        ? targets.length + ' task' + (targets.length === 1 ? '' : 's') +
+          ' in focus · everything else dimmed'
+        : 'No tasks chosen · open Change to pick';
+    }
+
+    renderSuperfocusPicker();
   }
 
   /* -------------------------------- render all ---------------------------- */
@@ -4167,15 +3898,12 @@
     todayKey = keyOf(new Date());
     if (selectedKey > todayKey) selectedKey = todayKey;
 
-    ensureFocusDay();
     renderWeek();
     renderProgress();
     renderLists(flash);
     renderTodayChallenges();
     renderChallenges();
     renderCalendar();
-    updateFocusCard();
-    if (focus.open) renderFocusTasks();
 
     document.body.classList.toggle('editing', editMode);
     els.editBtn.classList.toggle('is-on', editMode);
@@ -4184,10 +3912,17 @@
     els.editChallenges.setAttribute('aria-pressed', manageChallenges ? 'true' : 'false');
 
     applyView();
+    renderSuperfocus();
   }
 
   function setView(next) {
-    view = next === 'challenges' || next === 'calendar' ? next : 'today';
+    var target = next === 'challenges' || next === 'calendar' ? next : 'today';
+    /* Superfocus is a committed state: tabs stay locked until it is exited. */
+    if (superfocusOn() && target !== 'today') {
+      toast('Superfocus is on · exit to switch tabs');
+      return;
+    }
+    view = target;
     state.view = view;
     save();
     renderAll();
@@ -4257,7 +3992,7 @@
     });
     if (els.challengeModeHint) {
       els.challengeModeHint.textContent = sheetChallengeMode === 'build'
-        ? 'Each day gets its own slot. Separate days with a blank line.'
+        ? 'Each day gets its own slot. Use Day 1, Day 2… headers or a blank line.'
         : 'A recurring checklist for every day of the window.';
     }
   }
@@ -4291,12 +4026,12 @@
     els.fieldWhy.placeholder = 'What does finishing this change?';
     els.labelItems.innerHTML = isChallenge
       ? (sheetChallengeMode === 'build'
-        ? 'Day plan <span class="optional">blank line between days</span>'
+        ? 'Day plan <span class="optional">Day 1, Day 2… or blank lines</span>'
         : 'Daily checklist <span class="optional">one per line</span>')
       : 'Routine items <span class="optional">one per line</span>';
     els.fieldItems.placeholder = isChallenge
       ? (sheetChallengeMode === 'build'
-        ? 'Day 1 task\nSecond day-1 task\n\nDay 2 task'
+        ? 'Day 1\nSet up\nRead 20 pages\n\nDay 2\nDraft'
         : 'No added sugar\n2L water\n20 minute walk')
       : 'Wake at 06:00\n10 min sunlight\nCold shower';
   }
@@ -4390,6 +4125,10 @@
       recurring: els.fieldRecurring.checked
     };
 
+    /* A new task always joins the live day, even while an earlier date is
+       being reviewed. Only non-negotiables recur beyond it. */
+    var wasReviewing = selectedKey !== todayKey;
+
     if (editingId) {
       state.tasks.forEach(function (task) {
         if (task.id !== editingId) return;
@@ -4397,6 +4136,8 @@
         task.why = data.why;
         task.time = data.time;
         task.recurring = data.recurring;
+        if (data.recurring) task.date = '';
+        else if (!task.date) task.date = todayKey;
       });
     } else {
       state.tasks.unshift({
@@ -4405,30 +4146,91 @@
         why: data.why,
         time: data.time,
         recurring: data.recurring,
+        date: data.recurring ? '' : todayKey,
         key: streakKeyFor(data.title),
         createdAt: Date.now()
       });
     }
 
+    if (wasReviewing) selectedKey = todayKey;
     save();
     closeSheet();
     renderAll();
-    toast(wasEditing ? 'Task updated' : 'Task added');
+    toast(wasEditing
+      ? 'Task updated'
+      : wasReviewing ? '✓ Task added to today' : 'Task added');
   }
 
-  /* Build mode reads the textarea as day blocks: a blank line starts the next
-     day. Missing days are filled with a named slot so every date is winnable. */
+  /* Build mode accepts either explicit `Day 1` / `Day 1:` headers or a blank
+     line between days. Each block maps to its own numbered slot, so a
+     milestone can never drift onto the wrong date. */
+  function readBuildBlocks(text) {
+    var lines = String(text || '').replace(/\r\n?/g, '\n').split('\n');
+    var blocks = [];
+    var current = null;
+    var sawHeader = false;
+
+    lines.forEach(function (line) {
+      var trimmed = line.trim();
+      /* "Day 1 milestone" stays an item; only a bare header or a header with
+         an explicit separator starts a new day. */
+      var header = /^day\s*(\d+)\s*(?:[:.\-–—·]\s*(.*))?$/i.exec(trimmed);
+      if (header) {
+        sawHeader = true;
+        current = { day: parseInt(header[1], 10), items: [] };
+        blocks.push(current);
+        if (header[2] && header[2].trim()) current.items.push(header[2].trim());
+        return;
+      }
+      if (!trimmed) {
+        if (!sawHeader) current = null;
+        return;
+      }
+      if (!current) {
+        current = { day: blocks.length + 1, items: [] };
+        blocks.push(current);
+      }
+      current.items.push(trimmed);
+    });
+
+    return { blocks: blocks, headers: sawHeader };
+  }
+
   function parseBuildPlan(text, duration, existing) {
-    var blocks = String(text || '').split(/\n\s*\n/);
+    var parsed = readBuildBlocks(text);
+    var slots = [];
+    var i;
+    for (i = 0; i < duration; i += 1) slots.push([]);
+
+    if (parsed.headers) {
+      /* Explicit day numbers win, even when the blocks arrive out of order. */
+      parsed.blocks.forEach(function (block) {
+        var index = block.day - 1;
+        if (index < 0 || index >= duration) return;
+        slots[index] = slots[index].concat(block.items);
+      });
+    } else {
+      parsed.blocks.forEach(function (block, index) {
+        if (index < duration) slots[index] = block.items;
+      });
+    }
+
     var oldPlan = existing && existing.mode === 'build' && Array.isArray(existing.plan)
       ? existing.plan
       : [];
     var used = {};
     var plan = [];
-    for (var i = 0; i < duration; i += 1) {
-      var lines = (blocks[i] || '').split('\n').map(function (line) {
+
+    for (i = 0; i < duration; i += 1) {
+      var seen = {};
+      var lines = slots[i].map(function (line) {
         return trimText(line, MAX_TITLE);
-      }).filter(Boolean).slice(0, MAX_ITEMS);
+      }).filter(function (line) {
+        var key = line.toLowerCase();
+        if (!line || seen[key]) return false;
+        seen[key] = true;
+        return true;
+      }).slice(0, MAX_ITEMS);
       if (!lines.length) lines = ['Day ' + (i + 1) + ' milestone'];
 
       var oldById = {};
@@ -4730,34 +4532,6 @@
     });
   }
 
-  /* --------------------------------- audio ------------------------------- */
-
-  function chime() {
-    try {
-      var Ctx = window.AudioContext || window.webkitAudioContext;
-      if (!Ctx) return;
-      if (!audioCtx) audioCtx = new Ctx();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-
-      var t0 = audioCtx.currentTime;
-      [[880, 0], [1174.66, 0.08]].forEach(function (note) {
-        var osc = audioCtx.createOscillator();
-        var gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.value = note[0];
-        gain.gain.setValueAtTime(0.0001, t0 + note[1]);
-        gain.gain.exponentialRampToValueAtTime(0.12, t0 + note[1] + 0.012);
-        gain.gain.exponentialRampToValueAtTime(0.0001, t0 + note[1] + 0.24);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(t0 + note[1]);
-        osc.stop(t0 + note[1] + 0.3);
-      });
-    } catch (err) {
-      /* Audio is a nicety; never let it block the check. */
-    }
-  }
-
   /* --------------------------------- toast ------------------------------- */
 
   /* A leading ✓ is rendered as its own green glyph, so confirmations read as
@@ -4908,69 +4682,18 @@
   });
 
   els.focusSwitch.addEventListener('change', function () {
-    if (els.focusSwitch.checked) openFocus();
-    else exitFocus();
+    if (els.focusSwitch.checked) startSuperfocus();
+    else stopSuperfocus();
   });
 
-  els.focusExit.addEventListener('click', exitFocus);
-
-  els.focusTask.addEventListener('change', function () {
-    state.focus.taskId = els.focusTask.value === 'general' ? '' : els.focusTask.value;
-    save();
-    els.focusGoal.textContent = focusGoalText();
-  });
-
-  els.focusToggle.addEventListener('click', function () {
-    if (focus.running) pauseFocus();
-    else startFocus();
-  });
-
-  els.focusReset.addEventListener('click', resetFocus);
-
-  els.focusChange.addEventListener('click', function () {
-    if (els.focusLength.hidden) openLengthPanel();
-    else closeLengthPanel();
-  });
-
-  els.blockerToggle.addEventListener('click', function () {
-    if (els.blockerPanel.hidden) openBlockerPanel();
-    else closeBlockerPanel();
-  });
-
-  els.blockerDone.addEventListener('click', closeBlockerPanel);
-
-  els.blockerPresets.addEventListener('click', function (event) {
-    var preset = event.target.closest('[data-app]');
-    if (preset) toggleBlockApp(preset.dataset.app);
-  });
-
-  els.blockerSelected.addEventListener('click', function (event) {
-    var remove = event.target.closest('[data-remove]');
-    if (remove) removeBlockApp(remove.dataset.remove);
-  });
-
-  els.blockerAdd.addEventListener('click', commitBlockInput);
-  els.blockerInput.addEventListener('keydown', function (event) {
-    if (event.key !== 'Enter') return;
-    event.preventDefault();
-    commitBlockInput();
-  });
-
-  els.lengthClose.addEventListener('click', closeLengthPanel);
-  els.lengthCancel.addEventListener('click', closeLengthPanel);
-  els.lengthSet.addEventListener('click', commitLengthInputs);
-  els.lengthMinutes.addEventListener('input', onLengthInput);
-  els.lengthSeconds.addEventListener('input', onLengthInput);
-
-  els.focusLength.addEventListener('click', function (event) {
-    var preset = event.target.closest('[data-preset]');
-    if (preset) {
-      applyFocusLength(Number(preset.dataset.preset), 0);
-      return;
-    }
-    var step = event.target.closest('[data-step]');
-    if (step) stepLength(step.dataset.step);
-  });
+  if (els.focusBarChange) {
+    els.focusBarChange.addEventListener('click', function () {
+      if (sfPickerOpen) closeSfPicker();
+      else openSfPicker();
+    });
+  }
+  if (els.focusBarExit) els.focusBarExit.addEventListener('click', stopSuperfocus);
+  if (els.sfPickerDone) els.sfPickerDone.addEventListener('click', closeSfPicker);
 
   document.addEventListener('keydown', function (event) {
     if (event.key !== 'Escape') return;
@@ -4978,15 +4701,14 @@
     else if (!els.confirm.hidden) closeConfirm(true);
     else if (!els.studio.hidden) closeStudio();
     else if (!els.sheet.hidden) closeSheet();
-    else if (!els.focusLength.hidden) closeLengthPanel();
-    else if (focus.open) exitFocus();
+    else if (sfPickerOpen) closeSfPicker();
+    else if (superfocusOn()) stopSuperfocus();
   });
 
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) return;
     syncFromStorage();
     rollover();
-    if (focus.open) updateFocus();
   });
 
   /* iOS can restore a standalone page from the back/forward cache. Repaint
@@ -5020,7 +4742,7 @@
   }
 
   function canPull() {
-    if (pull.loading || focus.open || !els.sheet.hidden || !els.confirm.hidden ||
+    if (pull.loading || superfocusOn() || !els.sheet.hidden || !els.confirm.hidden ||
       !els.studio.hidden || !els.demo.hidden) return false;
     return (window.scrollY || document.documentElement.scrollTop || 0) <= 0;
   }
@@ -5096,7 +4818,13 @@
     var followingToday = selectedKey === todayKey;
     todayKey = key;
     if (followingToday) selectedKey = key;
-    ensureFocusDay();
+    /* A new day has its own tasks, so a running focus session keeps only the
+       targets that still exist and falls back to the new day's open work. */
+    if (state.focus.active) {
+      var carried = focusTargetsToday();
+      state.focus.targets = carried.length ? carried : defaultFocusTargets();
+      if (!state.focus.targets.length) state.focus.active = false;
+    }
     renderAll();
     /* The new day's snapshot is born empty, so every routine starts fresh. */
     save();
@@ -5128,7 +4856,13 @@
   }
 
   ensureProgramLinks();
+  /* A saved session may point at yesterday's one-day tasks; re-target it to
+     today's work before the first paint. */
+  if (state.focus.active) {
+    var bootTargets = focusTargetsToday();
+    state.focus.targets = bootTargets.length ? bootTargets : defaultFocusTargets();
+    if (!state.focus.targets.length) state.focus.active = false;
+  }
   renderAll();
-  updateFocus();
   save();
 })();

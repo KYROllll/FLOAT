@@ -1,6 +1,6 @@
 # AURA // DAILY OS
 
-A mobile-first daily discipline OS. One deep dark screen: the week, today's plan, the non-negotiables, a distraction-free focus timer, and the multi-day challenges that prove you showed up.
+A mobile-first daily discipline OS. One deep dark screen: the week, today's plan, the non-negotiables, an in-page Superfocus mode that dims everything else, and the multi-day challenges that prove you showed up.
 
 The brand comes from `AURALOGO.png`: near-black letters, a deep violet/indigo core, and a luminous golden-yellow aura. The app sits on the same near-black (`#08070b`) as the wordmark's letter core, and a slow ambient layer drifts those indigo and gold lights behind the whole UI. The in-app mark is `AURALOGO-ONLY.png` — the wordmark with its own alpha edge — so the neon rim sits straight on the dark surface in the header and again, small, above the footer line, with no plate or white fringe behind it. The daily progress scale keeps its own red → amber → green language so LOSS and WIN never lose their meaning — the progress card carries a live **WIN / LOSS** pill that flips the moment the 67% threshold is cleared, and every day in the week strip carries the same verdict. A day with nothing scheduled stays neutral: it reads **CLEAR** and gets no red dot.
 
@@ -22,7 +22,7 @@ Open **http://localhost:8080**. The service worker and Home Screen install need 
 2. **Share → Add to Home Screen**.
 3. Launch it from the Home Screen — it runs standalone, respects the notch and home indicator, and works offline.
 
-The service worker uses cache `aura-v21` and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the current palette, the new app icons and the in-app mark on the next launch.
+The service worker uses cache `aura-v22` and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the current palette, the new app icons and the in-app mark on the next launch.
 
 ---
 
@@ -30,7 +30,7 @@ The service worker uses cache `aura-v21` and calls `skipWaiting` + `clients.clai
 
 | Tab | What lives there |
 | --- | --- |
-| **Today** | Week strip, progress card with the LOSS → WIN scale and same-day verdict, Superfocus with its app blocker, Ideal Day, Non-Negotiables, and **Active Challenges** only while a challenge is running |
+| **Today** | Week strip, progress card with the LOSS → WIN scale and same-day verdict, in-page Superfocus, Ideal Day, Non-Negotiables, and **Active Challenges** only while a challenge is running |
 | **Challenges** | Short, high-pressure tracks (`7-Day No Sugar`, `14-Day Deep Work`) that run automatically between their start and end dates, shown with details, dates, progress, day bar, win count and a clear **WIN / LOSS** verdict. Read-only: today's actions are checked off on Today |
 | **Calendar** | A month grid of real outcomes: green **WIN** days, red **LOSS** days, quiet grey days with nothing scheduled, and a monthly win/loss tally. Tap any day to open it on Today |
 
@@ -49,14 +49,14 @@ Every tab has its own header action: **+** on Ideal Day and Non-Negotiables, and
 | Add a non-negotiable | **+** in the *Non-Negotiables* header |
 | Delete a task, habit or challenge | Reveal **×** (pencil / edit) → tap it → **press and hold** to confirm → `✓` toast |
 | Review an earlier day | Tap a day in the week strip — it shows that date's own tasks and ticks, and can only be ticked, never re-edited |
-| Enter Superfocus | Flip the switch on the **Superfocus** card |
+| Enter Superfocus | Flip the switch on the **Superfocus** card. Today stays put; tabs lock and everything except your chosen tasks fades back |
+| Choose what stays sharp | Tap **Change** in the focus bar, then pick one or more tasks or challenge actions. **Done** returns to the dimmed day |
+| Leave Superfocus | Tap **Exit** in the focus bar (or press Escape) — the tab bar and the rest of Today come back |
 | Run a challenge | Set its start and end dates when you create or configure it — it starts and finishes on its own, and its daily actions appear on Today while it runs. Tick them on Today; the Challenges tab only reports |
-| Pick the task for a focus session | Under the goal in Superfocus, choose a task from Today — or leave **General focus** for an unlinked session |
-| Choose what the blocker holds | Open **App Blocker** under the Superfocus controls, tap a suggestion or add any app name, then **Done**. The list persists and locks the moment **Start** is pressed |
+| Add a task while reviewing an earlier day | Tap **+** — the task is always created on the current live day, never inserted into the past date on screen |
 | Browse outcomes | Open the **Calendar** tab, step months with the arrows, and tap a day to review it on Today |
-| Change focus length | **Change length** inside Superfocus — quick presets (15 / 25 / 45 / 60) or an exact minutes + seconds stepper |
 
-The task sheet has four fields: **Task**, **Why it matters** (the purpose line under the title), an optional **Time**, and the **Recurring / Non-negotiable** switch that moves a habit into the bottom section. A challenge form adds explicit **start date** and **end date** fields (the length follows the range) and a **Habit / Streak** or **Build / Milestone** mode. Habit mode repeats one daily checklist; Build mode splits the window into day slots (Day 1, Day 2, …) and lets each day carry its own milestone or checklist, with a blank line separating days.
+The task sheet has four fields: **Task**, **Why it matters** (the purpose line under the title), an optional **Time**, and the **Recurring / Non-negotiable** switch that moves a habit into the bottom section. A regular task belongs to the day it was created on and does not roll into tomorrow; only Non-Negotiables repeat. A challenge form adds explicit **start date** and **end date** fields (the length follows the range) and a **Habit / Streak** or **Build / Milestone** mode. Habit mode repeats one daily checklist; Build mode splits the window into day slots (Day 1, Day 2, …) and lets each day carry its own milestone or checklist. Write `Day 1`, `Day 2:` or a blank line between day blocks — the parser maps each block to its numbered date, and any missing day keeps a winnable `Day N milestone` slot.
 
 ---
 
@@ -68,13 +68,11 @@ The task sheet has four fields: **Task**, **Why it matters** (the purpose line u
 
 **Daily Progress Card** — the selected date, `X of Y completed`, a live percentage, and the progress scale. The track runs red → amber/gold → emerald/green. The filled portion and glowing marker move with each check and shift color at 34 % and 67 %. The scale is labelled **LOSS** and **WIN** at its ends, carries a physical pin at the **67 % win threshold**, and a live status pill reads either `N to win · 67% threshold` or `Win zone · threshold cleared`. An empty day is neutral: it wears a grey **CLEAR** pill, `Nothing scheduled · neutral day`, and a grey marker instead of a false LOSS. **Rest day** in the card marks the selected date as intentional recovery: the verdict becomes a violet **REST**, the scale reads `Rest day · streak frozen`, and the day is excluded from wins, losses and the perfect streak. Tapping it again clears the rest day.
 
-**Superfocus** — the toggle card opens a full-screen, dimmed focus view headed by the clean AURA mark. Before the timer starts, a **Focus on** picker lists today's tasks so the session is tied to one specific thing; **General focus** keeps it unlinked. The chosen task becomes the goal line under the ring, and the picker locks while the timer runs. It runs a ring timer (25 minutes by default) with start/pause/reset and a session-complete chime. **Change length** opens a dark glass panel with the four presets plus exact minutes (0–600) and seconds (0–59) steppers, so any length can be set — and a running session restarts at the new length. Sessions are counted per day.
+**Superfocus** — the toggle card turns Today itself into the focus surface. There is no separate timer screen: flipping the switch keeps the week, progress card, tasks and challenges in place, then blurs and dims everything except the chosen work. A sticky focus bar at the top names how many tasks are in play, with **Change** and **Exit**. **Change** opens the picker: every task and challenge action on Today gets a checkbox, and only checked rows stay sharp. The first time it is turned on with nothing chosen, the unfinished work is selected automatically, so the screen never opens with everything dimmed. While Superfocus is active the tab bar is hidden and tab switching is blocked — the only ways out are **Exit** or Escape. Turning it off restores the full view instantly. Chosen tasks stay tappable and tickable; unselected cards are blurred, dimmed and inert.
 
-Under the controls sits the **App Blocker**. Its panel holds six one-tap suggestions (YouTube, Instagram, TikTok, X, Reddit, Games) plus a free-text field for any other app, and the saved list is managed from the same panel with a remove button per app. The bar reads **OFF** with nothing chosen, **READY** once a list exists, and **LOCKED** while the timer runs: every chosen app appears as a chip, tapping one shakes it and answers with a toast, and the whole set releases automatically on pause, reset, completion or exit. Because a browser cannot close other apps, the panel also carries a practical three-step iPhone setup: a **Superfocus** Focus mode to silence everything else, Screen Time **App Limits** for the actual system-level block, and a **Shortcuts** automation that turns the Focus on when AURA opens. **Done** in the panel header returns to the timer; the saved list persists and locks the moment **Start** is pressed.
+**Ideal Day** — the one-day tasks. Each belongs to the date it was created on: it is tickable there and does not follow you into tomorrow. Every card carries the tap-to-complete circle, an optional time badge, a bold title, a small "why" line, and a streak pill (`🔥 5`) once a run exists.
 
-**Ideal Day** — the non-recurring tasks. Every card carries the tap-to-complete circle, an optional time badge, a bold title, a small "why" line, and a streak pill (`🔥 5`) once a run exists.
-
-**Active Challenges** — every challenge whose date window contains today shows its own card on Today with the day number, today's win count and a tap-to-tick checklist. Titles, day counters and action rows follow their own text direction, so Hebrew and English cards both align from the correct edge. The block is rendered only when at least one challenge is running — with none active the section is absent, not an empty placeholder, and it carries no extra category label. This is the only place challenge actions are checked off: the Challenges tab shows the same day's ticks as read-only detail. Those actions are part of the same day score as tasks and habits, so finishing them clears the day, and the WIN / LOSS verdict stays in the Challenges tab when the window closes. Habit challenges repeat their checklist every day; Build challenges show only the current day's milestone on Today, so each day is judged by its own slot. On a rest day the card reads **REST DAY** and no day win is announced.
+**Active Challenges** — every challenge whose date window contains today shows its own card on Today with the day number, today's win count and a tap-to-tick checklist. Titles, day counters and action rows follow their own text direction, so Hebrew and English cards both align from the correct edge. The block is rendered only when at least one challenge is running — with none active the section is absent, not an empty placeholder, and it carries no extra category label. Challenges never appear on a date outside their start-to-end window, so a day before the track began or after it closed is not judged against it. This is the only place challenge actions are checked off: the Challenges tab shows the same day's ticks as read-only detail. Those actions are part of the same day score as tasks and habits, so finishing them clears the day, and the WIN / LOSS verdict stays in the Challenges tab when the window closes. Habit challenges repeat their checklist every day; Build challenges show only the current day's milestone on Today, so each day is judged by its own slot. When every item on the card is ticked, the chip flips to a green **✓ DAY WON** in the same green as the check circles. On a rest day the card reads **REST DAY** and no day win is announced.
 
 **Non-Negotiables** — the user's own recurring habits in their own section, each with a golden spine, the same completion control and its own streak. This list stays personal: program items never enter it, so starting a track cannot blur everyday habits with temporary items.
 
@@ -84,7 +82,7 @@ Starting a challenge and every deletion confirms with a green `✓` toast. Delet
 
 **Streaks** — a task's streak counts consecutive days ending today, or ending yesterday while today is still open, matched by a stable habit key rather than a record id, so renaming or re-adding the same routine keeps its run. The first completion shows no pill; the count starts at `🔥 1` on the **second consecutive day** (two days done), then `2`, `3` and so on. The header keeps a *perfect streak*: consecutive days where every task was completed.
 
-Completing a task is silent — no chime — with only the subtle check/card animation (and a short haptic where the device supports it). The Superfocus timer keeps its session-complete chime. With `prefers-reduced-motion`, transitions collapse.
+Completing a task is silent — no chime — with only the subtle check/card animation (and a short haptic where the device supports it). With `prefers-reduced-motion`, transitions collapse.
 
 All titles and purpose lines use `dir="auto"`, so Hebrew and English sit side by side correctly.
 
@@ -105,6 +103,7 @@ Key: `aura.daily.v3` (the app reads the old `arena.daily.v2` — or `arena.daily
       "why": "Builds discipline and stamina",
       "time": "06:30",
       "recurring": false,
+      "date": "2026-11-26",
       "createdAt": 1764200000000,
       "programId": "",
       "programItem": ""
@@ -135,7 +134,9 @@ Key: `aura.daily.v3` (the app reads the old `arena.daily.v2` — or `arena.daily
       "duration": 7,
       "startDate": "2026-11-26",
       "endDate": "2026-12-02",
+      "mode": "habit",
       "daily": [{ "id": "t...", "title": "No added sugar" }],
+      "plan": [],
       "startedAt": "2026-11-26",
       "log": { "2026-11-26": ["t..."] }
     }
@@ -171,17 +172,13 @@ Key: `aura.daily.v3` (the app reads the old `arena.daily.v2` — or `arena.daily
     }
   ],
   "focus": {
-    "sessions": 2,
-    "date": "2026-11-26",
-    "minutes": 25,
-    "seconds": 0,
-    "taskId": "t...",
-    "blockApps": ["YouTube", "TikTok", "Games"]
+    "active": false,
+    "targets": ["task:t...", "challenge:t...:t..."]
   }
 }
 ```
 
-`days` maps a local `YYYY-MM-DD` date to a full snapshot of that date: the exact `items` scheduled on it (title, why, time, recurrence and program link) and the `done` ids ticked on it. Every day keeps its own copy, so adding, editing or deleting a task on one date never rewrites another: switching to an earlier day shows what that day actually held, what was checked (✓), and that day's score. The current day is the only snapshot kept in step with the live task list; past days are sealed and can be ticked but not re-edited. Empty days have no record, which is why they stay neutral — no LOSS and no red dot. Days stored by older builds as `history` (a bare list of completed ids) are migrated once into best-effort snapshots, so no logged tick is lost. Tasks and day items carry a stable `key` derived from the habit name; the streak follows that key across renames and re-adds. Challenge `log` keeps its own date-keyed shape, one entry per checklist item completed that day; `startDate`/`endDate` are the challenge's beginning and finish, and `duration` always matches that range. A challenge carries `mode` (`habit` or `build`): habit mode stores its recurring checklist in `daily`, while build mode stores one `plan` slot per day, each with its own `items`. `restDays` is a date-keyed map of intentional recovery days; it sits beside `days` so a rest day can never be mistaken for a win, a loss or an empty day. The window runs on its own — there is no separate started flag. Workout `log` is date-keyed too: `started` marks an active session, `done` holds the exercise ids ticked that day, and `finished` closes the session. `weeks` plus `startDate` define the program window, so only dates inside it are scheduled sessions. `createdAt` dates the template, so weekdays before it existed stay rest days instead of being counted as missed sessions. `focus.blockApps` is the saved app-blocker list; it is only ever *locked* while a timer runs, so the state needs no flag of its own. Workout and program records from earlier builds stay in storage, but neither is rendered on Today anymore. A task created by a program carries `programId` (the program), `programItem` (the routine line it fills) and, inside a day snapshot, `programTitle` so a past day still reads correctly after that program is deleted. A linked task counts toward a day only while its program covers that date, so a finished track retires its items without erasing them. There is no account and no network call.
+`days` maps a local `YYYY-MM-DD` date to a full snapshot of that date: the exact `items` scheduled on it (title, why, time, recurrence and program link) and the `done` ids ticked on it. Every day keeps its own copy, so adding, editing or deleting a task on one date never rewrites another: switching to an earlier day shows what that day actually held, what was checked (✓), and that day's score. The current day is the only snapshot kept in step with the live task list; past days are sealed and can be ticked but not re-edited. A non-recurring task carries `date`, the one day it belongs to; only tasks with `recurring: true` are rebuilt into every new day. A new task created while an earlier date is on screen still gets today's `date`, and the view jumps back to Today so it is visible. Empty days have no record, which is why they stay neutral — no LOSS and no red dot. Days stored by older builds as `history` (a bare list of completed ids) are migrated once into best-effort snapshots, so no logged tick is lost. Tasks and day items carry a stable `key` derived from the habit name; the streak follows that key across renames and re-adds. Challenge `log` keeps its own date-keyed shape, one entry per checklist item completed that day; `startDate`/`endDate` are the challenge's beginning and finish, and `duration` always matches that range. A challenge carries `mode` (`habit` or `build`): habit mode stores its recurring checklist in `daily`, while build mode stores one `plan` slot per day, each with its own `items`. `restDays` is a date-keyed map of intentional recovery days; it sits beside `days` so a rest day can never be mistaken for a win, a loss or an empty day. The window runs on its own — there is no separate started flag. Workout `log` is date-keyed too: `started` marks an active session, `done` holds the exercise ids ticked that day, and `finished` closes the session. `weeks` plus `startDate` define the program window, so only dates inside it are scheduled sessions. `createdAt` dates the template, so weekdays before it existed stay rest days instead of being counted as missed sessions. `focus.targets` holds the ids of the tasks and challenge actions kept sharp in Superfocus (`task:<id>` or `challenge:<challengeId>:<itemId>`); `focus.active` is the on/off state, and targets that no longer exist on Today are ignored. Workout and program records from earlier builds stay in storage, but neither is rendered on Today anymore. A task created by a program carries `programId` (the program), `programItem` (the routine line it fills) and, inside a day snapshot, `programTitle` so a past day still reads correctly after that program is deleted. A linked task counts toward a day only while its program covers that date, so a finished track retires its items without erasing them. There is no account and no network call.
 
 Every tick is written to `localStorage` immediately and read back to confirm the write stuck; if the device refuses to save (private mode, full quota) the app says so once instead of pretending. The day is also re-read from storage whenever the app comes back to the foreground or is restored from the back/forward cache, so a returning view can never show stale or missing checkmarks, and the win threshold is computed from one shared helper used by both the progress card and the week strip.
 
@@ -190,13 +187,13 @@ Every tick is written to `localStorage` immediately and read back to confirm the
 ## Files
 
 ```
-index.html                 Three views, superfocus overlay, scale, sheet, studio, guide
+index.html                 Three views, in-page Superfocus, scale, sheet, studio, guide
 style.css                  Near-black palette, ambient indigo/gold aura, header and
                            footer wordmark, cards, motion, tab bar
 app.js                     State, migration, per-day snapshots, verdicts, streaks,
-                           challenges, workouts, body map, calendar, demos, focus timer
+                           challenges, workouts, body map, calendar, demos, Superfocus
 manifest.json              PWA manifest (AURA, standalone, portrait)
-sw.js                      Offline cache — aura-v21
+sw.js                      Offline cache — aura-v22
 AURALOGO.png               Official logo tile (source for every app icon)
 AURALOGO-ONLY.png          Wordmark alone, alpha cut (source for the in-app mark)
 assets/aura-mark.png       Header/footer mark, trimmed and scaled from AURALOGO-ONLY
@@ -211,8 +208,8 @@ tools/make_icons.py        Icon + mark generator (Python + Pillow)
 
 - Viewport is locked (`maximum-scale=1.0, user-scalable=no, viewport-fit=cover`), every input and textarea is at least `16px` so Safari never zooms on focus, and `touch-action: manipulation` plus `gesture*`, multi-touch and double-tap guards stop pinch and double-tap zoom.
 - Pulling down at the top of the page shows AURA's own refresh indicator (dark glass, indigo/gold glow, gold → violet spinner) instead of the browser's grey sheet; releasing past the trigger reloads. Every load is covered by a dark AURA veil with the mark and the same spinner, and `html` paints `#08070b` in the overscroll area, so no blank/grey frame is ever visible.
-- Safe-area insets pad the header, tab bar, focus view and bottom sheet on notched iPhones.
-- The sheet slides up on mobile and becomes a centered dialog on wider screens; Superfocus hides the tab bar and locks background scroll while open.
+- Safe-area insets pad the header, tab bar, focus bar and bottom sheet on notched iPhones.
+- The sheet slides up on mobile and becomes a centered dialog on wider screens; Superfocus hides the tab bar and blocks tab switching while it is on.
 - The theme color and splash background use `#08070b`, the status bar is `black-translucent` so the dark surface runs under it, and `color-scheme: dark` keeps native controls, date/time pickers and form fields dark.
 
 ---
