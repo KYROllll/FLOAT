@@ -2601,6 +2601,17 @@ body.focus-open {
 }
 
 /* The management panel, built on the same glass sheet as the length picker. */
+.blocker-done {
+  min-height: 32px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(245, 201, 78, 0.4);
+  background: rgba(245, 201, 78, 0.12);
+  color: var(--gold-bright);
+  font-size: 11px;
+  font-weight: 750;
+}
+
 .blocker-panel-sub {
   margin: 8px 0 12px;
   font-size: 11px;
@@ -2740,11 +2751,49 @@ body.focus-open {
   height: 11px;
 }
 
-.blocker-note {
-  margin: 12px 0 0;
-  font-size: 10px;
+.blocker-guide {
+  margin-top: 14px;
+  padding: 12px 13px;
+  border-radius: 13px;
+  border: 1px solid rgba(245, 201, 78, 0.16);
+  background: rgba(245, 201, 78, 0.04);
+}
+
+.blocker-guide-title {
+  margin: 0;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold-bright);
+}
+
+.blocker-guide-foot {
+  margin: 7px 0 0;
+  font-size: 10.5px;
   line-height: 1.5;
   color: var(--muted-dim);
+}
+
+.blocker-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 9px 0 0;
+  padding-inline-start: 18px;
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: var(--ink-dim);
+}
+
+.blocker-steps li::marker {
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.blocker-steps b {
+  font-weight: 700;
+  color: var(--ink);
 }
 
 .focus-foot {
@@ -5543,6 +5592,25 @@ body.demo-open {
 .today-workout-copy,
 .today-challenge-copy {
   min-width: 0;
+}
+
+.today-challenge-copy {
+  flex: 1 1 auto;
+}
+
+.today-challenge-name,
+.today-challenge-meta {
+  text-align: start;
+}
+
+/* Keep every row's label against the check control, whichever way the card
+   runs — mixed-language items should not drift to the far edge. */
+.today-challenge-card[dir="rtl"] .mini-text {
+  text-align: right;
+}
+
+.today-challenge-card[dir="ltr"] .mini-text {
+  text-align: left;
 }
 
 .today-workout-name,

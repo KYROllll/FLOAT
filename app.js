@@ -483,7 +483,6 @@
     blockerBadge: document.getElementById('blockerBadge'),
     blockerChips: document.getElementById('blockerChips'),
     blockerPanel: document.getElementById('blockerPanel'),
-    blockerClose: document.getElementById('blockerClose'),
     blockerDone: document.getElementById('blockerDone'),
     blockerPresets: document.getElementById('blockerPresets'),
     blockerSelected: document.getElementById('blockerSelected'),
@@ -1831,24 +1830,36 @@
       }).length;
       var complete = done === ch.daily.length && ch.daily.length > 0;
 
+      /* The whole header follows the title's direction, so a Hebrew title
+         starts at the right edge and the win chip moves to the left. */
+      var dir = textDir(ch.title);
       var card = makeEl('article', 'today-challenge-card' + (complete ? ' is-done' : ''));
+      card.dir = dir;
       var head = makeEl('div', 'today-challenge-head');
+      head.dir = dir;
       var wrap = makeEl('div', 'today-challenge-copy');
       var title = makeEl('h3', 'today-challenge-name', ch.title);
       title.dir = 'auto';
       wrap.appendChild(title);
-      wrap.appendChild(makeEl('p', 'today-challenge-meta',
-        st.label + ' · ' + done + ' of ' + ch.daily.length + ' today'));
+      var meta = makeEl('p', 'today-challenge-meta',
+        st.label + ' · ' + done + ' of ' + ch.daily.length + ' today');
+      meta.dir = dir;
+      wrap.appendChild(meta);
       head.appendChild(wrap);
-      head.appendChild(makeEl('span', 'today-challenge-chip',
-        complete ? 'DAY WON' : st.won + ' WINS'));
+      var chip = makeEl('span', 'today-challenge-chip',
+        complete ? 'DAY WON' : st.won + ' WINS');
+      /* Keep “0 WINS” in reading order inside a right-to-left header. */
+      chip.dir = 'ltr';
+      head.appendChild(chip);
       card.appendChild(head);
 
       var listEl = makeEl('ul', 'mini-list today-challenge-items');
       ch.daily.forEach(function (item) {
         var ticked = log.indexOf(item.id) !== -1;
         var li = makeEl('li', 'mini-item' + (ticked ? ' is-done' : ''));
-        li.dir = textDir(item.title);
+        /* Every row in the card follows the challenge direction, so the
+           check controls stay on one side even with mixed-language items. */
+        li.dir = dir;
         var btn = makeEl('button', 'mini-check');
         btn.type = 'button';
         btn.setAttribute('role', 'checkbox');
@@ -4637,7 +4648,6 @@
     else closeBlockerPanel();
   });
 
-  els.blockerClose.addEventListener('click', closeBlockerPanel);
   els.blockerDone.addEventListener('click', closeBlockerPanel);
 
   els.blockerPresets.addEventListener('click', function (event) {

@@ -22,7 +22,7 @@ Open **http://localhost:8080**. The service worker and Home Screen install need 
 2. **Share → Add to Home Screen**.
 3. Launch it from the Home Screen — it runs standalone, respects the notch and home indicator, and works offline.
 
-The service worker uses cache `aura-v19` and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the current palette, the new app icons and the in-app mark on the next launch.
+The service worker uses cache `aura-v20` and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the current palette, the new app icons and the in-app mark on the next launch.
 
 ---
 
@@ -70,11 +70,11 @@ The task sheet has four fields: **Task**, **Why it matters** (the purpose line u
 
 **Superfocus** — the toggle card opens a full-screen, dimmed focus view headed by the clean AURA mark. Before the timer starts, a **Focus on** picker lists today's tasks so the session is tied to one specific thing; **General focus** keeps it unlinked. The chosen task becomes the goal line under the ring, and the picker locks while the timer runs. It runs a ring timer (25 minutes by default) with start/pause/reset and a session-complete chime. **Change length** opens a dark glass panel with the four presets plus exact minutes (0–600) and seconds (0–59) steppers, so any length can be set — and a running session restarts at the new length. Sessions are counted per day.
 
-Under the controls sits the **App Blocker**. Its panel holds six one-tap suggestions (YouTube, Instagram, TikTok, X, Reddit, Games) plus a free-text field for any other app, and the saved list is managed from the same panel with a remove button per app. The bar reads **OFF** with nothing chosen, **READY** once a list exists, and **LOCKED** while the timer runs: every chosen app appears as a chip, tapping one shakes it and answers with a toast, and the whole set releases automatically on pause, reset, completion or exit. A short note is explicit that a web app cannot force-close apps outside the browser — a Screen Time limit or iOS Focus rule is still needed to block them system-wide.
+Under the controls sits the **App Blocker**. Its panel holds six one-tap suggestions (YouTube, Instagram, TikTok, X, Reddit, Games) plus a free-text field for any other app, and the saved list is managed from the same panel with a remove button per app. The bar reads **OFF** with nothing chosen, **READY** once a list exists, and **LOCKED** while the timer runs: every chosen app appears as a chip, tapping one shakes it and answers with a toast, and the whole set releases automatically on pause, reset, completion or exit. Because a browser cannot close other apps, the panel also carries a practical three-step iPhone setup: a **Superfocus** Focus mode to silence everything else, Screen Time **App Limits** for the actual system-level block, and a **Shortcuts** automation that turns the Focus on when AURA opens. **Done** in the panel header returns to the timer; the saved list persists and locks the moment **Start** is pressed.
 
 **Ideal Day** — the non-recurring tasks. Every card carries the tap-to-complete circle, an optional time badge, a bold title, a small "why" line, and a streak pill (`🔥 5`) once a run exists.
 
-**Active Challenges** — every challenge whose date window contains today shows its own card on Today with the day number, today's win count and a tap-to-tick checklist. The block is rendered only when at least one challenge is running — with none active the section is absent, not an empty placeholder, and it carries no extra category label. This is the only place challenge actions are checked off: the Challenges tab shows the same day's ticks as read-only detail. Those actions are part of the same day score as tasks and habits, so finishing them clears the day, and the WIN / LOSS verdict stays in the Challenges tab when the window closes.
+**Active Challenges** — every challenge whose date window contains today shows its own card on Today with the day number, today's win count and a tap-to-tick checklist. Titles, day counters and action rows follow their own text direction, so Hebrew and English cards both align from the correct edge. The block is rendered only when at least one challenge is running — with none active the section is absent, not an empty placeholder, and it carries no extra category label. This is the only place challenge actions are checked off: the Challenges tab shows the same day's ticks as read-only detail. Those actions are part of the same day score as tasks and habits, so finishing them clears the day, and the WIN / LOSS verdict stays in the Challenges tab when the window closes.
 
 **Non-Negotiables** — the user's own recurring habits in their own section, each with a golden spine, the same completion control and its own streak. This list stays personal: program items never enter it, so starting a track cannot blur everyday habits with temporary items.
 
@@ -196,7 +196,7 @@ style.css                  Near-black palette, ambient indigo/gold aura, header 
 app.js                     State, migration, per-day snapshots, verdicts, streaks,
                            challenges, workouts, body map, calendar, demos, focus timer
 manifest.json              PWA manifest (AURA, standalone, portrait)
-sw.js                      Offline cache — aura-v19
+sw.js                      Offline cache — aura-v20
 AURALOGO.png               Official logo tile (source for every app icon)
 AURALOGO-ONLY.png          Wordmark alone, alpha cut (source for the in-app mark)
 assets/aura-mark.png       Header/footer mark, trimmed and scaled from AURALOGO-ONLY

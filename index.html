@@ -401,7 +401,7 @@
       </div>
 
       <p class="focus-note">
-        AURA can’t force-close other apps — pair the blocker with iOS Focus or a Screen Time limit for that.
+        A browser can’t force-close other apps. Open App Blocker for the 3-step iOS setup.
       </p>
     </div>
 
@@ -482,15 +482,12 @@
     <section class="focus-length blocker-panel" id="blockerPanel" hidden aria-label="App Blocker">
       <div class="length-head">
         <p class="length-title">App Blocker</p>
-        <button class="length-close" id="blockerClose" type="button" aria-label="Close app blocker">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
-            <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" />
-          </svg>
-        </button>
+        <button class="blocker-done" id="blockerDone" type="button">Done</button>
       </div>
 
       <p class="blocker-panel-sub" id="blockerPanelSub">
-        Pick the distractions that stay locked while your session runs.
+        Pick the distractions that stay locked while your session runs. A browser can’t close
+        other apps, so pair this list with iOS once:
       </p>
 
       <div class="blocker-presets" id="blockerPresets" role="group" aria-label="Suggested apps">
@@ -517,13 +514,16 @@
 
       <ul class="blocker-selected" id="blockerSelected"></ul>
 
-      <p class="blocker-note">
-        A web app can’t force-close apps outside the browser. AURA locks them here — add a
-        Screen Time limit or iOS Focus rule to block them system-wide.
-      </p>
-
-      <div class="length-actions">
-        <button class="focus-btn focus-btn-main" id="blockerDone" type="button">Done</button>
+      <div class="blocker-guide">
+        <p class="blocker-guide-title">iPhone: make it system-wide</p>
+        <ol class="blocker-steps">
+          <li><b>Focus</b> — Settings → Focus → + → Custom, named Superfocus. It silences everything else.</li>
+          <li><b>Block apps</b> — Settings → Screen Time → App Limits → Add Limit, then pick the same apps. This is the real block.</li>
+          <li><b>Automate</b> — Shortcuts → Automation → + → App → AURA → Set Focus → Superfocus. Opening AURA turns the Focus on.</li>
+        </ol>
+        <p class="blocker-guide-foot">
+          Start the timer here: AURA locks this list instantly, while iOS enforces the block.
+        </p>
       </div>
     </section>
   </div>
