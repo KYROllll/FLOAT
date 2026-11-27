@@ -22,20 +22,19 @@ Open **http://localhost:8080**. The service worker and Home Screen install need 
 2. **Share → Add to Home Screen**.
 3. Launch it from the Home Screen — it runs standalone, respects the notch and home indicator, and works offline.
 
-The service worker uses cache `aura-v16` and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the current palette, the new app icons and the in-app mark on the next launch.
+The service worker uses cache `aura-v17` and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the current palette, the new app icons and the in-app mark on the next launch.
 
 ---
 
-## The four tabs
+## The three tabs
 
 | Tab | What lives there |
 | --- | --- |
-| **Today** | Week strip, progress card with the LOSS → WIN scale and same-day verdict, Superfocus, Ideal Day, Non-Negotiables, today's scheduled Workout, the running Challenge checklists, and legacy Program Routine |
+| **Today** | Week strip, progress card with the LOSS → WIN scale and same-day verdict, Superfocus, Ideal Day, Non-Negotiables, today's Workout (with the studio behind a **+**), the running Challenge checklists, and legacy Program Routine |
 | **Challenges** | Short, high-pressure tracks (`7-Day No Sugar`, `14-Day Deep Work`) that run automatically between their start and end dates, with a daily checklist, day bar, win count and a clear **WIN / LOSS** verdict when the window closes |
-| **Workouts** | A focused bodyweight studio: one **Start a workout** action, 23 equipment-free movements, a red → green balance scale, an upright body map, a dated weekly program, then a runnable session. Tap any movement for an animated guide |
 | **Calendar** | A month grid of real outcomes: green **WIN** days, red **LOSS** days, quiet grey days with nothing scheduled, and a monthly win/loss tally. Tap any day to open it on Today |
 
-Every tab has its own header action: **+** on Ideal Day and Non-Negotiables, **+** plus a pencil on Challenges, and a single **Start a workout** action (plus the manage pencil) on Workouts.
+Every tab has its own header action: **+** on Ideal Day and Non-Negotiables, **+** plus a pencil on Challenges, and **+** plus the manage pencil on Today's Workout. Workouts have no page of their own — the studio opens from Today, and today's session lives there.
 
 ---
 
@@ -48,11 +47,11 @@ Every tab has its own header action: **+** on Ideal Day and Non-Negotiables, **+
 | Edit a task or habit | Tap the card text |
 | Add a task | **+** in the *Ideal Day* header |
 | Add a non-negotiable | **+** in the *Non-Negotiables* header |
-| Delete a task, habit, challenge or workout | Reveal **×** (pencil / edit) → tap it → **press and hold** to confirm → `✓` toast |
+| Delete a task, habit, challenge or workout | Reveal **×** (pencil / edit) → tap it → **press and hold** to confirm → `✓` toast. Workouts: pencil in the *Today's Workout* header lists every saved session with its **✎** / **×** |
 | Review an earlier day | Tap a day in the week strip — it shows that date's own tasks and ticks, and can only be ticked, never re-edited |
 | Enter Superfocus | Flip the switch on the **Superfocus** card |
 | Run a challenge | Set its start and end dates when you create or configure it — it starts and finishes on its own, and its daily actions appear on Today while it runs |
-| Start a workout | **Start a workout** opens the builder; choose training days and program weeks, watch the dates and balance update, then **Save** or **Start workout**. On a session card, **Start workout** or **Train today** reopens it; tick each exercise as you finish it |
+| Start a workout | **+** in the *Today's Workout* header opens the builder; choose training days and program weeks, watch the dates and balance update, then **Save** or **Start workout**. Tick each exercise on Today as you finish it |
 | Complete today's workout | Tick **Mark workout complete** in Today's Workout block — every exercise is ticked with it, and the main scale moves |
 | Browse outcomes | Open the **Calendar** tab, step months with the arrows, and tap a day to review it on Today |
 | See how a movement is done | Tap any exercise name in the library, plan, session or session card — the guide opens with an animated figure and the muscles it targets |
@@ -64,7 +63,7 @@ The task sheet has four fields: **Task**, **Why it matters** (the purpose line u
 
 ## What's on screen
 
-**Week strip** — the current Sunday-to-Saturday week. Each pill shows the weekday and date, then a spaced status marker: an open/current day carries a glowing emerald dot when it is on track (at or above the 67% threshold) and a red dot when it is scheduled but still below it. Once a scheduled day is closed, a winning day becomes a green `✓` and a losing day a red `✕`. A date with nothing scheduled stays neutral — a dim grey dot, no red mark and no LOSS. Today is highlighted, the selected day is the filled gold pill, and future days stay disabled. On the gold pill the marker sits in its own white disc, so green, red and grey stay unmistakable against the yellow.
+**Week strip** — the current Sunday-to-Saturday week. Each pill shows the weekday and date, then a spaced status marker: an open/current day carries a glowing emerald dot when it is on track (at or above the 67% threshold) and a red dot when it is scheduled but still below it. Once a scheduled day is closed, a winning day becomes a green `✓` and a losing day a red `✕`. A date with nothing scheduled stays neutral — a dim grey dot, no red mark and no LOSS. Today is highlighted, the selected day is the filled gold pill, and future days stay disabled. On the gold pill the marker is a bare, darker dot — no white disc or halo behind it.
 
 **Calendar** — a Sunday-first month grid. Each elapsed day is coloured by its real outcome: green for a WIN, red for a LOSS, and a quiet neutral tile when nothing was scheduled; future days are faded and disabled. A monthly tally counts wins and losses, the arrows step through months, today carries a gold ring, and tapping any day jumps to that date on Today. The same `dayResult` helper feeds the card, the week strip and the calendar, so they can never disagree.
 
@@ -84,13 +83,13 @@ The task sheet has four fields: **Task**, **Why it matters** (the purpose line u
 
 **Challenges** — short, high-pressure tracks that run by their dates alone: no start button, no forgotten beginning. Each card shows its explicit **start** and **end** date, status (Starts … / Day N / Win / Loss), a violet-to-gold progress meter, one mark per challenge day (won = emerald, missed = red, today = gold), and today's checklist. Checking every daily action wins the day. When the window closes, a verdict banner declares **WIN** or **LOSS** against the same 67% standard as the daily scale: the target is at least 67% of the challenge's days won (5 of 7, 10 of 14), and the banner states the days won, the target and how far it landed. Clearing every day wins early and shows the same banner. Creating or configuring a challenge takes a start date and an end date (or a start date plus length), and the card always states both.
 
-**Workouts** — one clean studio, no program layers and a single **Start a workout** action. The builder opens preloaded with today's scheduled session (or empty when nothing is scheduled). The library holds 23 equipment-free movements — push-up variations, pike and diamond push-ups, dips, squats, lunges, glute bridges, planks, hollow holds, supermans, bird dogs and more — filterable by muscle, plus a custom entry with its own group and sets/reps. Every movement has a **sets × reps/secs** stepper in the plan.
+**Workouts** — one clean studio reached from **+** in Today's Workout header, with no page or tab of its own. The builder opens preloaded with today's scheduled session (or empty when nothing is scheduled). The library holds 23 equipment-free movements — push-up variations, pike and diamond push-ups, dips, squats, lunges, glute bridges, planks, hollow holds, supermans, bird dogs and more — filterable by muscle, plus a custom entry with its own group and sets/reps. Every movement has a **sets × reps/secs** stepper in the plan.
 
 The builder keeps two live, visual readings instead of a pile of scores. **Balance** is the same red → amber → green scale as the day progress bar: it moves right as the plan covers more muscle groups, spreads volume across them, approaches the target time and adds variety, then names the next fix in one plain sentence (`Add chest work to round it out`). **Muscles** is a straight, front-view body map: each covered group lights green while the rest stay dim, with a count (`3 / 5`), compact group tags and a **Full Body** flag at 4 of 5 groups with 3+ movements. **Program** sets the length in weeks (2 / 4 / 6 / 8 or any 1–12) and immediately reveals the dated grid: every training day is green, every rest day stays quiet, and days before the program starts are faded. **Target time** offers 30m and 45m presets plus any custom minutes, and the estimate (`≈ 31 min planned`) sits beside it.
 
-Tapping any exercise name (library, plan, session, Today's Workout, or a session card) opens the **movement guide**: an upright animated human figure demonstrates the motion, a small upright body map lights only the muscles it targets, and a one-line cue explains the setup and the rep. Floor work faces left, matching the push-up tab icon. The figure is drawn in SVG and animated with SMIL, so it works offline with no video files. `prefers-reduced-motion` shows the still pose and cue instead.
+Tapping any exercise name (library, plan, session or Today's Workout) opens the **movement guide**: an upright animated human figure demonstrates the motion, a small upright body map lights only the muscles it targets, and a one-line cue explains the setup and the rep. Floor work faces left, matching the push-up tab icon. The figure is drawn in SVG and animated with SMIL, so it works offline with no video files. `prefers-reduced-motion` shows the still pose and cue instead.
 
-**Save** stores the session as a reusable template; **Start workout** saves and opens the session view, where tapping an exercise ticks it, the meter and `N of M done` tally update, and ticking the last exercise or tapping **Finish workout** logs the session, closes the studio and clears the builder so the next session starts clean. The weekly strip and per-template cards show cleared sessions (`✓`), today's training day, scheduled future days, missed sessions (`✕`) and rest days, and off-schedule templates can still be trained with **Train today**.
+**Save** stores the session as a reusable template; **Start workout** saves and opens the session view, where tapping an exercise ticks it, the meter and `N of M done` tally update, and ticking the last exercise or tapping **Finish workout** logs the session, closes the studio and clears the builder so the next session starts clean. The manage pencil on Today's Workout lists every saved template with its training days and exercise count, and opens **✎** (edit) or **×** (delete, hold to confirm) for each one.
 
 Starting a challenge, saving or finishing a workout, and every deletion confirms with a green `✓` toast. Deleting anything is deliberately slow: the **×** opens a confirmation panel whose red button fills only while you keep pressing, and releasing early cancels.
 
@@ -195,13 +194,13 @@ Every tick is written to `localStorage` immediately and read back to confirm the
 ## Files
 
 ```
-index.html                 Four views, superfocus overlay, scale, sheet, studio, guide
+index.html                 Three views, superfocus overlay, scale, sheet, studio, guide
 style.css                  Near-black palette, ambient indigo/gold aura, header and
                            footer wordmark, cards, motion, tab bar
 app.js                     State, migration, per-day snapshots, verdicts, streaks,
                            challenges, workouts, body map, calendar, demos, focus timer
 manifest.json              PWA manifest (AURA, standalone, portrait)
-sw.js                      Offline cache — aura-v16
+sw.js                      Offline cache — aura-v17
 AURALOGO.png               Official logo tile (source for every app icon)
 AURALOGO-ONLY.png          Wordmark alone, alpha cut (source for the in-app mark)
 assets/aura-mark.png       Header/footer mark, trimmed and scaled from AURALOGO-ONLY

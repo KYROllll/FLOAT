@@ -559,12 +559,12 @@ button {
   text-shadow: 0 0 7px rgba(239, 68, 68, 0.6);
 }
 
-/* The selected day is a filled gold pill, so its marker gets its own bright
-   chip: white disc, saturated fill, no glow bleeding into the yellow. */
+/* The selected day is a filled gold pill, so its marker is a pure darker dot:
+   no disc, no halo, just the status colour straight on the yellow. */
 .wk.is-selected .wk-dot {
-  background: rgba(255, 255, 255, 0.94);
+  background: transparent;
   color: var(--gold-ink);
-  box-shadow: 0 0 0 1px rgba(20, 18, 24, 0.16);
+  box-shadow: none;
 }
 
 .wk.is-selected .wk-dot::before {
@@ -2606,9 +2606,8 @@ body.focus-open {
   width: min(430px, calc(100% - 22px));
   display: grid;
   /* minmax(0, …) lets a column shrink below the label's min-content width, so
-     "Challenges" / "Workouts" / "Calendar" can never push past the bar and
-     get cut. */
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+     "Challenges" / "Calendar" can never push past the bar and get cut. */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 3px;
   padding: 6px 5px;
   /* Nothing in the bar may clip a label's descender. */
@@ -2693,17 +2692,6 @@ body.focus-open .tabbar {
 .tab[data-view="challenges"].is-active .tab-icon {
   color: #f7a6d6;
   filter: drop-shadow(0 0 10px rgba(239, 122, 192, 0.55));
-}
-
-.tab[data-view="workouts"].is-active {
-  color: #f6e9bf;
-  background: linear-gradient(180deg, rgba(245, 201, 78, 0.2), rgba(245, 201, 78, 0.05));
-  box-shadow: inset 0 0 0 1px rgba(245, 201, 78, 0.3);
-}
-
-.tab[data-view="workouts"].is-active .tab-icon {
-  color: var(--gold-bright);
-  filter: drop-shadow(0 0 10px rgba(245, 201, 78, 0.6));
 }
 
 .tab[data-view="calendar"].is-active {
@@ -3129,8 +3117,8 @@ body.focus-open .tabbar {
 .challenge-list.is-managing .track-edit,
 .program-list.is-managing .track-del,
 .program-list.is-managing .track-edit,
-.workout-list.is-managing .track-del,
-.workout-list.is-managing .track-edit {
+.today-workout-list.is-managing .track-del,
+.today-workout-list.is-managing .track-edit {
   display: grid;
 }
 
@@ -3632,342 +3620,7 @@ body.focus-open .tabbar {
   background: rgba(12, 10, 18, 0.6);
 }
 
-/* ====================== WORKOUTS · TRAINING HUB ======================== */
-
-.workout-summary {
-  margin-bottom: 12px;
-}
-
-.workout-summary-card {
-  padding: 14px;
-  border-radius: 20px;
-  border: 1px solid rgba(245, 201, 78, 0.2);
-  background:
-    radial-gradient(120% 110% at 100% 0%, rgba(245, 201, 78, 0.12), transparent 58%),
-    linear-gradient(160deg, #1a1726 0%, #121019 58%, #0b0a10 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-}
-
-.workout-summary-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.workout-summary-kicker {
-  margin: 0;
-  font-size: 8.5px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--violet-bright);
-}
-
-.workout-summary-count {
-  margin: 5px 0 0;
-  font-size: 11.5px;
-  font-weight: 650;
-  color: var(--muted);
-}
-
-.workout-summary-count b {
-  margin-inline-end: 2px;
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  color: var(--gold-bright);
-  font-variant-numeric: tabular-nums;
-  vertical-align: -2px;
-}
-
-.workout-summary-today {
-  flex: none;
-  max-width: 45%;
-  text-align: end;
-}
-
-.workout-summary-label {
-  display: block;
-  font-size: 8px;
-  font-weight: 800;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-  color: var(--muted-dim);
-}
-
-.workout-summary-value {
-  display: block;
-  margin-top: 4px;
-  font-size: 10.5px;
-  font-weight: 700;
-  line-height: 1.35;
-  color: #f6e9bf;
-  overflow-wrap: anywhere;
-  unicode-bidi: plaintext;
-}
-
-.workout-week {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
-  margin-top: 12px;
-  direction: ltr;
-}
-
-.workout-week-day {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 7px 0 8px;
-  border-radius: 12px;
-  border: 1px solid transparent;
-  background: rgba(255, 255, 255, 0.03);
-  color: var(--muted-dim);
-}
-
-.workout-week-day.is-today {
-  border-color: var(--gold-line);
-  background: var(--gold-soft);
-  color: var(--gold-bright);
-}
-
-.workout-week-label {
-  font-size: 8px;
-  font-weight: 750;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-}
-
-.workout-week-date {
-  font-size: 11.5px;
-  font-weight: 750;
-  color: var(--ink-dim);
-  font-variant-numeric: tabular-nums;
-}
-
-.workout-week-day.is-today .workout-week-date {
-  color: var(--gold-bright);
-}
-
-.workout-week-day .wk-dot {
-  margin-top: 2px;
-}
-
-.workout-summary-note {
-  margin: 9px 0 0;
-  font-size: 9px;
-  font-weight: 650;
-  color: var(--muted-dim);
-  font-variant-numeric: tabular-nums;
-}
-
-.workout-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.workout-card {
-  padding: 15px;
-  border-radius: 20px;
-  border-color: rgba(245, 201, 78, 0.2);
-  background:
-    radial-gradient(115% 90% at 0% 0%, rgba(139, 92, 246, 0.13), transparent 56%),
-    linear-gradient(160deg, #1a1722 0%, #121016 58%, #0b0a10 100%);
-}
-
-.workout-card.is-live {
-  border-color: rgba(245, 201, 78, 0.36);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    0 0 0 1px rgba(245, 201, 78, 0.08);
-}
-
-.workout-card.is-won {
-  border-color: rgba(34, 197, 94, 0.3);
-}
-
-.workout-kicker {
-  display: block;
-  margin-bottom: 3px;
-  font-size: 8px;
-  font-weight: 800;
-  letter-spacing: 0.17em;
-  text-transform: uppercase;
-  color: var(--gold);
-  opacity: 0.9;
-}
-
-.workout-schedule {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-top: 11px;
-}
-
-.workout-day-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 7px;
-  border-radius: 999px;
-  border: 1px solid rgba(139, 92, 246, 0.2);
-  background: rgba(139, 92, 246, 0.09);
-  color: #d8ccff;
-  font-size: 8.5px;
-  font-weight: 750;
-  letter-spacing: 0.03em;
-  line-height: 1.1;
-}
-
-.workout-day-chip.is-today {
-  border-color: rgba(245, 201, 78, 0.4);
-  background: rgba(245, 201, 78, 0.13);
-  color: #f6e9bf;
-}
-
-.workout-day-chip.is-any {
-  border-color: rgba(168, 162, 180, 0.2);
-  background: rgba(168, 162, 180, 0.08);
-  color: var(--muted);
-}
-
-.workout-schedule-meta {
-  margin-inline-start: auto;
-  font-size: 8.5px;
-  font-weight: 650;
-  color: var(--muted-dim);
-  font-variant-numeric: tabular-nums;
-}
-
-.workout-progress {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin-top: 11px;
-}
-
-.workout-meter {
-  flex: 1;
-  margin-top: 0;
-}
-
-.workout-progress-text {
-  flex: none;
-  font-size: 8.5px;
-  font-weight: 700;
-  color: var(--muted-dim);
-  font-variant-numeric: tabular-nums;
-}
-
-.workout-ex-list .mini-item {
-  min-height: 34px;
-}
-
-.workout-dose {
-  flex: none;
-  margin-inline-start: 6px;
-  padding: 2px 6px;
-  border-radius: 999px;
-  border: 1px solid rgba(245, 201, 78, 0.2);
-  background: rgba(245, 201, 78, 0.08);
-  color: #f6e9bf;
-  font-size: 8px;
-  font-weight: 750;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.2;
-  direction: ltr;
-}
-
-.workout-done-note {
-  flex: 1;
-  align-self: center;
-  padding: 9px 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(34, 197, 94, 0.25);
-  background: rgba(34, 197, 94, 0.09);
-  color: #86efac;
-  font-size: 11px;
-  font-weight: 750;
-  text-align: center;
-}
-
 /* ======================= WORKOUT STUDIO / BUILDER ======================= */
-
-.workout-cta {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  width: 100%;
-  margin-bottom: 12px;
-  padding: 13px 14px;
-  border-radius: 18px;
-  border: 1px solid rgba(245, 201, 78, 0.32);
-  background:
-    radial-gradient(120% 130% at 100% 0%, rgba(245, 201, 78, 0.18), transparent 58%),
-    linear-gradient(160deg, #201b2c 0%, #15121c 60%, #0c0b10 100%);
-  color: var(--ink);
-  text-align: start;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 10px 26px rgba(0, 0, 0, 0.28);
-  transition: transform 0.15s var(--ease);
-}
-
-.workout-cta:active {
-  transform: scale(0.985);
-}
-
-.workout-cta-mark {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
-  background: linear-gradient(180deg, rgba(245, 201, 78, 0.9), rgba(217, 162, 39, 0.9));
-  color: #141218;
-  box-shadow: 0 0 18px rgba(245, 201, 78, 0.28);
-}
-
-.workout-cta-mark svg {
-  width: 22px;
-  height: 22px;
-}
-
-.workout-cta-copy {
-  flex: 1;
-  min-width: 0;
-}
-
-.workout-cta-copy b {
-  display: block;
-  font-size: 13px;
-  font-weight: 780;
-  letter-spacing: -0.01em;
-  color: #f6e9bf;
-}
-
-.workout-cta-copy small {
-  display: block;
-  margin-top: 2px;
-  font-size: 9.5px;
-  font-weight: 600;
-  line-height: 1.35;
-  color: var(--muted);
-}
-
-.workout-cta-go {
-  flex: none;
-  padding: 5px 9px;
-  border-radius: 999px;
-  border: 1px solid rgba(245, 201, 78, 0.3);
-  background: rgba(245, 201, 78, 0.1);
-  color: var(--gold-bright);
-  font-size: 8.5px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
 
 body.studio-open {
   overflow: hidden;
@@ -5472,6 +5125,56 @@ body.demo-open {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.today-workout-rest {
+  margin: 0;
+  padding: 13px 14px;
+  border-radius: 16px;
+  border: 1px dashed rgba(245, 201, 78, 0.22);
+  background: rgba(245, 201, 78, 0.04);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.today-workout-manage {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 13px;
+  border-radius: 16px;
+  border: 1px solid rgba(245, 201, 78, 0.2);
+  background: rgba(17, 15, 24, 0.7);
+}
+
+.today-workout-manage-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.today-workout-manage-name {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.3;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.today-workout-manage-meta {
+  margin: 3px 0 0;
+  font-size: 9.5px;
+  font-weight: 650;
+  color: var(--muted-dim);
+}
+
+.today-workout-manage-actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 
 .today-workout-card {

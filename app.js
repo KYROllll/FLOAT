@@ -458,7 +458,6 @@
     editBtn: document.getElementById('editBtn'),
     viewToday: document.getElementById('viewToday'),
     viewChallenges: document.getElementById('viewChallenges'),
-    viewWorkouts: document.getElementById('viewWorkouts'),
     viewCalendar: document.getElementById('viewCalendar'),
     calPrev: document.getElementById('calPrev'),
     calNext: document.getElementById('calNext'),
@@ -477,10 +476,6 @@
     editChallenges: document.getElementById('editChallenges'),
     editWorkouts: document.getElementById('editWorkouts'),
     buildWorkoutBtn: document.getElementById('buildWorkoutBtn'),
-    workoutSummary: document.getElementById('workoutSummary'),
-    workoutList: document.getElementById('workoutList'),
-    workoutsEmpty: document.getElementById('workoutsEmpty'),
-    workoutsSub: document.getElementById('workoutsSub'),
     tabbar: document.getElementById('tabbar'),
     focusView: document.getElementById('focusView'),
     focusExit: document.getElementById('focusExit'),
@@ -1221,9 +1216,8 @@
 
     return {
       v: 3,
-      view: raw.view === 'programs' ? 'workouts'
-        : raw.view === 'challenges' || raw.view === 'workouts' || raw.view === 'calendar'
-          ? raw.view : 'today',
+      /* Older builds stored a Programs/Workouts tab; both now live on Today. */
+      view: raw.view === 'challenges' || raw.view === 'calendar' ? raw.view : 'today',
       tasks: tasks,
       days: days,
       challenges: challenges,
@@ -1808,14 +1802,23 @@
     els.workoutTodaySection.hidden = !show;
     if (!show) return;
 
-    var stats = workoutDayStats(todayKey);
-    var list = stats.list;
     els.workoutTodayList.textContent = '';
-    if (!list.length) {
-      els.workoutTodaySection.hidden = true;
+    els.workoutTodayList.classList.toggle('is-managing', manageWorkouts);
+
+    if (manageWorkouts) {
+      renderWorkoutTemplates();
       return;
     }
-    els.workoutTodaySection.hidden = false;
+
+    var stats = workoutDayStats(todayKey);
+    var list = stats.list;
+
+    if (!list.length) {
+      els.workoutTodayCount.textContent = 'Rest day';
+      els.workoutTodayList.appendChild(makeEl('p', 'today-workout-rest',
+        'No session scheduled today. Start a workout to train anyway.'));
+      return;
+    }
 
     var totalExercises = 0;
     var doneExercises = 0;
@@ -1899,6 +1902,48 @@
       });
       card.appendChild(exList);
       els.workoutTodayList.appendChild(card);
+    });
+  }
+
+  /* Manage mode on Today: every saved session in one compact list, so editing
+     and deleting stay reachable without a separate Workouts page. */
+  function renderWorkoutTemplates() {
+    var count = state.workouts.length;
+    els.workoutTodayCount.textContent = count +
+      ' saved session' + (count === 1 ? '' : 's');
+
+    if (!count) {
+      els.workoutTodayList.appendChild(makeEl('p', 'today-workout-rest',
+        'No workouts yet. Start a workout to build the first one.'));
+      return;
+    }
+
+    state.workouts.forEach(function (w) {
+      var row = makeEl('div', 'today-workout-manage');
+      var copy = makeEl('div', 'today-workout-manage-copy');
+      var name = makeEl('h3', 'today-workout-manage-name', w.title);
+      name.dir = 'auto';
+      copy.appendChild(name);
+
+      var days = w.days.length
+        ? w.days.slice().sort(function (a, b) { return a - b; }).map(function (day) {
+          return DAY_LABELS[day];
+        }).join(' · ')
+        : 'Any day';
+      copy.appendChild(makeEl('p', 'today-workout-manage-meta',
+        days + ' · ' + w.exercises.length + ' exercise' +
+        (w.exercises.length === 1 ? '' : 's')));
+      row.appendChild(copy);
+
+      var actions = makeEl('div', 'today-workout-manage-actions');
+      actions.appendChild(editButton('Edit ' + w.title, function () {
+        openBuilder(w);
+      }));
+      actions.appendChild(deleteButton('Delete ' + w.title, function () {
+        askDelete('workout', w.title, function () { removeWorkout(w); });
+      }));
+      row.appendChild(actions);
+      els.workoutTodayList.appendChild(row);
     });
   }
 
@@ -2426,43 +2471,6 @@
     return '';
   }
 
-  function workoutTotalSets(w) {
-    return w.exercises.reduce(function (sum, exercise) {
-      return sum + (exercise.sets || 0);
-    }, 0);
-  }
-
-  function workoutNextDay(w) {
-    if (!w.days.length) return -1;
-    var lastKey = w.startDate ? shiftKey(w.startDate, w.weeks * 7 - 1) : '';
-    var todayIndex = fromKey(todayKey).getDay();
-    for (var step = 1; step <= 7; step += 1) {
-      if (lastKey && shiftKey(todayKey, step) > lastKey) return -1;
-      var day = (todayIndex + step) % 7;
-      if (w.days.indexOf(day) !== -1) return day;
-    }
-    return -1;
-  }
-
-  function workoutStatus(w) {
-    if (workoutComplete(w, todayKey)) return { kind: 'done', label: 'Done today' };
-    if (workoutPartial(w, todayKey)) return { kind: 'active', label: 'In session' };
-    if (workoutScheduledOn(w, todayKey)) return { kind: 'today', label: 'Today' };
-    if (w.startDate && todayKey > shiftKey(w.startDate, w.weeks * 7 - 1)) {
-      return { kind: 'rest', label: 'Program over' };
-    }
-    var next = workoutNextDay(w);
-    return {
-      kind: 'rest',
-      label: next >= 0 ? 'Next ' + DAY_LABELS[next] : 'Any day'
-    };
-  }
-
-  function startWorkout(w) {
-    openSession(w);
-    toast('✓ Workout started · ' + w.title);
-  }
-
   function toggleWorkoutExercise(w, exerciseId) {
     var belongs = w.exercises.some(function (exercise) { return exercise.id === exerciseId; });
     if (!belongs) return;
@@ -2518,288 +2526,6 @@
      that are rest, not missed workouts. */
   function workoutExistedOn(w, key) {
     return !w.createdAt || keyOf(new Date(w.createdAt)) <= key;
-  }
-
-  function workoutWeek() {
-    var today = fromKey(todayKey);
-    var weekStart = new Date(today);
-    weekStart.setDate(today.getDate() - today.getDay());
-    var out = [];
-
-    for (var i = 0; i < 7; i += 1) {
-      var date = new Date(weekStart);
-      date.setDate(weekStart.getDate() + i);
-      var key = keyOf(date);
-      var scheduled = state.workouts.filter(function (w) {
-        return workoutScheduledOn(w, key) && workoutExistedOn(w, key);
-      });
-      var logged = state.workouts.filter(function (w) {
-        return workoutEntry(w, key);
-      });
-      var complete = logged.filter(function (w) {
-        return workoutComplete(w, key);
-      });
-      var active = logged.some(function (w) {
-        return !workoutComplete(w, key);
-      });
-
-      var status;
-      if (key > todayKey) {
-        status = scheduled.length ? 'scheduled' : 'rest';
-      } else if (key === todayKey) {
-        status = complete.length && !active ? 'done' : (active || scheduled.length ? 'active' : 'rest');
-      } else {
-        status = complete.length ? 'done' : (scheduled.length || logged.length ? 'missed' : 'rest');
-      }
-
-      out.push({
-        key: key,
-        date: date,
-        scheduled: scheduled.length,
-        complete: complete.length,
-        active: active,
-        status: status
-      });
-    }
-
-    return out;
-  }
-
-  function renderWorkoutSummary() {
-    els.workoutSummary.textContent = '';
-
-    var week = workoutWeek();
-    var doneDays = week.filter(function (day) { return day.status === 'done'; }).length;
-    var scheduledTotal = week.reduce(function (sum, day) { return sum + day.scheduled; }, 0);
-    var missedDays = week.filter(function (day) { return day.status === 'missed'; }).length;
-
-    var todaySessions = state.workouts.filter(function (w) {
-      return workoutScheduledOn(w, todayKey) || workoutEntry(w, todayKey);
-    });
-    var todayDone = todaySessions.filter(function (w) {
-      return workoutComplete(w, todayKey);
-    }).length;
-
-    els.workoutsSub.textContent = doneDays + ' session' + (doneDays === 1 ? '' : 's') +
-      ' this week' + (scheduledTotal ? ' · ' + scheduledTotal + ' scheduled' : '');
-
-    var card = makeEl('div', 'workout-summary-card');
-    var top = makeEl('div', 'workout-summary-top');
-
-    var copy = makeEl('div', 'workout-summary-copy');
-    copy.appendChild(makeEl('p', 'workout-summary-kicker', 'This week'));
-    var count = makeEl('p', 'workout-summary-count');
-    count.appendChild(makeEl('b', null, String(doneDays)));
-    count.appendChild(document.createTextNode(
-      doneDays === 1 ? ' session cleared' : ' sessions cleared'));
-    copy.appendChild(count);
-    top.appendChild(copy);
-
-    var todayBox = makeEl('div', 'workout-summary-today');
-    todayBox.appendChild(makeEl('span', 'workout-summary-label', 'Today'));
-    var todayText;
-    if (!todaySessions.length) {
-      todayText = 'Rest day';
-    } else if (todayDone === todaySessions.length) {
-      todayText = 'Cleared · ' + todaySessions.map(function (w) { return w.title; }).join(' · ');
-    } else {
-      todayText = todaySessions.map(function (w) { return w.title; }).join(' · ');
-    }
-    var todayValue = makeEl('span', 'workout-summary-value', todayText);
-    todayValue.dir = 'auto';
-    todayBox.appendChild(todayValue);
-    top.appendChild(todayBox);
-    card.appendChild(top);
-
-    var strip = makeEl('div', 'workout-week');
-    strip.setAttribute('role', 'group');
-    strip.setAttribute('aria-label', 'Workout week');
-    week.forEach(function (day) {
-      var chip = makeEl('div', 'workout-week-day is-' + day.status +
-        (day.key === todayKey ? ' is-today' : ''));
-      chip.appendChild(makeEl('span', 'workout-week-label', DAY_LABELS[day.date.getDay()]));
-      chip.appendChild(makeEl('span', 'workout-week-date', String(day.date.getDate())));
-
-      var dot = makeEl('span', 'wk-dot');
-      dot.setAttribute('aria-hidden', 'true');
-      if (day.status === 'done') {
-        dot.classList.add('is-check');
-        dot.textContent = '✓';
-      } else if (day.status === 'active') {
-        dot.classList.add('is-win');
-      } else if (day.status === 'missed') {
-        dot.classList.add('is-cross');
-        dot.textContent = '✕';
-      } else if (day.status === 'scheduled') {
-        dot.classList.add('is-scheduled');
-      }
-      chip.appendChild(dot);
-
-      var label = day.date.toLocaleDateString(undefined, {
-        weekday: 'long', month: 'short', day: 'numeric'
-      });
-      label += day.status === 'done' ? ' — workout cleared'
-        : day.status === 'active' ? ' — training day'
-          : day.status === 'missed' ? ' — missed workout'
-            : day.status === 'scheduled' ? ' — scheduled'
-              : ' — rest';
-      chip.setAttribute('aria-label', label);
-      chip.title = label;
-      strip.appendChild(chip);
-    });
-    card.appendChild(strip);
-
-    var note = makeEl('p', 'workout-summary-note',
-      scheduledTotal + ' scheduled · ' + missedDays + ' missed' +
-      (state.workouts.length
-        ? ' · ' + state.workouts.length + ' session template' + (state.workouts.length === 1 ? '' : 's')
-        : ''));
-    card.appendChild(note);
-
-    els.workoutSummary.appendChild(card);
-  }
-
-  function buildWorkoutCard(w, index) {
-    var status = workoutStatus(w);
-    var accent = ACCENTS[(index + 1) % ACCENTS.length];
-    var card = makeEl('article', 'track-card workout-card' +
-      (status.kind === 'done' ? ' is-won' : '') +
-      (status.kind === 'active' ? ' is-live' : ''));
-    card.style.setProperty('--track-a', accent[0]);
-    card.style.setProperty('--track-b', accent[1]);
-
-    var top = makeEl('div', 'track-top');
-    top.dir = textDir(w.title);
-    var wrap = makeEl('div', 'track-title-wrap');
-    wrap.dir = 'auto';
-    wrap.appendChild(makeEl('span', 'workout-kicker', 'Training session'));
-    var heading = makeEl('h3', 'track-title', w.title);
-    heading.dir = 'auto';
-    wrap.appendChild(heading);
-    if (w.focus) {
-      var focus = makeEl('p', 'track-why', w.focus);
-      focus.dir = 'auto';
-      wrap.appendChild(focus);
-    }
-    top.appendChild(wrap);
-    var statusEl = makeEl('span', 'track-status is-' + status.kind, status.label);
-    statusEl.dir = 'auto';
-    top.appendChild(statusEl);
-    card.appendChild(top);
-
-    var schedule = makeEl('div', 'workout-schedule');
-    schedule.dir = 'ltr';
-    if (w.days.length) {
-      w.days.slice().sort(function (a, b) { return a - b; }).forEach(function (day) {
-        var chip = makeEl('span', 'workout-day-chip' +
-          (day === fromKey(todayKey).getDay() ? ' is-today' : ''), DAY_LABELS[day]);
-        schedule.appendChild(chip);
-      });
-    } else {
-      schedule.appendChild(makeEl('span', 'workout-day-chip is-any', 'Any day'));
-    }
-    schedule.appendChild(makeEl('span', 'workout-schedule-meta',
-      w.exercises.length + ' exercise' + (w.exercises.length === 1 ? '' : 's') +
-      ' · ' + workoutTotalSets(w) + ' sets' +
-      (w.target ? ' · ~' + w.target + ' min' : '') +
-      (w.weeks ? ' · ' + w.weeks + 'w' : '')));
-    card.appendChild(schedule);
-
-    var entry = workoutEntry(w, todayKey);
-    var doneIds = workoutDoneIds(w, todayKey);
-    if (entry) {
-      var progress = makeEl('div', 'workout-progress');
-      var bar = makeEl('div', 'track-meter workout-meter');
-      var fill = makeEl('span');
-      var pct = w.exercises.length
-        ? Math.round((doneIds.length / w.exercises.length) * 100)
-        : 0;
-      fill.style.width = pct + '%';
-      bar.appendChild(fill);
-      progress.appendChild(bar);
-      progress.appendChild(makeEl('span', 'workout-progress-text',
-        doneIds.length + ' of ' + w.exercises.length + ' exercises'));
-      card.appendChild(progress);
-    }
-
-    var block = makeEl('div', 'track-check');
-    var interactive = !!entry || status.kind === 'today' || status.kind === 'active';
-    block.appendChild(makeEl('p', 'track-check-label',
-      interactive ? 'Today · exercises' : 'Session exercises'));
-    var list = makeEl('ul', 'mini-list workout-ex-list');
-    w.exercises.forEach(function (exercise) {
-      var done = doneIds.indexOf(exercise.id) !== -1;
-      var li = makeEl('li', 'mini-item' + (done ? ' is-done' : ''));
-      li.dir = textDir(exercise.name);
-
-      if (interactive) {
-        var btn = makeEl('button', 'mini-check');
-        btn.type = 'button';
-        btn.setAttribute('role', 'checkbox');
-        btn.setAttribute('aria-checked', done ? 'true' : 'false');
-        btn.setAttribute('aria-label',
-          (done ? 'Undo: ' : 'Complete: ') + exercise.name);
-        btn.innerHTML = CHECK_SVG;
-        btn.addEventListener('click', function () {
-          toggleWorkoutExercise(w, exercise.id);
-        });
-        li.appendChild(btn);
-      } else {
-        var mark = makeEl('span', 'mini-check');
-        mark.setAttribute('aria-hidden', 'true');
-        li.appendChild(mark);
-      }
-
-      var text = makeEl('button', 'mini-text mini-demo', exercise.name);
-      text.type = 'button';
-      text.dir = 'auto';
-      text.dataset.demo = exercise.name;
-      text.setAttribute('aria-label', 'How to do ' + exercise.name);
-      li.appendChild(text);
-      var dose = workoutDose(exercise);
-      if (dose) li.appendChild(makeEl('span', 'workout-dose', dose));
-      list.appendChild(li);
-    });
-    block.appendChild(list);
-    card.appendChild(block);
-
-    var actions = makeEl('div', 'track-actions');
-    if (status.kind === 'active') {
-      var finish = makeEl('button', 'track-btn is-primary', 'Finish workout');
-      finish.type = 'button';
-      finish.addEventListener('click', function () { finishWorkout(w); });
-      actions.appendChild(finish);
-    } else if (status.kind !== 'done') {
-      var start = makeEl('button', 'track-btn is-primary',
-        status.kind === 'today' ? 'Start workout' : 'Train today');
-      start.type = 'button';
-      start.addEventListener('click', function () { startWorkout(w); });
-      actions.appendChild(start);
-    } else {
-      actions.appendChild(makeEl('span', 'workout-done-note', '✓ Cleared today'));
-    }
-
-    if (manageWorkouts) {
-      actions.appendChild(editButton('Edit ' + w.title, function () {
-        openBuilder(w);
-      }));
-      actions.appendChild(deleteButton('Delete ' + w.title, function () {
-        askDelete('workout', w.title, function () { removeWorkout(w); });
-      }));
-    }
-
-    if (actions.childNodes.length) card.appendChild(actions);
-    return card;
-  }
-
-  function renderWorkouts() {
-    els.workoutList.textContent = '';
-    els.workoutList.classList.toggle('is-managing', manageWorkouts);
-    renderWorkoutSummary();
-    state.workouts.forEach(function (w, index) {
-      els.workoutList.appendChild(buildWorkoutCard(w, index));
-    });
-    els.workoutsEmpty.hidden = state.workouts.length > 0;
   }
 
   /* ---------------------------- workout studio --------------------------- */
@@ -3006,7 +2732,7 @@
     if (!entry) w.log[todayKey] = { started: true, done: [], finished: false };
     else entry.started = true;
     save();
-    renderWorkouts();
+    renderAll();
 
     builder.sessionId = w.id;
     builder.editId = null;
@@ -4278,7 +4004,6 @@
   function applyView() {
     els.viewToday.hidden = view !== 'today';
     els.viewChallenges.hidden = view !== 'challenges';
-    els.viewWorkouts.hidden = view !== 'workouts';
     els.viewCalendar.hidden = view !== 'calendar';
 
     var tabs = els.tabbar.querySelectorAll('.tab');
@@ -4302,7 +4027,6 @@
     renderTodayChallenges();
     renderProgramToday(flash);
     renderChallenges();
-    renderWorkouts();
     renderCalendar();
     updateFocusCard();
 
@@ -4318,8 +4042,7 @@
   }
 
   function setView(next) {
-    view = next === 'challenges' || next === 'workouts' || next === 'calendar'
-      ? next : 'today';
+    view = next === 'challenges' || next === 'calendar' ? next : 'today';
     state.view = view;
     save();
     renderAll();
@@ -4884,9 +4607,10 @@
 
   els.editWorkouts.addEventListener('click', function () {
     manageWorkouts = !manageWorkouts;
-    renderWorkouts();
+    renderTodayWorkouts();
     els.editWorkouts.classList.toggle('is-on', manageWorkouts);
     els.editWorkouts.setAttribute('aria-pressed', manageWorkouts ? 'true' : 'false');
+    if (manageWorkouts) toast('Tap the pencil to edit, × to delete');
   });
 
   /* Any exercise name can open the animated guide, from the page or the studio. */
