@@ -251,83 +251,50 @@
       <p class="empty" id="challengesEmpty" hidden>No challenges yet. Create a track that scares you a little.</p>
     </div>
 
-    <!-- ====================== PROGRAMS / WORKOUTS ======================== -->
-    <div class="view" id="viewPrograms" hidden>
-      <header class="view-head">
+    <!-- ============================ WORKOUTS ============================== -->
+    <div class="view" id="viewWorkouts" hidden>
+      <header class="view-head workout-head">
         <div>
-          <p class="view-kicker">Training &amp; physique</p>
-          <h2>Programs / Workouts</h2>
-          <p class="view-sub">Build the block. Run the session. Track every rep and every day.</p>
+          <p class="view-kicker">Bodyweight studio</p>
+          <h2>Workouts</h2>
+          <p class="view-sub" id="workoutsSub">Build a session. Light up every muscle.</p>
         </div>
         <div class="section-actions">
-          <button class="icon-btn edit-btn" id="editPrograms" type="button" aria-pressed="false" title="Manage training">
+          <button class="icon-btn edit-btn" id="editWorkouts" type="button" aria-pressed="false" title="Manage workouts">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M4 20h4.2L19 9.2a2.1 2.1 0 0 0 0-3l-1.2-1.2a2.1 2.1 0 0 0-3 0L4 15.8V20Z" />
               <path d="m13.6 6.4 4 4" />
             </svg>
-            <span class="sr-only">Manage training</span>
+            <span class="sr-only">Manage workouts</span>
           </button>
-          <button class="icon-btn add-btn" id="addProgramBtn" type="button" title="New program">
+          <button class="icon-btn add-btn" id="addWorkoutBtn" type="button" title="New workout">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
               <path d="M12 5v14M5 12h14" />
             </svg>
-            <span class="sr-only">New program</span>
+            <span class="sr-only">New workout</span>
           </button>
         </div>
       </header>
 
-      <!-- Workout studio: weekly split, sessions and exercise tracking. -->
-      <section class="section workout-hub" aria-labelledby="workoutsTitle">
-        <header class="section-head">
-          <div>
-            <h2 class="section-title" id="workoutsTitle">
-              <span class="workout-mark" aria-hidden="true">◆</span> Workouts
-            </h2>
-            <p class="section-sub" id="workoutsSub">0 sessions this week</p>
-          </div>
-          <div class="section-actions">
-            <button class="icon-btn add-btn" id="addWorkoutBtn" type="button" title="New workout">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-              <span class="sr-only">New workout</span>
-            </button>
-          </div>
-        </header>
+      <button class="workout-cta" id="buildWorkoutBtn" type="button">
+        <span class="workout-cta-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="18.4" cy="9.3" r="1.75" />
+            <path d="M16.9 10.1 9.6 13.2 3.2 17.1" />
+            <path d="M16.3 10.5 17 13.5 15.4 16.9" />
+            <path d="M2.6 17.6h18.8" />
+          </svg>
+        </span>
+        <span class="workout-cta-copy">
+          <b>Start a workout</b>
+          <small>Pick movements · see the muscles · set the clock</small>
+        </span>
+        <span class="workout-cta-go" aria-hidden="true">Build</span>
+      </button>
 
-        <button class="workout-cta" id="buildWorkoutBtn" type="button">
-          <span class="workout-cta-mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="18.4" cy="9.3" r="1.75" />
-              <path d="M16.9 10.1 9.6 13.2 3.2 17.1" />
-              <path d="M16.3 10.5 17 13.5 15.4 16.9" />
-              <path d="M2.6 17.6h18.8" />
-            </svg>
-          </span>
-          <span class="workout-cta-copy">
-            <b>Start a workout</b>
-            <small>Bodyweight library · muscle coverage · quality score</small>
-          </span>
-          <span class="workout-cta-go" aria-hidden="true">Build</span>
-        </button>
-
-        <div class="workout-summary" id="workoutSummary"></div>
-        <div class="workout-list" id="workoutList"></div>
-        <p class="empty" id="workoutsEmpty" hidden>No workouts yet. Build your first training session.</p>
-      </section>
-
-      <!-- Longer structured tracks: the original Programs roadmap. -->
-      <section class="section program-section" aria-labelledby="programsTitle">
-        <header class="section-head">
-          <div>
-            <h2 class="section-title" id="programsTitle">Programs</h2>
-            <p class="section-sub" id="programsSub">Structured multi-day tracks</p>
-          </div>
-        </header>
-
-        <div class="program-list" id="programList"></div>
-        <p class="empty" id="programsEmpty" hidden>No programs yet. Build a routine worth repeating.</p>
-      </section>
+      <div class="workout-summary" id="workoutSummary"></div>
+      <div class="workout-list" id="workoutList"></div>
+      <p class="empty" id="workoutsEmpty" hidden>No workouts yet. Build your first training session.</p>
     </div>
 
     <footer class="foot">
@@ -360,7 +327,7 @@
       </span>
       <span class="tab-label">Challenges</span>
     </button>
-    <button class="tab" type="button" data-view="programs">
+    <button class="tab" type="button" data-view="workouts">
       <span class="tab-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="18.4" cy="9.3" r="1.75" />
@@ -369,7 +336,7 @@
           <path d="M2.6 17.6h18.8" />
         </svg>
       </span>
-      <span class="tab-label">Programs</span>
+      <span class="tab-label">Workouts</span>
     </button>
   </nav>
 
@@ -640,6 +607,44 @@
     <div class="studio-scroll" id="studioBody"></div>
     <footer class="studio-foot" id="studioFoot"></footer>
   </section>
+
+  <!-- ========================== EXERCISE GUIDE ========================== -->
+  <div class="demo" id="demo" hidden>
+    <div class="demo-veil" id="demoVeil"></div>
+
+    <section
+      class="demo-panel"
+      id="demoPanel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="demoTitle"
+      aria-describedby="demoCue"
+    >
+      <header class="demo-head">
+        <div>
+          <p class="demo-kicker" id="demoKicker">Movement guide</p>
+          <h2 class="demo-title" id="demoTitle">Push-Up</h2>
+        </div>
+        <button class="demo-close" id="demoClose" type="button" aria-label="Close movement guide">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
+            <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" />
+          </svg>
+        </button>
+      </header>
+
+      <div class="demo-visual">
+        <div class="demo-stage" id="demoStage"></div>
+        <div class="demo-map">
+          <div id="demoBody"></div>
+          <p class="demo-map-label">Targets</p>
+          <div class="demo-tags" id="demoTags"></div>
+        </div>
+      </div>
+
+      <p class="demo-cue" id="demoCue">Cue</p>
+      <p class="demo-dose" id="demoDose">3 × 12</p>
+    </section>
+  </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 

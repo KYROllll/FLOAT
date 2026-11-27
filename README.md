@@ -22,7 +22,7 @@ Open **http://localhost:8080**. The service worker and Home Screen install need 
 2. **Share → Add to Home Screen**.
 3. Launch it from the Home Screen — it runs standalone, respects the notch and home indicator, and works offline.
 
-The service worker uses cache `aura-v14` and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the current palette, the new app icons and the in-app mark on the next launch.
+The service worker uses cache `aura-v15` and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the current palette, the new app icons and the in-app mark on the next launch.
 
 ---
 
@@ -32,9 +32,9 @@ The service worker uses cache `aura-v14` and calls `skipWaiting` + `clients.clai
 | --- | --- |
 | **Today** | Week strip, progress card with the LOSS → WIN scale and same-day verdict, Superfocus, Ideal Day, Non-Negotiables, and Program Routine for the selected day |
 | **Challenges** | Short, high-pressure tracks (`7-Day No Sugar`, `14-Day Deep Work`) with a daily checklist, day bar, win count and a clear **WIN / LOSS** verdict when the window closes |
-| **Programs / Workouts** | A dedicated training hub: a bodyweight workout builder with muscle coverage, target time and a live quality score, full session flow, plus the longer structured `Programs` tracks with their multi-day roadmap and day log |
+| **Workouts** | A focused bodyweight studio: build a session from 23 equipment-free movements, watch the red → green balance scale and a body map light up the muscles you hit, then run the session. Tap any movement for an animated movement guide |
 
-Each tab keeps its own **+** button, and Challenges plus Programs/Workouts have a pencil to reveal delete buttons on their cards; a challenge card also gets a configure button for its dates and checklist.
+Each tab keeps its own **+** button, and Challenges plus Workouts have a pencil to reveal delete buttons on their cards; a challenge card also gets a configure button for its dates and checklist.
 
 ---
 
@@ -47,15 +47,15 @@ Each tab keeps its own **+** button, and Challenges plus Programs/Workouts have 
 | Edit a task or habit | Tap the card text |
 | Add a task | **+** in the *Ideal Day* header |
 | Add a non-negotiable | **+** in the *Non-Negotiables* header |
-| Delete a task, habit, challenge or program | Reveal **×** (pencil / edit) → tap it → **press and hold** to confirm → `✓` toast |
+| Delete a task, habit, challenge or workout | Reveal **×** (pencil / edit) → tap it → **press and hold** to confirm → `✓` toast |
 | Review an earlier day | Tap a day in the week strip — it shows that date's own tasks and ticks, and can only be ticked, never re-edited |
 | Enter Superfocus | Flip the switch on the **Superfocus** card |
 | Start a challenge | **Start challenge** on any challenge card; set its start and end dates when you create or configure it |
-| Start a program | **Start program** — its routine appears under *Program Routine* on Today, tagged with the program badge |
-| Start a workout | **Start workout** on a session card, or **Train today** for an off-schedule session; tick each exercise as you finish it |
+| Start a workout | **Start a workout** opens the builder; **Save** keeps it as a template, **Start workout** runs it. On a session card, **Start workout** or **Train today** reopens it; tick each exercise as you finish it |
+| See how a movement is done | Tap any exercise name in the library, plan, session or session card — the guide opens with an animated figure and the muscles it targets |
 | Change focus length | **Change length** inside Superfocus — quick presets (15 / 25 / 45 / 60) or an exact minutes + seconds stepper |
 
-The task sheet has four fields: **Task**, **Why it matters** (the purpose line under the title), an optional **Time**, and the **Recurring / Non-negotiable** switch that moves a habit into the bottom section. A challenge form adds explicit **start date** and **end date** fields (the length follows the range); a program form takes a name, purpose, length in days and one routine item per line; a workout form takes a name, focus, one exercise per line (`Bench press 4×8`) and the training days of the week.
+The task sheet has four fields: **Task**, **Why it matters** (the purpose line under the title), an optional **Time**, and the **Recurring / Non-negotiable** switch that moves a habit into the bottom section. A challenge form adds explicit **start date** and **end date** fields (the length follows the range). The workout builder takes a name, training days, a target duration, and exercises from the bodyweight library or a custom entry with its own muscle group and sets/reps.
 
 ---
 
@@ -71,13 +71,19 @@ The task sheet has four fields: **Task**, **Why it matters** (the purpose line u
 
 **Non-Negotiables** — the user's own recurring habits in their own section, each with a golden spine, the same completion control and its own streak. This list stays personal: program items never enter it, so starting a track cannot blur everyday habits with temporary items.
 
-**Program Routine** — shows the selected day's program items, grouped under a violet **◆ Program name** header with `Day N of length · X of Y done`. Each card carries the program badge, cannot be opened or deleted as a standalone ad-hoc task, and checks off in step with the program card in both directions. Checking a day writes only that date's record, so a new calendar day starts with every routine item unchecked while earlier days keep their own ticks. When the program ends, its items retire from Today and the day's totals (they are not deleted); past days keep them, and they return if the program is started again.
+**Program Routine** — legacy routines that were already running keep working: shows the selected day's program items, grouped under a violet **◆ Program name** header with `Day N of length · X of Y done`. Each card carries the program badge, cannot be opened or deleted as a standalone ad-hoc task, and checks off in step with that day's record. Program cards are retired, so these routines are read-only history plus today's check-off. Checking a day writes only that date's record, so a new calendar day starts with every routine item unchecked while earlier days keep their own ticks. When the program ends, its items retire from Today and the day's totals (they are not deleted), while past days keep them.
 
 **Challenges** — short, high-pressure tracks. Each card shows its explicit **start** and **end** date, status (Not started / Scheduled / Day N / Win / Loss), a violet-to-gold progress meter, one mark per challenge day (won = emerald, missed = red, today = gold), and today's checklist. Checking every daily action wins the day. When the window closes, a verdict banner declares **WIN** or **LOSS** against the same 67% standard as the daily scale: the target is at least 67% of the challenge's days won (5 of 7, 10 of 14), and the banner states the days won, the target and how far it landed. Clearing every day wins early and shows the same banner. Creating or configuring a challenge takes a start date and an end date (or a start date plus length), and the card always states both.
 
-**Programs / Workouts** — the Programs tab is a training and physique hub. At the top, **Workouts** opens the **workout builder**: **Start a workout** opens a full-screen studio with 23 equipment-free movements (push-ups, pike and diamond push-ups, dips, squats, lunges, glute bridges, planks, hollow holds, supermans, bird dogs and more), a filter by muscle, and custom exercise entry with its own muscle group and sets/reps. Every movement can be tuned with per-exercise sets/reps steppers. As the plan grows, **Muscle coverage** lights up Chest, Shoulders, Triceps, Core/Back and Legs/Glutes, and a **Full Body** flag appears once 4 of 5 groups are covered with 3+ movements. **Target time** offers 30m and 45m presets plus any custom minutes; the live **Workout quality** scale scores the plan out of 100 from coverage, balance, fit to target and variety, with a plain-language tip (e.g. add legs, add a set, trim for time). **Save** stores the session as a reusable template; **Start workout** saves and opens the session view, where tapping an exercise ticks it, the meter and `N of M done` tally update, and ticking the last exercise or tapping **Finish workout** logs the session, closes the studio and clears the builder so the next session starts clean. The weekly strip and per-template cards still show cleared sessions (`✓`), today's training day, scheduled future days, missed sessions (`✕`) and rest days, and off-schedule templates can still be trained with **Train today**. Below it, **Programs** keeps the longer structured tracks with their roadmap: a large **Day N / length** headline, active phase (Foundation → Build → Peak, or Foundation → Finish), overall completion, phase rail and legend, today's scheduled items, and a day-by-day log with a `N of M cleared · K missed` tally. Tapping a log tile shows exactly which routine items were ticked (✓) or left unchecked on that date. **Start** links any missing routine items (deduped by title — a matching standalone task is adopted rather than duplicated) and stamps the start date; those tasks appear in Today's Program Routine block, never in Non-Negotiables. A running program has no restart control, so its day count cannot be reset by accident; only a completed program offers **Start again**, which reopens day 1 with a clean routine. Deleting a program removes its linked tasks from today; earlier days keep the record they were lived with, so the day log stays truthful.
+**Workouts** — one clean studio, no program layers. **Start a workout** opens the builder preloaded with today's scheduled session (or empty when nothing is scheduled). The library holds 23 equipment-free movements — push-up variations, pike and diamond push-ups, dips, squats, lunges, glute bridges, planks, hollow holds, supermans, bird dogs and more — filterable by muscle, plus a custom entry with its own group and sets/reps. Every movement has a **sets × reps/secs** stepper in the plan.
 
-Starting a challenge or program, and every deletion, confirms with a green `✓` toast. Deleting anything is deliberately slow: the **×** opens a confirmation panel whose red button fills only while you keep pressing, and releasing early cancels.
+The builder keeps two live, visual readings instead of a pile of scores. **Balance** is the same red → amber → green scale as the day progress bar: it moves right as the plan covers more muscle groups, spreads volume across them, approaches the target time and adds variety, then names the next fix in one plain sentence (`Add chest work to round it out`). **Muscles** is a front-view body map: each covered group lights green while the rest stay dim, with a count (`3 / 5`), compact group tags and a **Full Body** flag at 4 of 5 groups with 3+ movements. **Target time** offers 30m and 45m presets plus any custom minutes, and the estimate (`≈ 31 min planned`) sits beside it.
+
+Tapping any exercise name (library, plan, session, or a session card) opens the **movement guide**: a simple animated human figure demonstrates the motion, a small body map lights only the muscles it targets, and a one-line cue explains the setup and the rep. The figure is drawn in SVG and animated with SMIL, so it works offline with no video files. `prefers-reduced-motion` shows the still pose and cue instead.
+
+**Save** stores the session as a reusable template; **Start workout** saves and opens the session view, where tapping an exercise ticks it, the meter and `N of M done` tally update, and ticking the last exercise or tapping **Finish workout** logs the session, closes the studio and clears the builder so the next session starts clean. The weekly strip and per-template cards show cleared sessions (`✓`), today's training day, scheduled future days, missed sessions (`✕`) and rest days, and off-schedule templates can still be trained with **Train today**.
+
+Starting a challenge, saving or finishing a workout, and every deletion confirms with a green `✓` toast. Deleting anything is deliberately slow: the **×** opens a confirmation panel whose red button fills only while you keep pressing, and releasing early cancels.
 
 **Streaks** — a task's streak counts consecutive days ending today, or ending yesterday while today is still open. The pill lights up from three days. The header keeps a *perfect streak*: consecutive days where every task was completed.
 
@@ -178,13 +184,13 @@ Every tick is written to `localStorage` immediately and read back to confirm the
 ## Files
 
 ```
-index.html                 Three views, superfocus overlay, scale, sheet
+index.html                 Three views, superfocus overlay, scale, sheet, studio, guide
 style.css                  Near-black palette, ambient indigo/gold aura, header and
                            footer wordmark, cards, motion, tab bar
 app.js                     State, migration, per-day snapshots, verdicts, streaks,
-                           challenges, workouts, programs, focus timer, chime, zoom lock
+                           challenges, workouts, body map, movement demos, focus timer
 manifest.json              PWA manifest (AURA, standalone, portrait)
-sw.js                      Offline cache — aura-v14
+sw.js                      Offline cache — aura-v15
 AURALOGO.png               Official logo tile (source for every app icon)
 AURALOGO-ONLY.png          Wordmark alone, alpha cut (source for the in-app mark)
 assets/aura-mark.png       Header/footer mark, trimmed and scaled from AURALOGO-ONLY

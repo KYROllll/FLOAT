@@ -50,30 +50,54 @@
      reps as seconds, so a 30-second plank reads 3 × 30s. `also` adds a second
      muscle bucket to a compound movement. */
   var EXERCISE_LIBRARY = [
-    { name: 'Push-Up', group: 'chest', sets: 3, reps: 12 },
-    { name: 'Wide Push-Up', group: 'chest', sets: 3, reps: 12 },
-    { name: 'Diamond Push-Up', group: 'chest', also: ['triceps'], sets: 3, reps: 10 },
-    { name: 'Decline Push-Up', group: 'chest', also: ['shoulders'], sets: 3, reps: 10 },
-    { name: 'Archer Push-Up', group: 'chest', sets: 3, reps: 8 },
-    { name: 'Pike Push-Up', group: 'shoulders', also: ['triceps'], sets: 3, reps: 8 },
-    { name: 'Shoulder Tap', group: 'shoulders', also: ['core'], sets: 3, reps: 16 },
-    { name: 'Wall Handstand Hold', group: 'shoulders', sets: 3, reps: 30, unit: 'sec' },
-    { name: 'Bench Dip', group: 'triceps', sets: 3, reps: 12 },
-    { name: 'Close-Grip Push-Up', group: 'triceps', also: ['chest'], sets: 3, reps: 10 },
-    { name: 'Plank', group: 'core', sets: 3, reps: 45, unit: 'sec' },
-    { name: 'Hollow Hold', group: 'core', sets: 3, reps: 30, unit: 'sec' },
-    { name: 'Superman Hold', group: 'core', sets: 3, reps: 30, unit: 'sec' },
-    { name: 'Reverse Snow Angel', group: 'core', sets: 3, reps: 12 },
-    { name: 'Dead Bug', group: 'core', sets: 3, reps: 10 },
-    { name: 'Bird Dog', group: 'core', sets: 3, reps: 10 },
-    { name: 'Mountain Climber', group: 'core', also: ['legs'], sets: 3, reps: 30, unit: 'sec' },
-    { name: 'Squat', group: 'legs', sets: 4, reps: 15 },
-    { name: 'Reverse Lunge', group: 'legs', sets: 3, reps: 10 },
-    { name: 'Glute Bridge', group: 'legs', sets: 3, reps: 15 },
-    { name: 'Bulgarian Split Squat', group: 'legs', sets: 3, reps: 10 },
-    { name: 'Calf Raise', group: 'legs', sets: 3, reps: 20 },
-    { name: 'Jump Squat', group: 'legs', sets: 3, reps: 12 },
-    { name: 'Wall Sit', group: 'legs', sets: 3, reps: 45, unit: 'sec' }
+    { name: 'Push-Up', group: 'chest', sets: 3, reps: 12, motion: 'push',
+      cue: 'Hands under the shoulders. Lower until the elbows reach 90°, then press the floor away.' },
+    { name: 'Wide Push-Up', group: 'chest', sets: 3, reps: 12, motion: 'push',
+      cue: 'Hands wider than the shoulders, elbows out. Lower the chest, then squeeze back up.' },
+    { name: 'Diamond Push-Up', group: 'chest', also: ['triceps'], sets: 3, reps: 10, motion: 'push',
+      cue: 'Thumbs and index fingers touch. Keep the elbows close as the chest lowers.' },
+    { name: 'Decline Push-Up', group: 'chest', also: ['shoulders'], sets: 3, reps: 10, motion: 'push',
+      cue: 'Feet on a chair, hands below. Lower the chest toward the floor and press up.' },
+    { name: 'Archer Push-Up', group: 'chest', sets: 3, reps: 8, motion: 'push',
+      cue: 'One arm wide and straight, the other bent. Shift toward the bent arm, then press back.' },
+    { name: 'Pike Push-Up', group: 'shoulders', also: ['triceps'], sets: 3, reps: 8, motion: 'push',
+      cue: 'Hips high, hands and feet planted. Bend the elbows and lower the crown toward the floor.' },
+    { name: 'Shoulder Tap', group: 'shoulders', also: ['core'], sets: 3, reps: 16, motion: 'tap',
+      cue: 'Hold a plank. Tap one shoulder, then the other, without letting the hips rock.' },
+    { name: 'Wall Handstand Hold', group: 'shoulders', sets: 3, reps: 30, unit: 'sec', motion: 'raise',
+      cue: 'Walk the feet up the wall, hands under the shoulders. Press tall and breathe.' },
+    { name: 'Bench Dip', group: 'triceps', sets: 3, reps: 12, motion: 'push',
+      cue: 'Hands on a chair behind you, legs forward. Bend the elbows to lower, then press up.' },
+    { name: 'Close-Grip Push-Up', group: 'triceps', also: ['chest'], sets: 3, reps: 10, motion: 'push',
+      cue: 'Hands under the chest, elbows brushing the sides. Press up without flaring.' },
+    { name: 'Plank', group: 'core', sets: 3, reps: 45, unit: 'sec', motion: 'plank',
+      cue: 'Elbows under the shoulders, ribs down, glutes tight. Hold one straight line.' },
+    { name: 'Hollow Hold', group: 'core', sets: 3, reps: 30, unit: 'sec', motion: 'plank',
+      cue: 'Press the low back into the floor. Lift the shoulders and legs a little and hold.' },
+    { name: 'Superman Hold', group: 'core', sets: 3, reps: 30, unit: 'sec', motion: 'plank',
+      cue: 'Face down, arms forward. Lift the hands, chest and feet, then hold.' },
+    { name: 'Reverse Snow Angel', group: 'core', sets: 3, reps: 12, motion: 'sweep',
+      cue: 'Lie face down. Sweep straight arms from overhead to the hips and back.' },
+    { name: 'Dead Bug', group: 'core', sets: 3, reps: 10, motion: 'climber',
+      cue: 'On your back, arms and knees up. Lower the opposite arm and leg slowly, then switch.' },
+    { name: 'Bird Dog', group: 'core', sets: 3, reps: 10, motion: 'climber',
+      cue: 'On all fours. Reach one arm and the opposite leg long, hold, then switch sides.' },
+    { name: 'Mountain Climber', group: 'core', also: ['legs'], sets: 3, reps: 30, unit: 'sec', motion: 'climber',
+      cue: 'Plank position. Drive one knee toward the chest, then alternate without bouncing.' },
+    { name: 'Squat', group: 'legs', sets: 4, reps: 15, motion: 'squat',
+      cue: 'Feet shoulder-width, chest tall. Sit the hips back and down, then stand.' },
+    { name: 'Reverse Lunge', group: 'legs', sets: 3, reps: 10, motion: 'lunge',
+      cue: 'Step one foot back, drop the back knee toward the floor, then drive up.' },
+    { name: 'Glute Bridge', group: 'legs', sets: 3, reps: 15, motion: 'bridge',
+      cue: 'On your back, feet planted. Press the hips up until the body is one line.' },
+    { name: 'Bulgarian Split Squat', group: 'legs', sets: 3, reps: 10, motion: 'lunge',
+      cue: 'Back foot on a chair, front foot forward. Lower straight down, then rise.' },
+    { name: 'Calf Raise', group: 'legs', sets: 3, reps: 20, motion: 'calf',
+      cue: 'Stand tall, press up onto the toes, pause at the top, then lower slowly.' },
+    { name: 'Jump Squat', group: 'legs', sets: 3, reps: 12, motion: 'squat',
+      cue: 'Squat down, then jump. Land soft with bent knees and reset.' },
+    { name: 'Wall Sit', group: 'legs', sets: 3, reps: 45, unit: 'sec', motion: 'squat',
+      cue: 'Back on the wall, thighs parallel to the floor. Hold and breathe.' }
   ];
 
   /* Legacy/gym names never stored a bucket, so read one from the movement. */
@@ -97,6 +121,277 @@
       if (EXERCISE_LIBRARY[i].name.toLowerCase() === key) return EXERCISE_LIBRARY[i];
     }
     return null;
+  }
+
+  /* Custom/legacy movements still get a demo: read the motion from the name. */
+  function exerciseMotion(exercise) {
+    var entry = libraryEntry(exercise.name);
+    if (entry && entry.motion) return entry.motion;
+    var text = String(exercise.name || '').toLowerCase();
+    if (/climber/.test(text)) return 'climber';
+    if (/bridge|hip thrust/.test(text)) return 'bridge';
+    if (/lunge|split squat|step-up/.test(text)) return 'lunge';
+    if (/calf/.test(text)) return 'calf';
+    if (/handstand|overhead|wall walk/.test(text)) return 'raise';
+    if (/squat|wall sit|chair/.test(text)) return 'squat';
+    if (/plank|hold|hollow|dead bug|bird dog/.test(text)) return 'plank';
+    if (/angel|superman|reach/.test(text)) return 'sweep';
+    if (/dip|push|press|fly/.test(text)) return 'push';
+    return 'push';
+  }
+
+  function exerciseCue(exercise) {
+    var entry = libraryEntry(exercise.name);
+    if (entry && entry.cue) return entry.cue;
+    return 'Move slowly through a full range. Brace the core and keep the joints stacked.';
+  }
+
+  /* -------------------------- muscle body map ---------------------------- */
+
+  /* One front-view silhouette; each muscle group is a separate shape so it can
+     light up without any label sprawl. */
+  var BODY_MUSCLES = [
+    { key: 'legs', shapes: [
+      '<path d="M53 127 Q56 125 58.5 127 L56 173 Q55 178 51.5 173 Z"/>',
+      '<path d="M67 127 Q64 125 61.5 127 L64 173 Q65 178 68.5 173 Z"/>'
+    ] },
+    { key: 'core', shapes: [
+      '<path d="M52 78 Q60 74.5 68 78 L67 114 Q60 119 53 114 Z"/>'
+    ] },
+    { key: 'chest', shapes: [
+      '<path d="M49 56 Q54 52.5 59 56.5 L59 68 Q53.5 72 49 67 Z"/>',
+      '<path d="M71 56 Q66 52.5 61 56.5 L61 68 Q66.5 72 71 67 Z"/>'
+    ] },
+    { key: 'shoulders', shapes: [
+      '<ellipse cx="42.5" cy="50" rx="8.4" ry="6.4" transform="rotate(-28 42.5 50)"/>',
+      '<ellipse cx="77.5" cy="50" rx="8.4" ry="6.4" transform="rotate(28 77.5 50)"/>'
+    ] },
+    { key: 'triceps', shapes: [
+      '<path d="M35.5 64 L40 66.5 L35.6 85 L30.6 81 Z"/>',
+      '<path d="M84.5 64 L80 66.5 L84.4 85 L89.4 81 Z"/>'
+    ] }
+  ];
+
+  function muscleDiagram(lit) {
+    var on = {};
+    (lit || []).forEach(function (key) { on[key] = true; });
+    var label = (lit && lit.length)
+      ? 'Muscle map: ' + lit.map(groupLabel).join(', ')
+      : 'Muscle map: nothing targeted yet';
+
+    var svg = '<svg class="bodymap" viewBox="0 0 120 224" role="img" aria-label="' +
+      label + '">';
+    svg += '<g class="body-base" aria-hidden="true">' +
+      '<circle class="body-head" cx="60" cy="23" r="11.5"/>' +
+      '<path class="body-head" d="M55 31 h10 l1 10 h-12 Z"/>' +
+      '<path class="body-fill" d="M45 43 C47 39 73 39 75 43 L78 70 C78 76 74 79 73 83 ' +
+      'L72 110 C72 120 66 124 60 124 C54 124 48 120 48 110 L47 83 C46 79 42 76 42 70 Z"/>' +
+      '<path class="body-limb" d="M46 48 L35 74 L30.5 104"/>' +
+      '<path class="body-limb" d="M74 48 L85 74 L89.5 104"/>' +
+      '<path class="body-limb" d="M54.5 122 L51.5 158 L51 200"/>' +
+      '<path class="body-limb" d="M65.5 122 L68.5 158 L69 200"/>' +
+      '</g>';
+    svg += '<g class="body-muscles" aria-hidden="true">';
+    BODY_MUSCLES.forEach(function (group) {
+      var cls = 'muscle' + (on[group.key] ? ' is-on' : '');
+      group.shapes.forEach(function (shape) {
+        svg += shape.replace('<path ', '<path class="' + cls + '" ')
+          .replace('<ellipse ', '<ellipse class="' + cls + '" ');
+      });
+    });
+    svg += '</g></svg>';
+    return svg;
+  }
+
+  /* --------------------------- movement demos ---------------------------- */
+
+  /* A tiny stroke rig with a few joints. Poses come from MOTION_RIGS; SMIL
+     animates the joints, so the demo also runs offline inside the cached app. */
+  var MOTION_LABELS = {
+    push: 'Press', plank: 'Hold', climber: 'Drive', squat: 'Squat',
+    lunge: 'Lunge', bridge: 'Lift', sweep: 'Sweep', tap: 'Tap',
+    raise: 'Reach', calf: 'Rise'
+  };
+
+  var MOTION_RIGS = {
+    push: {
+      posture: 'floor',
+      joints: {
+        bob: [{ type: 'translate', values: '0 0;0 0;0 15;0 15;0 0', keyTimes: '0;0.14;0.42;0.62;1', dur: '2.8s' }],
+        arm: [{ type: 'rotate', values: '0;0;10;10;0', keyTimes: '0;0.14;0.42;0.62;1', dur: '2.8s' }],
+        fore: [{ type: 'rotate', values: '0;0;-74;-74;0', keyTimes: '0;0.14;0.42;0.62;1', dur: '2.8s' }]
+      }
+    },
+    plank: {
+      posture: 'floor',
+      joints: {
+        bob: [{ type: 'translate', values: '0 0;0 3;0 0', keyTimes: '0;0.5;1', dur: '4s' }],
+        fore: [{ type: 'rotate', values: '0;-2;0', keyTimes: '0;0.5;1', dur: '4s' }]
+      }
+    },
+    climber: {
+      posture: 'floor',
+      joints: {
+        legL: [{ type: 'rotate', values: '0;-34;0', keyTimes: '0;0.5;1', dur: '1.1s' }],
+        shinL: [{ type: 'rotate', values: '0;52;0', keyTimes: '0;0.5;1', dur: '1.1s' }],
+        legR: [{ type: 'rotate', values: '0;30;0', keyTimes: '0;0.5;1', dur: '1.1s', begin: '-0.55s' }],
+        shinR: [{ type: 'rotate', values: '0;-34;0', keyTimes: '0;0.5;1', dur: '1.1s', begin: '-0.55s' }],
+        bob: [{ type: 'translate', values: '0 0;0 -2;0 0', keyTimes: '0;0.5;1', dur: '1.1s' }]
+      }
+    },
+    tap: {
+      posture: 'floor',
+      joints: {
+        bob: [{ type: 'translate', values: '0 0;0 1;0 0', keyTimes: '0;0.5;1', dur: '2.4s' }],
+        fore: [{ type: 'rotate', values: '0;0;-58;0;0', keyTimes: '0;0.2;0.45;0.72;1', dur: '2.4s' }],
+        head: [{ type: 'rotate', values: '0;0;6;0;0', keyTimes: '0;0.2;0.45;0.72;1', dur: '2.4s' }]
+      }
+    },
+    sweep: {
+      posture: 'floor',
+      joints: {
+        bob: [{ type: 'translate', values: '0 0;0 2;0 0', keyTimes: '0;0.5;1', dur: '3.4s' }],
+        arm: [{ type: 'rotate', values: '0;-62;0', keyTimes: '0;0.5;1', dur: '3.4s' }],
+        fore: [{ type: 'rotate', values: '0;-14;0', keyTimes: '0;0.5;1', dur: '3.4s' }]
+      }
+    },
+    bridge: {
+      posture: 'floor',
+      joints: {
+        bob: [{ type: 'translate', values: '0 0;0 -22;0 0', keyTimes: '0;0.45;1', dur: '3s' }],
+        legL: [{ type: 'rotate', values: '0;44;0', keyTimes: '0;0.45;1', dur: '3s' }],
+        shinL: [{ type: 'rotate', values: '0;-46;0', keyTimes: '0;0.45;1', dur: '3s' }],
+        legR: [{ type: 'rotate', values: '0;48;0', keyTimes: '0;0.45;1', dur: '3s' }],
+        shinR: [{ type: 'rotate', values: '0;-50;0', keyTimes: '0;0.45;1', dur: '3s' }]
+      }
+    },
+    squat: {
+      posture: 'stand',
+      joints: {
+        bob: [{ type: 'translate', values: '0 0;0 16;0 16;0 0', keyTimes: '0;0.32;0.66;1', dur: '3s' }],
+        legL: [{ type: 'rotate', values: '0;30;30;0', keyTimes: '0;0.32;0.66;1', dur: '3s' }],
+        legR: [{ type: 'rotate', values: '0;28;28;0', keyTimes: '0;0.32;0.66;1', dur: '3s' }],
+        shinL: [{ type: 'rotate', values: '0;-60;-60;0', keyTimes: '0;0.32;0.66;1', dur: '3s' }],
+        shinR: [{ type: 'rotate', values: '0;-58;-58;0', keyTimes: '0;0.32;0.66;1', dur: '3s' }],
+        armL: [{ type: 'rotate', values: '0;-75;-75;0', keyTimes: '0;0.32;0.66;1', dur: '3s' }],
+        armR: [{ type: 'rotate', values: '0;-70;-70;0', keyTimes: '0;0.32;0.66;1', dur: '3s' }]
+      }
+    },
+    lunge: {
+      posture: 'stand',
+      joints: {
+        bob: [{ type: 'translate', values: '0 0;0 10;0 10;0 0', keyTimes: '0;0.32;0.62;1', dur: '3.4s' }],
+        legL: [{ type: 'rotate', values: '0;-38;-38;0', keyTimes: '0;0.32;0.62;1', dur: '3.4s' }],
+        shinL: [{ type: 'rotate', values: '0;38;38;0', keyTimes: '0;0.32;0.62;1', dur: '3.4s' }],
+        legR: [{ type: 'rotate', values: '0;26;26;0', keyTimes: '0;0.32;0.62;1', dur: '3.4s' }],
+        shinR: [{ type: 'rotate', values: '0;10;10;0', keyTimes: '0;0.32;0.62;1', dur: '3.4s' }],
+        armL: [{ type: 'rotate', values: '0;-30;-30;0', keyTimes: '0;0.32;0.62;1', dur: '3.4s' }],
+        armR: [{ type: 'rotate', values: '0;-24;-24;0', keyTimes: '0;0.32;0.62;1', dur: '3.4s' }]
+      }
+    },
+    raise: {
+      posture: 'stand',
+      joints: {
+        bob: [{ type: 'translate', values: '0 0;0 -3;0 0', keyTimes: '0;0.5;1', dur: '3.4s' }],
+        armL: [{ type: 'rotate', values: '0;165;165;0', keyTimes: '0;0.35;0.7;1', dur: '3.4s' }],
+        foreL: [{ type: 'rotate', values: '0;-6;-6;0', keyTimes: '0;0.35;0.7;1', dur: '3.4s' }],
+        armR: [{ type: 'rotate', values: '0;158;158;0', keyTimes: '0;0.35;0.7;1', dur: '3.4s' }]
+      }
+    },
+    calf: {
+      posture: 'stand',
+      joints: {
+        bob: [{ type: 'translate', values: '0 0;0 -6;0 0', keyTimes: '0;0.5;1', dur: '1.9s' }],
+        armL: [{ type: 'rotate', values: '0;6;0', keyTimes: '0;0.5;1', dur: '1.9s' }],
+        armR: [{ type: 'rotate', values: '0;5;0', keyTimes: '0;0.5;1', dur: '1.9s' }]
+      }
+    }
+  };
+
+  var activeJoints = null;
+
+  function animTag(anim) {
+    var count = anim.values.split(';').length;
+    var times = anim.keyTimes;
+    if (!times) {
+      times = [];
+      for (var i = 0; i < count; i += 1) {
+        times.push((i / (count - 1)).toFixed(3));
+      }
+      times = times.join(';');
+    }
+    var splines = [];
+    for (var j = 0; j < count - 1; j += 1) splines.push('0.45 0 0.55 1');
+    return '<animateTransform attributeName="transform" attributeType="XML" type="' +
+      anim.type + '" values="' + anim.values + '" keyTimes="' + times +
+      '" calcMode="spline" keySplines="' + splines.join(';') + '" dur="' +
+      (anim.dur || '2.8s') + '"' + (anim.begin ? ' begin="' + anim.begin + '"' : '') +
+      ' repeatCount="indefinite"/>';
+  }
+
+  function jointAnims(key) {
+    var list = activeJoints && activeJoints[key];
+    if (!list) return '';
+    return list.map(animTag).join('');
+  }
+
+  function joint(x, y, key, inner) {
+    var anims = jointAnims(key);
+    return '<g transform="translate(' + x + ' ' + y + ')">' +
+      (anims ? '<g>' + anims + inner + '</g>' : inner) + '</g>';
+  }
+
+  function seg(len) {
+    return '<line class="fig-limb" x1="0" y1="0" x2="0" y2="' + len + '"/>';
+  }
+
+  /* Side view for the standing movements: a squat, lunge or calf raise reads
+     instantly from the side, which a front silhouette cannot do. */
+  function standFigure() {
+    return '<g class="fig-bob">' + jointAnims('bob') +
+      joint(112, 30, 'head', '<circle class="fig-head" r="12"/>' +
+        '<path class="fig-face" d="M8 -3 l7 3 -7 3"/>') +
+      '<line class="fig-neck" x1="110" y1="41" x2="108" y2="50"/>' +
+      '<line class="fig-trunk" x1="108" y1="50" x2="100" y2="110"/>' +
+      joint(94, 108, 'legR', seg(36) + joint(0, 36, 'shinR',
+        seg(32) + '<line class="fig-foot" x1="-2" y1="0" x2="11" y2="0"/>')) +
+      joint(102, 108, 'legL', seg(36) + joint(0, 36, 'shinL',
+        seg(32) + '<line class="fig-foot" x1="-2" y1="0" x2="11" y2="0"/>')) +
+      joint(107, 58, 'armL', seg(24) + joint(0, 24, 'foreL',
+        seg(22) + '<circle class="fig-hand" cy="24" r="4"/>')) +
+      joint(99, 58, 'armR', '<line class="fig-limb is-back" x1="0" y1="0" x2="0" y2="24"/>' +
+        joint(0, 24, 'foreR', '<line class="fig-limb is-back" x1="0" y1="0" x2="0" y2="22"/>')) +
+      '</g>' +
+      '<line class="fig-floor" x1="48" y1="184" x2="156" y2="184"/>';
+  }
+
+  function floorFigure() {
+    return '<g class="fig-bob">' + jointAnims('bob') +
+      '<line class="fig-trunk" x1="54" y1="144" x2="128" y2="132"/>' +
+      joint(146, 122, 'head', '<circle class="fig-head" r="12"/>' +
+        '<path class="fig-face" d="M8 -3 l7 3 -7 3"/>') +
+      joint(56, 146, 'legR', '<line class="fig-limb is-back" x1="0" y1="0" x2="-30" y2="20"/>' +
+        joint(-30, 20, 'shinR', '<line class="fig-limb is-back" x1="0" y1="0" x2="-14" y2="18"/>')) +
+      joint(52, 143, 'legL', '<line class="fig-limb" x1="0" y1="0" x2="-30" y2="21"/>' +
+        joint(-30, 21, 'shinL', '<line class="fig-limb" x1="0" y1="0" x2="-14" y2="18"/>' +
+          '<line class="fig-foot" x1="-5" y1="0" x2="8" y2="0"/>')) +
+      joint(126, 133, 'arm', seg(20) + joint(0, 20, 'fore',
+        seg(20) + '<circle class="fig-hand" cy="22" r="4.2"/>')) +
+      '</g>' +
+      '<line class="fig-floor" x1="16" y1="182" x2="184" y2="182"/>';
+  }
+
+  function exerciseFigure(motionKey) {
+    var motion = MOTION_RIGS[motionKey] || MOTION_RIGS.push;
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    activeJoints = reduce ? null : motion.joints;
+    var floor = motion.posture === 'floor';
+    var inner = floor ? floorFigure() : standFigure();
+    activeJoints = null;
+    return '<svg class="demo-figure" viewBox="' +
+      (floor ? '0 104 200 84' : '20 4 164 192') +
+      '" role="img" aria-label="' + (MOTION_LABELS[motionKey] || 'Movement') +
+      ' demonstration">' + inner + '</svg>';
   }
 
   var CHECK_SVG =
@@ -152,16 +447,12 @@
     editBtn: document.getElementById('editBtn'),
     viewToday: document.getElementById('viewToday'),
     viewChallenges: document.getElementById('viewChallenges'),
-    viewPrograms: document.getElementById('viewPrograms'),
+    viewWorkouts: document.getElementById('viewWorkouts'),
     challengeList: document.getElementById('challengeList'),
     challengesEmpty: document.getElementById('challengesEmpty'),
     addChallengeBtn: document.getElementById('addChallengeBtn'),
     editChallenges: document.getElementById('editChallenges'),
-    programList: document.getElementById('programList'),
-    programsEmpty: document.getElementById('programsEmpty'),
-    programsSub: document.getElementById('programsSub'),
-    addProgramBtn: document.getElementById('addProgramBtn'),
-    editPrograms: document.getElementById('editPrograms'),
+    editWorkouts: document.getElementById('editWorkouts'),
     addWorkoutBtn: document.getElementById('addWorkoutBtn'),
     buildWorkoutBtn: document.getElementById('buildWorkoutBtn'),
     workoutSummary: document.getElementById('workoutSummary'),
@@ -228,22 +519,32 @@
     studioTitle: document.getElementById('studioTitle'),
     studioKicker: document.getElementById('studioKicker'),
     studioClose: document.getElementById('studioClose'),
+    demo: document.getElementById('demo'),
+    demoVeil: document.getElementById('demoVeil'),
+    demoPanel: document.getElementById('demoPanel'),
+    demoClose: document.getElementById('demoClose'),
+    demoKicker: document.getElementById('demoKicker'),
+    demoTitle: document.getElementById('demoTitle'),
+    demoStage: document.getElementById('demoStage'),
+    demoBody: document.getElementById('demoBody'),
+    demoTags: document.getElementById('demoTags'),
+    demoCue: document.getElementById('demoCue'),
+    demoDose: document.getElementById('demoDose'),
     toast: document.getElementById('toast')
   };
 
   var state = loadState();
   var todayKey = keyOf(new Date());
   var selectedKey = todayKey;
-  var view = state.view || 'today';
+  var view = state.view === 'programs' ? 'workouts' : (state.view || 'today');
   var editMode = false;
   var manageChallenges = false;
-  var managePrograms = false;
+  var manageWorkouts = false;
   var editingId = null;
   var sheetMode = 'task';
   var newRecurring = false;
   var toastTimer = 0;
   var audioCtx = null;
-  var logDayPick = {};
 
   var focus = {
     open: false,
@@ -2135,8 +2436,11 @@
         li.appendChild(mark);
       }
 
-      var text = makeEl('span', 'mini-text', exercise.name);
+      var text = makeEl('button', 'mini-text mini-demo', exercise.name);
+      text.type = 'button';
       text.dir = 'auto';
+      text.dataset.demo = exercise.name;
+      text.setAttribute('aria-label', 'How to do ' + exercise.name);
       li.appendChild(text);
       var dose = workoutDose(exercise);
       if (dose) li.appendChild(makeEl('span', 'workout-dose', dose));
@@ -2161,7 +2465,7 @@
       actions.appendChild(makeEl('span', 'workout-done-note', '✓ Cleared today'));
     }
 
-    if (managePrograms) {
+    if (manageWorkouts) {
       actions.appendChild(editButton('Edit ' + w.title, function () {
         openBuilder(w);
       }));
@@ -2176,7 +2480,7 @@
 
   function renderWorkouts() {
     els.workoutList.textContent = '';
-    els.workoutList.classList.toggle('is-managing', managePrograms);
+    els.workoutList.classList.toggle('is-managing', manageWorkouts);
     renderWorkoutSummary();
     state.workouts.forEach(function (w, index) {
       els.workoutList.appendChild(buildWorkoutCard(w, index));
@@ -2371,6 +2675,7 @@
 
     showStudio();
     renderStudio();
+    els.studioBody.scrollTop = 0;
   }
 
   function openSession(w) {
@@ -2385,6 +2690,7 @@
     builder.editId = null;
     showStudio();
     renderStudio();
+    els.studioBody.scrollTop = 0;
   }
 
   function showStudio() {
@@ -2598,52 +2904,83 @@
     return card;
   }
 
-  function buildCoverage() {
+  function buildMuscleMap() {
     var coverage = planCoverage(builder.exercises);
-    var wrap = makeEl('div', 'coverage-wrap');
-    var grid = makeEl('div', 'coverage-grid');
-    MUSCLE_GROUPS.forEach(function (group) {
-      var on = coverage.counts[group.key] > 0;
-      var tile = makeEl('div', 'coverage-tile' + (on ? ' is-on' : ''));
-      tile.appendChild(makeEl('span', 'coverage-name', group.label));
-      tile.appendChild(makeEl('span', 'coverage-count',
-        on ? coverage.counts[group.key] + ' ex' : '—'));
-      grid.appendChild(tile);
-    });
-    wrap.appendChild(grid);
+    var lit = coverage.covered;
+    var fullBody = lit.length >= 4 && builder.exercises.length >= 3;
+    var wrap = makeEl('div', 'muscle-wrap');
 
-    var fullBody = coverage.covered.length >= 4 && builder.exercises.length >= 3;
-    var flag = makeEl('div', 'coverage-flag' + (fullBody ? ' is-full' : ''));
-    flag.appendChild(makeEl('span', 'coverage-flag-mark', fullBody ? '◆' : '◇'));
-    flag.appendChild(makeEl('span', null, fullBody
-      ? 'Full Body — well-rounded session'
-      : 'Full Body unlocks at 4 of 5 groups'));
-    wrap.appendChild(flag);
+    var map = makeEl('div', 'muscle-map');
+    map.innerHTML = muscleDiagram(lit);
+    wrap.appendChild(map);
+
+    var side = makeEl('div', 'muscle-side');
+    var count = makeEl('p', 'muscle-count');
+    count.appendChild(makeEl('b', null, String(lit.length)));
+    count.appendChild(document.createTextNode(' / ' + MUSCLE_GROUPS.length));
+    side.appendChild(count);
+    side.appendChild(makeEl('p', 'muscle-count-label',
+      builder.exercises.length ? 'muscle groups lit' : 'pick a movement'));
+
+    var legend = makeEl('div', 'muscle-legend');
+    MUSCLE_GROUPS.forEach(function (group) {
+      var on = lit.indexOf(group.key) !== -1;
+      legend.appendChild(makeEl('span', 'muscle-tag' + (on ? ' is-on' : ''), group.label));
+    });
+    side.appendChild(legend);
+
+    var flag = makeEl('div', 'muscle-flag' + (fullBody ? ' is-full' : ''));
+    flag.appendChild(makeEl('span', 'muscle-flag-mark', fullBody ? '◆' : '◇'));
+    flag.appendChild(makeEl('span', null,
+      fullBody ? 'Full Body' : 'Full Body at 4 of 5'));
+    side.appendChild(flag);
+    wrap.appendChild(side);
     return wrap;
   }
 
-  function buildQualityCard() {
+  function balanceLabel(quality) {
+    if (!builder.exercises.length) return 'No plan';
+    if (quality.score < 45) return 'Weak';
+    if (quality.score < 65) return 'Building';
+    if (quality.score < 80) return 'Solid';
+    if (quality.score < 90) return 'Balanced';
+    return 'Complete';
+  }
+
+  /* The same red → amber → green language as the day progress bar: no score
+     number to decode, just where the plan sits on the scale. */
+  function buildBalanceCard() {
     var quality = planQuality(builder.exercises, builder.target);
-    var card = makeEl('section', 'studio-card studio-quality is-' + quality.tone);
-    card.id = 'studioQualityCard';
+    var card = makeEl('section', 'studio-card balance-card');
+    card.id = 'studioBalanceCard';
 
     var head = makeEl('div', 'studio-card-head');
-    head.appendChild(makeEl('h3', null, 'Workout quality'));
-    head.appendChild(makeEl('span', 'quality-grade', quality.grade));
+    head.appendChild(makeEl('h3', null, 'Balance'));
+    head.appendChild(makeEl('span', 'balance-state', balanceLabel(quality)));
     card.appendChild(head);
 
-    var score = makeEl('div', 'quality-score');
-    score.appendChild(makeEl('b', null, String(quality.score)));
-    score.appendChild(makeEl('span', 'quality-of', '/100'));
-    card.appendChild(score);
+    var scale = makeEl('div', 'balance-scale');
+    scale.style.setProperty('--p', quality.score + '%');
+    scale.setAttribute('role', 'progressbar');
+    scale.setAttribute('aria-valuemin', '0');
+    scale.setAttribute('aria-valuemax', '100');
+    scale.setAttribute('aria-valuenow', String(quality.score));
+    scale.setAttribute('aria-label', 'Workout balance: ' + balanceLabel(quality));
+    scale.appendChild(makeEl('span', 'balance-track'));
+    scale.appendChild(makeEl('span', 'balance-fill'));
+    var marker = makeEl('span', 'balance-marker');
+    marker.setAttribute('aria-hidden', 'true');
+    scale.appendChild(marker);
+    card.appendChild(scale);
 
-    var meter = makeEl('div', 'quality-meter');
-    var fill = makeEl('span');
-    fill.style.width = quality.score + '%';
-    meter.appendChild(fill);
-    card.appendChild(meter);
+    var meta = makeEl('div', 'balance-meta');
+    meta.appendChild(makeEl('span', null, 'Weak'));
+    meta.appendChild(makeEl('span', 'balance-meta-mid',
+      '≈' + quality.minutes + ' min · ' + quality.coverage.covered.length + ' / 5 muscles'));
+    meta.appendChild(makeEl('span', null, 'Strong'));
+    card.appendChild(meta);
 
-    card.appendChild(makeEl('p', 'quality-tip', quality.tip));
+    card.appendChild(makeEl('p', 'balance-tip', quality.tip));
     return card;
   }
 
@@ -2660,8 +2997,11 @@
     var list = makeEl('ul', 'plan-list');
     builder.exercises.forEach(function (exercise) {
       var row = makeEl('li', 'plan-row');
-      var main = makeEl('div', 'plan-main');
+      var main = makeEl('button', 'plan-main');
+      main.type = 'button';
       main.dir = 'auto';
+      main.dataset.demo = exercise.name;
+      main.setAttribute('aria-label', 'How to do ' + exercise.name);
       main.appendChild(makeEl('span', 'plan-name', exercise.name));
       var groups = exerciseGroups(exercise).map(groupLabel).filter(Boolean);
       if (groups.length) {
@@ -2775,8 +3115,11 @@
     EXERCISE_LIBRARY.forEach(function (entry) {
       if (builder.filter !== 'all' && exerciseGroups(entry).indexOf(builder.filter) === -1) return;
       var row = makeEl('li', 'library-row');
-      var main = makeEl('div', 'library-main');
+      var main = makeEl('button', 'library-main');
+      main.type = 'button';
       main.dir = 'auto';
+      main.dataset.demo = entry.name;
+      main.setAttribute('aria-label', 'How to do ' + entry.name);
       main.appendChild(makeEl('span', 'library-name', entry.name));
       main.appendChild(makeEl('span', 'library-tag',
         exerciseGroups(entry).map(groupLabel).join(' · ')));
@@ -2819,7 +3162,8 @@
     var quality = planQuality(builder.exercises, builder.target);
     var stats = makeEl('div', 'studio-foot-stats');
     stats.appendChild(makeEl('b', null, '≈ ' + quality.minutes + ' min'));
-    stats.appendChild(makeEl('span', null, quality.score + '/100 · ' + quality.grade));
+    stats.appendChild(makeEl('span', null,
+      quality.coverage.covered.length + ' of ' + MUSCLE_GROUPS.length + ' muscle groups'));
     els.studioFoot.appendChild(stats);
 
     var save = makeEl('button', 'studio-action is-ghost', builder.editId ? 'Save' : 'Save only');
@@ -2844,11 +3188,11 @@
     var coverage = document.getElementById('studioCoverage');
     if (coverage) {
       coverage.textContent = '';
-      coverage.appendChild(buildCoverage());
+      coverage.appendChild(buildMuscleMap());
     }
 
-    var qualityCard = document.getElementById('studioQualityCard');
-    if (qualityCard) qualityCard.parentNode.replaceChild(buildQualityCard(), qualityCard);
+    var balance = document.getElementById('studioBalanceCard');
+    if (balance) balance.parentNode.replaceChild(buildBalanceCard(), balance);
 
     renderStudioFoot();
   }
@@ -2870,15 +3214,15 @@
     els.studioBody.appendChild(buildStudioSetup());
     els.studioBody.appendChild(buildStudioTime());
 
-    var coverageCard = studioCard('Muscle coverage',
-      planCoverage(builder.exercises).covered.length + ' of ' + MUSCLE_GROUPS.length + ' hit');
+    els.studioBody.appendChild(buildBalanceCard());
+
+    var muscleCard = studioCard('Muscles', 'Tap a movement for its demo');
     var coverage = makeEl('div');
     coverage.id = 'studioCoverage';
-    coverage.appendChild(buildCoverage());
-    coverageCard.appendChild(coverage);
-    els.studioBody.appendChild(coverageCard);
+    coverage.appendChild(buildMuscleMap());
+    muscleCard.appendChild(coverage);
+    els.studioBody.appendChild(muscleCard);
 
-    els.studioBody.appendChild(buildQualityCard());
     els.studioBody.appendChild(buildStudioPlan());
     els.studioBody.appendChild(buildStudioLibrary());
     els.studioBody.scrollTop = scroll;
@@ -2953,6 +3297,15 @@
 
       btn.appendChild(makeEl('span', 'session-dose', workoutDose(exercise)));
       row.appendChild(btn);
+
+      var guide = makeEl('button', 'session-guide');
+      guide.type = 'button';
+      guide.dataset.demo = exercise.name;
+      guide.setAttribute('aria-label', 'How to do ' + exercise.name);
+      guide.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+        'stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<circle cx="12" cy="12" r="9"/><path d="M10 8.6l5 3.4-5 3.4z"/></svg>';
+      row.appendChild(guide);
       list.appendChild(row);
     });
     listCard.appendChild(list);
@@ -3075,150 +3428,64 @@
     }
   }
 
-  /* -------------------------------- programs ----------------------------- */
-  /* -------------------------------- programs ----------------------------- */
+  /* --------------------------- exercise guide ---------------------------- */
 
-  function programDay(p) {
-    if (!p.startedAt) return 0;
-    return Math.min(p.duration, Math.max(1, daysBetween(p.startedAt, todayKey) + 1));
-  }
+  var demo = { open: false, returnFocus: null };
 
-  function programStatus(p) {
-    if (!p.startedAt) return { kind: 'idle', label: 'Not started', day: 0, pct: 0 };
-    var raw = daysBetween(p.startedAt, todayKey) + 1;
-    var day = Math.min(p.duration, Math.max(1, raw));
-    var pct = Math.min(100, Math.round((day / p.duration) * 100));
-    if (raw > p.duration) return { kind: 'won', label: 'Completed', day: p.duration, pct: 100 };
-    return { kind: 'live', label: 'Day ' + day, day: day, pct: pct };
-  }
+  function openDemo(name) {
+    var text = trimText(name, MAX_TITLE);
+    if (!text) return;
+    var entry = libraryEntry(text);
+    var exercise = {
+      name: text,
+      group: entry ? entry.group : groupFromName(text)
+    };
+    var groups = exerciseGroups(exercise);
+    var motion = exerciseMotion(exercise);
 
-  /* Every elapsed day of the track, with each item's tick from that day's own
-     record. A day without a record counts as missed — nothing was logged. */
-  function programLogDays(p) {
-    var out = [];
-    if (!p.startedAt) return out;
-    var elapsed = Math.min(p.duration, daysBetween(p.startedAt, todayKey) + 1);
+    demo.returnFocus = document.activeElement;
+    demo.open = true;
 
-    for (var i = 0; i < elapsed; i += 1) {
-      var key = shiftKey(p.startedAt, i);
-      var record = state.days[key];
-      var doneIds = record ? completionsFor(key) : [];
+    els.demoTitle.textContent = text;
+    els.demoTitle.dir = 'auto';
+    els.demoKicker.textContent = (MOTION_LABELS[motion] || 'Movement') + ' · demo';
+    els.demoStage.innerHTML = exerciseFigure(motion);
+    els.demoBody.innerHTML = muscleDiagram(groups);
+    els.demoCue.textContent = exerciseCue(exercise);
+    els.demoCue.dir = 'auto';
+    els.demoDose.textContent = entry
+      ? entry.sets + ' × ' + entry.reps + (entry.unit === 'sec' ? 's hold' : ' reps')
+      : '3 sets';
 
-      var items = p.items.map(function (title) {
-        var row = { title: title, done: false };
-        if (!record) return row;
-        var wanted = String(title).toLowerCase();
-        for (var j = 0; j < record.items.length; j += 1) {
-          var item = record.items[j];
-          if (item.programId !== p.id) continue;
-          if (String(item.programItem || item.title).toLowerCase() !== wanted) continue;
-          row.done = doneIds.indexOf(item.id) !== -1;
-          break;
-        }
-        return row;
+    els.demoTags.textContent = '';
+    if (groups.length) {
+      groups.forEach(function (key) {
+        els.demoTags.appendChild(makeEl('span', 'demo-tag', groupLabel(key)));
       });
-
-      var done = items.filter(function (item) { return item.done; }).length;
-      out.push({ day: i + 1, key: key, items: items, done: done, total: items.length });
+    } else {
+      els.demoTags.appendChild(makeEl('span', 'demo-tag is-muted', 'No target'));
     }
 
-    return out;
+    els.demo.hidden = false;
+    document.body.classList.add('demo-open');
+    if (els.demoClose.focus) els.demoClose.focus({ preventScroll: true });
   }
 
-  function logStatus(entry) {
-    if (entry.done === entry.total) return 'done';
-    if (entry.done > 0) return 'partial';
-    return entry.key === todayKey ? 'open' : 'missed';
-  }
-
-  function logStatusLabel(entry) {
-    var status = logStatus(entry);
-    if (status === 'done') return entry.key === todayKey ? 'Today · cleared' : 'Cleared';
-    if (status === 'partial') return entry.done + ' of ' + entry.total;
-    if (status === 'open') return 'Today · open';
-    return 'Missed';
-  }
-
-  /* Day 1, Day 2, … in a compact rail: green cleared, amber partial, red
-     missed, gold today. Picking a day shows exactly which routine items were
-     ticked on it, straight from that day's snapshot. */
-  function buildProgramLog(p) {
-    var log = programLogDays(p);
-    if (!log.length) return null;
-
-    var cleared = log.filter(function (e) { return e.total && e.done === e.total; }).length;
-    var missed = log.filter(function (e) { return e.key < todayKey && e.done === 0; }).length;
-
-    var picked = logDayPick[p.id];
-    if (!picked || picked > log.length) picked = log.length;
-
-    var box = makeEl('div', 'prog-log');
-    var head = makeEl('div', 'prog-log-head');
-    head.appendChild(makeEl('p', 'track-check-label', 'Day by day'));
-    head.appendChild(makeEl('span', 'prog-log-tally',
-      cleared + ' of ' + log.length + ' cleared' + (missed ? ' · ' + missed + ' missed' : '')));
-    box.appendChild(head);
-
-    var rail = makeEl('div', 'prog-log-rail');
-    rail.setAttribute('role', 'group');
-    rail.setAttribute('aria-label', 'Day log for ' + p.title);
-    var tiles = [];
-    var panel = makeEl('div', 'prog-log-panel');
-
-    function paint(entry) {
-      tiles.forEach(function (tile) {
-        var on = Number(tile.dataset.day) === entry.day;
-        tile.classList.toggle('is-picked', on);
-        tile.setAttribute('aria-pressed', on ? 'true' : 'false');
-      });
-      panel.textContent = '';
-      var panelHead = makeEl('div', 'prog-log-panel-head');
-      panelHead.appendChild(makeEl('span', 'prog-log-date',
-        'Day ' + entry.day + ' · ' + fromKey(entry.key).toLocaleDateString(undefined, {
-          weekday: 'short', month: 'short', day: 'numeric'
-        })));
-      panelHead.appendChild(makeEl('span', 'prog-log-state is-' + logStatus(entry),
-        logStatusLabel(entry)));
-      panel.appendChild(panelHead);
-
-      var list = makeEl('ul', 'prog-log-items');
-      entry.items.forEach(function (item) {
-        var li = makeEl('li', 'prog-log-item' + (item.done ? ' is-done' : ''));
-        var mark = makeEl('span', 'prog-log-mark', item.done ? '✓' : '–');
-        mark.setAttribute('aria-hidden', 'true');
-        var text = makeEl('span', 'prog-log-text', item.title);
-        text.dir = 'auto';
-        li.appendChild(mark);
-        li.appendChild(text);
-        list.appendChild(li);
-      });
-      panel.appendChild(list);
+  function closeDemo() {
+    if (!demo.open) return;
+    demo.open = false;
+    els.demo.hidden = true;
+    els.demoStage.textContent = '';
+    document.body.classList.remove('demo-open');
+    var back = demo.returnFocus;
+    demo.returnFocus = null;
+    if (back && back.focus && document.contains(back)) {
+      back.focus({ preventScroll: true });
     }
-
-    log.forEach(function (entry) {
-      var tile = makeEl('button', 'prog-log-day is-' + logStatus(entry),
-        String(entry.day));
-      tile.type = 'button';
-      tile.dataset.day = String(entry.day);
-      tile.setAttribute('aria-label',
-        'Day ' + entry.day + ', ' + logStatusLabel(entry) + ', ' +
-        entry.done + ' of ' + entry.total + ' items done');
-      tile.addEventListener('click', function () {
-        logDayPick[p.id] = entry.day;
-        paint(entry);
-      });
-      tiles.push(tile);
-      rail.appendChild(tile);
-    });
-
-    box.appendChild(rail);
-    box.appendChild(panel);
-    paint(log[picked - 1]);
-    return box;
   }
 
-  /* The task that carries a program item. Matched on the item title the task
-     was created with, so the link survives even if the title is re-rendered. */
+  /* -------------------------------- programs ----------------------------- */
+
   function linkedTaskFor(p, title) {
     var key = String(title || '').toLowerCase();
     for (var i = 0; i < state.tasks.length; i++) {
@@ -3235,62 +3502,6 @@
     /* Program items are owned by the track: they appear only in Today's
        Program Routine block, never among the user's Non-Negotiables. */
     task.recurring = true;
-  }
-
-  function startProgram(p) {
-    var added = 0;
-    var linked = 0;
-
-    p.items.forEach(function (title) {
-      if (linkedTaskFor(p, title)) return;
-
-      /* Adopt a matching standalone task instead of duplicating it. */
-      var existing = null;
-      for (var i = 0; i < state.tasks.length; i++) {
-        var task = state.tasks[i];
-        if (!task.programId && task.title.toLowerCase() === title.toLowerCase()) {
-          existing = task;
-          break;
-        }
-      }
-
-      if (existing) {
-        linkTaskToProgram(existing, p, title);
-        linked += 1;
-        return;
-      }
-
-      state.tasks.unshift({
-        id: uid(),
-        title: title,
-        why: p.why,
-        time: '',
-        recurring: true,
-        createdAt: Date.now(),
-        programId: p.id,
-        programItem: title
-      });
-      added += 1;
-    });
-
-    p.startedAt = todayKey;
-
-    /* A fresh run opens on day 1 with nothing carried over, even when the
-       previous run ended today and left ticks on the same date. */
-    var record = syncTodaySnapshot();
-    var programTaskIds = {};
-    state.tasks.forEach(function (task) {
-      if (task.programId === p.id) programTaskIds[task.id] = true;
-    });
-    record.done = record.done.filter(function (id) { return !programTaskIds[id]; });
-
-    save();
-    renderAll();
-
-    var parts = [];
-    if (added) parts.push(added + ' item' + (added === 1 ? '' : 's') + ' added');
-    if (linked) parts.push(linked + ' linked');
-    toast('✓ Program started' + (parts.length ? ' · ' + parts.join(' · ') : ' · routine in place'));
   }
 
   /* One-time repair for programs started before tasks carried a link: bind
@@ -3315,231 +3526,6 @@
   }
 
   var PROGRAM_PHASES = ['Foundation', 'Build', 'Peak'];
-
-  function programPhases(p) {
-    var count = Math.min(3, p.duration);
-    var names = count >= 3 ? PROGRAM_PHASES : ['Foundation', 'Finish'];
-    var base = Math.floor(p.duration / count);
-    var extra = p.duration % count;
-    var out = [];
-    var start = 1;
-    for (var i = 0; i < count; i++) {
-      var len = base + (i < extra ? 1 : 0);
-      out.push({
-        index: i + 1,
-        name: names[i],
-        start: start,
-        end: start + len - 1,
-        len: len
-      });
-      start += len;
-    }
-    return out;
-  }
-
-  function programPhaseAt(p, day) {
-    var list = programPhases(p);
-    var active = list[0];
-    for (var i = 0; i < list.length; i++) {
-      if (day <= list[i].end) { active = list[i]; break; }
-      active = list[i];
-    }
-    return { list: list, active: active };
-  }
-
-  /* Roadmap rail: one segment per phase, filled by the days covered so far. */
-  function buildProgramRail(p, st) {
-    var info = programPhaseAt(p, st.day);
-    var rail = makeEl('div', 'prog-rail');
-    rail.setAttribute('aria-hidden', 'true');
-
-    info.list.forEach(function (phase) {
-      var seg = makeEl('span', 'prog-seg');
-      seg.style.flex = String(phase.len);
-      if (st.kind === 'live' && phase.index === info.active.index) seg.classList.add('is-now');
-      var covered = st.kind === 'won'
-        ? phase.len
-        : Math.max(0, Math.min(phase.len, st.day - phase.start + 1));
-      var fill = makeEl('i');
-      fill.style.width = Math.round((covered / phase.len) * 100) + '%';
-      seg.appendChild(fill);
-      rail.appendChild(seg);
-    });
-
-    return rail;
-  }
-
-  /* Programs are a track with a timeline, not a checklist card: the day and
-     phase are the headline, completion is the score, and today's items sit in
-     their own labelled block. */
-  function buildProgramCard(p, index) {
-    var st = programStatus(p);
-    var info = programPhaseAt(p, st.day);
-    var accent = ACCENTS[(index + 2) % ACCENTS.length];
-    var card = makeEl('article', 'track-card program-card' +
-      (st.kind === 'won' ? ' is-won' : '') +
-      (st.kind === 'live' ? ' is-live' : ''));
-    card.style.setProperty('--track-a', accent[0]);
-    card.style.setProperty('--track-b', accent[1]);
-
-    var top = makeEl('div', 'track-top');
-    top.dir = textDir(p.title);
-    var wrap = makeEl('div', 'track-title-wrap');
-    wrap.dir = 'auto';
-    wrap.appendChild(makeEl('span', 'program-kicker', 'Program track'));
-    var heading = makeEl('h3', 'track-title', p.title);
-    heading.dir = 'auto';
-    wrap.appendChild(heading);
-    if (p.why) {
-      var why = makeEl('p', 'track-why', p.why);
-      why.dir = 'auto';
-      wrap.appendChild(why);
-    }
-    top.appendChild(wrap);
-    var statusEl = makeEl('span', 'track-status is-' + st.kind, st.label);
-    statusEl.dir = 'auto';
-    top.appendChild(statusEl);
-    card.appendChild(top);
-
-    var road = makeEl('div', 'prog-road');
-    var dayBox = makeEl('div', 'prog-day');
-    dayBox.appendChild(makeEl('span', 'prog-day-num',
-      st.kind === 'idle' ? String(p.duration) : String(st.day)));
-    dayBox.appendChild(makeEl('span', 'prog-day-of',
-      st.kind === 'idle' ? 'days' : '/ ' + p.duration + ' days'));
-    dayBox.appendChild(makeEl('span', 'prog-phase',
-      st.kind === 'idle'
-        ? info.list.length + ' phases · ' + p.items.length + ' daily items'
-        : 'Phase ' + info.active.index + ' of ' + info.list.length + ' · ' + info.active.name));
-    road.appendChild(dayBox);
-
-    var overall = makeEl('div', 'prog-overall');
-    overall.appendChild(makeEl('b', null, st.pct + '%'));
-    overall.appendChild(makeEl('span', null, 'of track'));
-    road.appendChild(overall);
-    card.appendChild(road);
-    card.appendChild(buildProgramRail(p, st));
-
-    var legend = makeEl('div', 'prog-legend');
-    info.list.forEach(function (phase) {
-      var chip = makeEl('span', 'prog-legend-chip' +
-        (st.kind === 'live' && phase.index === info.active.index ? ' is-now' : ''));
-      chip.appendChild(makeEl('i', null, 'P' + phase.index));
-      chip.appendChild(document.createTextNode(phase.name + ' · ' + phase.len + 'd'));
-      legend.appendChild(chip);
-    });
-    card.appendChild(legend);
-
-    if (st.kind === 'live') {
-      /* Today's scheduled items. Each row checks the linked task, so the
-         Program card and the Today view stay in step in both directions. */
-      var block = makeEl('div', 'track-check prog-today-block');
-      var labelRow = makeEl('div', 'prog-today-row');
-      labelRow.appendChild(makeEl('p', 'track-check-label', 'Today in Program'));
-      var doneNow = 0;
-      p.items.forEach(function (item) {
-        var linked = linkedTaskFor(p, item);
-        if (linked && isDone(linked.id, todayKey)) doneNow += 1;
-      });
-      labelRow.appendChild(makeEl('span', 'prog-today-tally',
-        doneNow + ' of ' + p.items.length));
-      block.appendChild(labelRow);
-
-      var listEl = makeEl('ul', 'mini-list');
-      p.items.forEach(function (item) {
-        var task = linkedTaskFor(p, item);
-        var done = task ? isDone(task.id, todayKey) : false;
-        var li = makeEl('li', 'mini-item' + (done ? ' is-done' : ''));
-        li.dir = textDir(item);
-
-        var btn;
-        if (task) {
-          btn = makeEl('button', 'mini-check');
-          btn.type = 'button';
-          btn.setAttribute('role', 'checkbox');
-          btn.setAttribute('aria-checked', done ? 'true' : 'false');
-          btn.setAttribute('aria-label', (done ? 'Undo: ' : 'Complete: ') + item);
-          btn.innerHTML = CHECK_SVG;
-          btn.addEventListener('click', function () {
-            toggleTask(task.id, todayKey);
-          });
-        } else {
-          btn = makeEl('span', 'mini-check');
-          btn.setAttribute('aria-hidden', 'true');
-        }
-
-        var text = makeEl('span', 'mini-text', item);
-        text.dir = 'auto';
-        li.appendChild(btn);
-        li.appendChild(text);
-        listEl.appendChild(li);
-      });
-      block.appendChild(listEl);
-      card.appendChild(block);
-    } else {
-      var plan = makeEl('div', 'prog-plan');
-      plan.appendChild(makeEl('p', 'track-check-label',
-        st.kind === 'won'
-          ? 'Track complete · daily routine'
-          : 'Daily routine · ' + p.items.length + ' items'));
-      var steps = makeEl('div', 'prog-steps');
-      p.items.forEach(function (item, i) {
-        var chip = makeEl('span', 'prog-step');
-        chip.dir = 'auto';
-        chip.appendChild(makeEl('i', null, pad(i + 1)));
-        var text = makeEl('span', null, item);
-        text.dir = 'auto';
-        chip.appendChild(text);
-        steps.appendChild(chip);
-      });
-      plan.appendChild(steps);
-      card.appendChild(plan);
-    }
-
-    var log = buildProgramLog(p);
-    if (log) card.appendChild(log);
-
-    /* A live program has no one-tap reset: restarting it would wipe the day
-       count, so the only action left is the managed delete. */
-    if (st.kind !== 'live' || managePrograms) {
-      var actions = makeEl('div', 'track-actions');
-      if (st.kind !== 'live') {
-        var start = makeEl('button', 'track-btn is-primary',
-          st.kind === 'idle' ? 'Start program' : 'Start again');
-        start.type = 'button';
-        start.addEventListener('click', function () {
-          startProgram(p);
-        });
-        actions.appendChild(start);
-      }
-
-      if (managePrograms) {
-        actions.appendChild(deleteButton('Delete ' + p.title, function () {
-          askDelete('program', p.title, function () {
-            removeProgram(p);
-          });
-        }));
-      }
-      card.appendChild(actions);
-    }
-
-    return card;
-  }
-
-  function renderPrograms() {
-    els.programList.textContent = '';
-    els.programList.classList.toggle('is-managing', managePrograms);
-
-    state.programs.forEach(function (p, index) {
-      els.programList.appendChild(buildProgramCard(p, index));
-    });
-
-    els.programsEmpty.hidden = state.programs.length > 0;
-    var live = state.programs.filter(function (p) { return programStatus(p).kind === 'live'; }).length;
-    els.programsSub.textContent = state.programs.length +
-      ' track' + (state.programs.length === 1 ? '' : 's') +
-      (live ? ' · ' + live + ' live' : '');
-  }
 
   /* --------------------------------- focus ------------------------------- */
 
@@ -3789,7 +3775,7 @@
   function applyView() {
     els.viewToday.hidden = view !== 'today';
     els.viewChallenges.hidden = view !== 'challenges';
-    els.viewPrograms.hidden = view !== 'programs';
+    els.viewWorkouts.hidden = view !== 'workouts';
 
     var tabs = els.tabbar.querySelectorAll('.tab');
     Array.prototype.forEach.call(tabs, function (tab) {
@@ -3810,7 +3796,6 @@
     renderLists(flash);
     renderProgramToday(flash);
     renderChallenges();
-    renderPrograms();
     renderWorkouts();
     updateFocusCard();
 
@@ -3819,14 +3804,14 @@
     els.editBtn.setAttribute('aria-pressed', editMode ? 'true' : 'false');
     els.editChallenges.classList.toggle('is-on', manageChallenges);
     els.editChallenges.setAttribute('aria-pressed', manageChallenges ? 'true' : 'false');
-    els.editPrograms.classList.toggle('is-on', managePrograms);
-    els.editPrograms.setAttribute('aria-pressed', managePrograms ? 'true' : 'false');
+    els.editWorkouts.classList.toggle('is-on', manageWorkouts);
+    els.editWorkouts.setAttribute('aria-pressed', manageWorkouts ? 'true' : 'false');
 
     applyView();
   }
 
   function setView(next) {
-    view = next === 'challenges' || next === 'programs' ? next : 'today';
+    view = next === 'challenges' || next === 'workouts' ? next : 'today';
     state.view = view;
     save();
     renderAll();
@@ -4358,7 +4343,6 @@
   els.addBtn.addEventListener('click', function () { openTaskSheet(null, false); });
   els.addHabitBtn.addEventListener('click', function () { openTaskSheet(null, true); });
   els.addChallengeBtn.addEventListener('click', function () { openTrackSheet('challenge'); });
-  els.addProgramBtn.addEventListener('click', function () { openTrackSheet('program'); });
   els.addWorkoutBtn.addEventListener('click', function () { openBuilder(null); });
   els.buildWorkoutBtn.addEventListener('click', function () { openBuilder(null); });
 
@@ -4381,13 +4365,23 @@
     els.editChallenges.setAttribute('aria-pressed', manageChallenges ? 'true' : 'false');
   });
 
-  els.editPrograms.addEventListener('click', function () {
-    managePrograms = !managePrograms;
-    renderPrograms();
+  els.editWorkouts.addEventListener('click', function () {
+    manageWorkouts = !manageWorkouts;
     renderWorkouts();
-    els.editPrograms.classList.toggle('is-on', managePrograms);
-    els.editPrograms.setAttribute('aria-pressed', managePrograms ? 'true' : 'false');
+    els.editWorkouts.classList.toggle('is-on', manageWorkouts);
+    els.editWorkouts.setAttribute('aria-pressed', manageWorkouts ? 'true' : 'false');
   });
+
+  /* Any exercise name can open the animated guide, from the page or the studio. */
+  document.addEventListener('click', function (event) {
+    var trigger = event.target.closest ? event.target.closest('[data-demo]') : null;
+    if (!trigger) return;
+    event.preventDefault();
+    openDemo(trigger.dataset.demo);
+  });
+
+  els.demoClose.addEventListener('click', closeDemo);
+  els.demoVeil.addEventListener('click', closeDemo);
 
   Array.prototype.forEach.call(els.tabbar.querySelectorAll('.tab'), function (tab) {
     tab.addEventListener('click', function () {
@@ -4475,7 +4469,8 @@
 
   document.addEventListener('keydown', function (event) {
     if (event.key !== 'Escape') return;
-    if (!els.confirm.hidden) closeConfirm(true);
+    if (!els.demo.hidden) closeDemo();
+    else if (!els.confirm.hidden) closeConfirm(true);
     else if (!els.studio.hidden) closeStudio();
     else if (!els.sheet.hidden) closeSheet();
     else if (!els.focusLength.hidden) closeLengthPanel();
@@ -4520,7 +4515,8 @@
   }
 
   function canPull() {
-    if (pull.loading || focus.open || !els.sheet.hidden || !els.confirm.hidden || !els.studio.hidden) return false;
+    if (pull.loading || focus.open || !els.sheet.hidden || !els.confirm.hidden ||
+      !els.studio.hidden || !els.demo.hidden) return false;
     return (window.scrollY || document.documentElement.scrollTop || 0) <= 0;
   }
 
