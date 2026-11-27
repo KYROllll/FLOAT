@@ -251,21 +251,21 @@
       <p class="empty" id="challengesEmpty" hidden>No challenges yet. Create a track that scares you a little.</p>
     </div>
 
-    <!-- ============================= PROGRAMS ============================ -->
+    <!-- ====================== PROGRAMS / WORKOUTS ======================== -->
     <div class="view" id="viewPrograms" hidden>
       <header class="view-head">
         <div>
-          <p class="view-kicker">Structured tracks</p>
-          <h2>Programs</h2>
-          <p class="view-sub">Start a routine. It lands straight in your Non-Negotiables.</p>
+          <p class="view-kicker">Training &amp; physique</p>
+          <h2>Programs / Workouts</h2>
+          <p class="view-sub">Build the block. Run the session. Track every rep and every day.</p>
         </div>
         <div class="section-actions">
-          <button class="icon-btn edit-btn" id="editPrograms" type="button" aria-pressed="false" title="Manage programs">
+          <button class="icon-btn edit-btn" id="editPrograms" type="button" aria-pressed="false" title="Manage training">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M4 20h4.2L19 9.2a2.1 2.1 0 0 0 0-3l-1.2-1.2a2.1 2.1 0 0 0-3 0L4 15.8V20Z" />
               <path d="m13.6 6.4 4 4" />
             </svg>
-            <span class="sr-only">Manage programs</span>
+            <span class="sr-only">Manage training</span>
           </button>
           <button class="icon-btn add-btn" id="addProgramBtn" type="button" title="New program">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
@@ -276,8 +276,42 @@
         </div>
       </header>
 
-      <div class="program-list" id="programList"></div>
-      <p class="empty" id="programsEmpty" hidden>No programs yet. Build a routine worth repeating.</p>
+      <!-- Workout studio: weekly split, sessions and exercise tracking. -->
+      <section class="section workout-hub" aria-labelledby="workoutsTitle">
+        <header class="section-head">
+          <div>
+            <h2 class="section-title" id="workoutsTitle">
+              <span class="workout-mark" aria-hidden="true">◆</span> Workouts
+            </h2>
+            <p class="section-sub" id="workoutsSub">0 sessions this week</p>
+          </div>
+          <div class="section-actions">
+            <button class="icon-btn add-btn" id="addWorkoutBtn" type="button" title="New workout">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              <span class="sr-only">New workout</span>
+            </button>
+          </div>
+        </header>
+
+        <div class="workout-summary" id="workoutSummary"></div>
+        <div class="workout-list" id="workoutList"></div>
+        <p class="empty" id="workoutsEmpty" hidden>No workouts yet. Build your first training session.</p>
+      </section>
+
+      <!-- Longer structured tracks: the original Programs roadmap. -->
+      <section class="section program-section" aria-labelledby="programsTitle">
+        <header class="section-head">
+          <div>
+            <h2 class="section-title" id="programsTitle">Programs</h2>
+            <p class="section-sub" id="programsSub">Structured multi-day tracks</p>
+          </div>
+        </header>
+
+        <div class="program-list" id="programList"></div>
+        <p class="empty" id="programsEmpty" hidden>No programs yet. Build a routine worth repeating.</p>
+      </section>
     </div>
 
     <footer class="foot">
@@ -496,6 +530,20 @@
           </div>
         </div>
 
+        <div class="field-extra" id="trackDates" hidden>
+          <div class="field-row field-row-dates">
+            <label class="field field-time">
+              <span class="field-label">Start date</span>
+              <input id="fieldStartDate" type="date" />
+            </label>
+            <label class="field field-time">
+              <span class="field-label">End date</span>
+              <input id="fieldEndDate" type="date" />
+            </label>
+          </div>
+          <p class="date-hint" id="dateHint">7 days</p>
+        </div>
+
         <div class="field-extra" id="trackExtras" hidden>
           <label class="field">
             <span class="field-label">Length <span class="optional">days</span></span>
@@ -512,6 +560,36 @@
               placeholder="No added sugar&#10;2L water&#10;20 minute walk"
             ></textarea>
           </label>
+        </div>
+
+        <div class="field-extra" id="workoutExtras" hidden>
+          <label class="field">
+            <span class="field-label">Focus <span class="optional">muscles / intent</span></span>
+            <input
+              id="fieldFocus"
+              type="text"
+              dir="auto"
+              maxlength="40"
+              placeholder="Chest · Shoulders · Triceps"
+              enterkeyhint="next"
+            />
+          </label>
+
+          <label class="field">
+            <span class="field-label">Exercises <span class="optional">one per line · name 4×8</span></span>
+            <textarea
+              id="fieldExercises"
+              dir="auto"
+              rows="4"
+              maxlength="600"
+              placeholder="Bench press 4×8&#10;Incline press 3×10&#10;Overhead press 3×8"
+            ></textarea>
+          </label>
+
+          <div class="field">
+            <span class="field-label">Training days</span>
+            <div class="day-picker" id="fieldDays" role="group" aria-label="Training days"></div>
+          </div>
         </div>
 
         <p class="form-error" id="formError" role="alert" hidden>Give the task a name first.</p>

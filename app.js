@@ -35,6 +35,15 @@
     'stroke-linecap="round" aria-hidden="true">' +
     '<path d="M6 6l12 12M18 6 6 18"/></svg>';
 
+  var EDIT_SVG =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M4 20h4.2L19 9.2a2.1 2.1 0 0 0 0-3l-1.2-1.2a2.1 2.1 0 0 0-3 0L4 15.8V20Z"/>' +
+    '<path d="m13.6 6.4 4 4"/></svg>';
+
+  var DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  var DAY_LABELS_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
   var els = {
     topMeta: document.getElementById('topMeta'),
     perfectPill: document.getElementById('perfectPill'),
@@ -76,8 +85,14 @@
     editChallenges: document.getElementById('editChallenges'),
     programList: document.getElementById('programList'),
     programsEmpty: document.getElementById('programsEmpty'),
+    programsSub: document.getElementById('programsSub'),
     addProgramBtn: document.getElementById('addProgramBtn'),
     editPrograms: document.getElementById('editPrograms'),
+    addWorkoutBtn: document.getElementById('addWorkoutBtn'),
+    workoutSummary: document.getElementById('workoutSummary'),
+    workoutList: document.getElementById('workoutList'),
+    workoutsEmpty: document.getElementById('workoutsEmpty'),
+    workoutsSub: document.getElementById('workoutsSub'),
     tabbar: document.getElementById('tabbar'),
     focusView: document.getElementById('focusView'),
     focusExit: document.getElementById('focusExit'),
@@ -126,8 +141,16 @@
     labelItems: document.getElementById('labelItems'),
     taskExtras: document.getElementById('taskExtras'),
     trackExtras: document.getElementById('trackExtras'),
+    trackDates: document.getElementById('trackDates'),
+    workoutExtras: document.getElementById('workoutExtras'),
     fieldDuration: document.getElementById('fieldDuration'),
     fieldItems: document.getElementById('fieldItems'),
+    fieldStartDate: document.getElementById('fieldStartDate'),
+    fieldEndDate: document.getElementById('fieldEndDate'),
+    dateHint: document.getElementById('dateHint'),
+    fieldFocus: document.getElementById('fieldFocus'),
+    fieldExercises: document.getElementById('fieldExercises'),
+    fieldDays: document.getElementById('fieldDays'),
     toast: document.getElementById('toast')
   };
 
@@ -203,6 +226,18 @@
     return Math.min(MAX_DAYS, Math.max(MIN_DAYS, n));
   }
 
+  function validDateKey(value) {
+    return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
+  }
+
+  function shortDate(key) {
+    if (!key) return '—';
+    var d = fromKey(key);
+    var opts = { month: 'short', day: 'numeric' };
+    if (d.getFullYear() !== new Date().getFullYear()) opts.year = 'numeric';
+    return d.toLocaleDateString(undefined, opts);
+  }
+
   function makeEl(tag, cls, text) {
     var node = document.createElement(tag);
     if (cls) node.className = cls;
@@ -243,12 +278,15 @@
   }
 
   function seedChallenges() {
+    var today = keyOf(new Date());
     return [
       {
         id: uid(),
         title: '7-Day No Sugar',
         why: 'Reset the dopamine baseline and hold steady energy all week.',
         duration: 7,
+        startDate: today,
+        endDate: shiftKey(today, 6),
         daily: [
           { id: uid(), title: 'No added sugar' },
           { id: uid(), title: '2L water' },
@@ -262,6 +300,8 @@
         title: '14-Day Deep Work',
         why: 'Two weeks of protected focus to prove you can ship without noise.',
         duration: 14,
+        startDate: today,
+        endDate: shiftKey(today, 13),
         daily: [
           { id: uid(), title: '90 min deep work' },
           { id: uid(), title: 'Phone in another room' },
@@ -302,6 +342,59 @@
     ];
   }
 
+  function seedWorkouts() {
+    function exercise(name, sets, reps) {
+      return { id: uid(), name: name, sets: sets, reps: reps };
+    }
+    return [
+      {
+        id: uid(),
+        title: 'Push Day',
+        why: 'Drive the chest, shoulders and triceps with clean pressing volume.',
+        focus: 'Chest · Shoulders · Triceps',
+        days: [1, 4],
+        exercises: [
+          exercise('Bench press', 4, 8),
+          exercise('Incline dumbbell press', 3, 10),
+          exercise('Overhead press', 3, 8),
+          exercise('Triceps pushdown', 3, 12)
+        ],
+        log: {},
+        createdAt: Date.now()
+      },
+      {
+        id: uid(),
+        title: 'Pull Day',
+        why: 'Build the back and arms that hold your posture tall.',
+        focus: 'Back · Biceps',
+        days: [2, 5],
+        exercises: [
+          exercise('Deadlift', 3, 5),
+          exercise('Pull-ups', 3, 8),
+          exercise('Barbell row', 3, 8),
+          exercise('Dumbbell curls', 3, 12)
+        ],
+        log: {},
+        createdAt: Date.now()
+      },
+      {
+        id: uid(),
+        title: 'Leg Day',
+        why: 'Strong legs carry every other session and every long day.',
+        focus: 'Quads · Hamstrings · Calves',
+        days: [3, 6],
+        exercises: [
+          exercise('Back squat', 4, 6),
+          exercise('Romanian deadlift', 3, 8),
+          exercise('Leg press', 3, 12),
+          exercise('Calf raise', 4, 15)
+        ],
+        log: {},
+        createdAt: Date.now()
+      }
+    ];
+  }
+
   function seedState() {
     return {
       v: 3,
@@ -310,6 +403,7 @@
       days: {},
       challenges: seedChallenges(),
       programs: seedPrograms(),
+      workouts: seedWorkouts(),
       focus: { sessions: 0, date: keyOf(new Date()), minutes: 25, seconds: 0 }
     };
   }
@@ -388,13 +482,26 @@
       });
     }
 
+    var duration = clampDays(raw.duration);
+    var startedAt = validDateKey(raw.startedAt);
+    var startDate = validDateKey(raw.startDate) || startedAt || keyOf(new Date());
+    var endDate = validDateKey(raw.endDate);
+
+    /* An explicit start-to-end range wins: the length follows the dates. */
+    if (endDate && endDate > startDate) {
+      duration = clampDays(daysBetween(startDate, endDate) + 1);
+    }
+    endDate = shiftKey(startDate, duration - 1);
+
     return {
       id: typeof raw.id === 'string' && raw.id ? raw.id : uid(),
       title: title,
       why: trimText(raw.why, MAX_WHY),
-      duration: clampDays(raw.duration),
+      duration: duration,
+      startDate: startDate,
+      endDate: endDate,
       daily: daily,
-      startedAt: /^\d{4}-\d{2}-\d{2}$/.test(raw.startedAt) ? raw.startedAt : null,
+      startedAt: startedAt,
       log: log
     };
   }
@@ -417,6 +524,82 @@
       duration: clampDays(raw.duration),
       items: items,
       startedAt: /^\d{4}-\d{2}-\d{2}$/.test(raw.startedAt) ? raw.startedAt : null
+    };
+  }
+
+  function normalizeExercise(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    var name = trimText(raw.name, MAX_TITLE);
+    if (!name) return null;
+    var sets = Math.round(Number(raw.sets));
+    var reps = Math.round(Number(raw.reps));
+    if (!isFinite(sets) || sets < 1) sets = 0;
+    if (!isFinite(reps) || reps < 1) reps = 0;
+    return {
+      id: typeof raw.id === 'string' && raw.id ? raw.id : uid(),
+      name: name,
+      sets: Math.min(20, sets),
+      reps: Math.min(100, reps)
+    };
+  }
+
+  function normalizeWorkout(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    var title = trimText(raw.title, MAX_TITLE);
+    if (!title) return null;
+
+    var exercises = [];
+    var exerciseIds = {};
+    if (Array.isArray(raw.exercises)) {
+      for (var i = 0; i < raw.exercises.length && exercises.length < MAX_ITEMS; i += 1) {
+        var exercise = normalizeExercise(raw.exercises[i]);
+        if (!exercise) continue;
+        if (exerciseIds[exercise.id]) exercise.id = uid();
+        exerciseIds[exercise.id] = true;
+        exercises.push(exercise);
+      }
+    }
+
+    var days = [];
+    if (Array.isArray(raw.days)) {
+      raw.days.forEach(function (day) {
+        var n = parseInt(day, 10);
+        if (n >= 0 && n <= 6 && days.indexOf(n) === -1) days.push(n);
+      });
+    }
+
+    var log = {};
+    if (raw.log && typeof raw.log === 'object') {
+      Object.keys(raw.log).forEach(function (key) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) return;
+        var entry = raw.log[key];
+        if (!entry || typeof entry !== 'object') return;
+        var done = [];
+        if (Array.isArray(entry.done)) {
+          entry.done.forEach(function (id) {
+            if (typeof id === 'string' && exerciseIds[id] && done.indexOf(id) === -1) done.push(id);
+          });
+        }
+        if (!entry.started && !done.length) return;
+        log[key] = {
+          started: true,
+          done: done,
+          finished: !!entry.finished
+        };
+      });
+    }
+
+    return {
+      id: typeof raw.id === 'string' && raw.id ? raw.id : uid(),
+      title: title,
+      why: trimText(raw.why, MAX_WHY),
+      focus: trimText(raw.focus, 40),
+      days: days,
+      exercises: exercises,
+      log: log,
+      /* Days before this template existed were never training days, so they
+         must never be counted as missed sessions. */
+      createdAt: Number(raw.createdAt) || Date.now()
     };
   }
 
@@ -469,6 +652,16 @@
       });
     } else {
       programs = seedPrograms();
+    }
+
+    var workouts = [];
+    if (Array.isArray(raw.workouts)) {
+      raw.workouts.forEach(function (item) {
+        var wk = normalizeWorkout(item);
+        if (wk) workouts.push(wk);
+      });
+    } else {
+      workouts = seedWorkouts();
     }
 
     /* A link to a program that no longer exists would lock an orphaned task,
@@ -569,6 +762,7 @@
       days: days,
       challenges: challenges,
       programs: programs,
+      workouts: workouts,
       focus: {
         sessions: Math.max(0, Math.min(999, Number(focusRaw.sessions) || 0)),
         date: /^\d{4}-\d{2}-\d{2}$/.test(focusRaw.date) ? focusRaw.date : keyOf(new Date()),
@@ -802,20 +996,31 @@
       var result = dayResult(key);
       var dot = makeEl('span', 'wk-dot');
       dot.setAttribute('aria-hidden', 'true');
-      if (result.perfect) {
-        dot.classList.add('is-perfect');
-        dot.innerHTML = CHECK_SVG;
-      } else if (result.won) {
-        dot.classList.add('is-win');
-      } else if (result.total && key <= todayKey) {
-        dot.classList.add('is-loss');
+
+      /* An open day carries a live dot; a closed day carries its final mark.
+         Empty days stay neutral — never a red mark for having nothing planned. */
+      if (result.total) {
+        if (key < todayKey) {
+          if (result.won) {
+            dot.classList.add('is-check');
+            dot.textContent = '✓';
+          } else {
+            dot.classList.add('is-cross');
+            dot.textContent = '✕';
+          }
+        } else if (key === todayKey) {
+          dot.classList.add(result.won ? 'is-win' : 'is-loss');
+        }
       }
 
       var label = d.toLocaleDateString(undefined, {
         weekday: 'long', month: 'short', day: 'numeric'
       });
-      if (key <= todayKey && result.total) {
-        label += ' — ' + (result.perfect ? 'perfect day' : result.won ? 'WIN' : 'LOSS') +
+      if (key < todayKey && result.total) {
+        label += ' — closed, ' + (result.won ? 'win' : 'loss') +
+          ', ' + result.done + ' of ' + result.total;
+      } else if (key === todayKey && result.total) {
+        label += ' — ' + (result.won ? 'on track' : 'below threshold') +
           ', ' + result.done + ' of ' + result.total;
       } else if (key <= todayKey) {
         label += ' — nothing scheduled';
@@ -1167,15 +1372,18 @@
     if (!ch.startedAt) {
       return { kind: 'idle', label: 'Not started', day: 0, won: 0, pct: 0 };
     }
-    var day = daysBetween(ch.startedAt, todayKey) + 1;
+    var raw = daysBetween(ch.startedAt, todayKey) + 1;
     var pct = Math.round((won / ch.duration) * 100);
     if (won >= ch.duration) {
-      return { kind: 'won', label: 'Won', day: Math.min(day, ch.duration), won: won, pct: 100 };
+      return { kind: 'won', label: 'Won', day: ch.duration, won: won, pct: 100 };
     }
-    if (day > ch.duration) {
+    if (raw < 1) {
+      return { kind: 'scheduled', label: 'Scheduled', day: 0, won: won, pct: 0 };
+    }
+    if (raw > ch.duration) {
       return { kind: 'over', label: 'Closed', day: ch.duration, won: won, pct: pct };
     }
-    return { kind: 'live', label: 'Day ' + Math.max(1, day), day: Math.max(1, day), won: won, pct: pct };
+    return { kind: 'live', label: 'Day ' + raw, day: raw, won: won, pct: pct };
   }
 
   function deleteButton(label, handler) {
@@ -1187,11 +1395,27 @@
     return btn;
   }
 
+  function editButton(label, handler) {
+    var btn = makeEl('button', 'track-edit');
+    btn.type = 'button';
+    btn.setAttribute('aria-label', label);
+    btn.innerHTML = EDIT_SVG;
+    btn.addEventListener('click', handler);
+    return btn;
+  }
+
   function removeChallenge(ch) {
     state.challenges = state.challenges.filter(function (item) { return item.id !== ch.id; });
     save();
     renderAll();
     toast('✓ Challenge deleted');
+  }
+
+  function dateChip(label, key) {
+    var chip = makeEl('span', 'track-date');
+    chip.appendChild(makeEl('span', 'track-date-k', label));
+    chip.appendChild(makeEl('b', null, shortDate(key)));
+    return chip;
   }
 
   function renderChallenges() {
@@ -1201,7 +1425,9 @@
     state.challenges.forEach(function (ch, index) {
       var st = challengeStatus(ch);
       var accent = ACCENTS[index % ACCENTS.length];
-      var card = makeEl('article', 'track-card' + (st.kind === 'won' ? ' is-won' : ''));
+      var card = makeEl('article', 'track-card' +
+        (st.kind === 'won' ? ' is-won' : '') +
+        (st.kind === 'scheduled' ? ' is-scheduled' : ''));
       card.style.setProperty('--track-a', accent[0]);
       card.style.setProperty('--track-b', accent[1]);
 
@@ -1223,6 +1449,14 @@
       top.appendChild(statusEl);
       card.appendChild(top);
 
+      /* Every challenge states its own beginning and finish. */
+      var dates = makeEl('div', 'track-dates');
+      dates.dir = 'ltr';
+      dates.appendChild(dateChip('Start', ch.startDate));
+      dates.appendChild(dateChip('End', ch.endDate));
+      dates.appendChild(makeEl('span', 'track-dates-len', ch.duration + ' days'));
+      card.appendChild(dates);
+
       var meter = makeEl('div', 'track-meter');
       var fill = makeEl('span');
       fill.style.width = st.pct + '%';
@@ -1232,7 +1466,7 @@
       var meta = makeEl('div', 'track-meta');
       meta.dir = 'ltr';
       meta.appendChild(makeEl('span', null,
-        st.kind === 'idle'
+        st.kind === 'idle' || st.kind === 'scheduled'
           ? ch.duration + ' days · ' + ch.daily.length + ' daily actions'
           : 'Day ' + st.day + ' / ' + ch.duration));
       var wins = makeEl('span');
@@ -1242,15 +1476,15 @@
       meta.appendChild(wins);
       card.appendChild(meta);
 
-      if (st.kind !== 'idle') {
+      if (ch.startedAt) {
         var daysRow = makeEl('div', 'track-days');
         daysRow.setAttribute('aria-hidden', 'true');
-        var todayIndex = ch.startedAt ? daysBetween(ch.startedAt, todayKey) : -1;
+        var todayIndex = daysBetween(ch.startedAt, todayKey);
         for (var i = 0; i < ch.duration; i++) {
           var mark = makeEl('span', 'day-mark');
-          var key = ch.startedAt ? shiftKey(ch.startedAt, i) : null;
+          var key = shiftKey(ch.startedAt, i);
           var complete = false;
-          if (key && key <= todayKey) {
+          if (key <= todayKey) {
             var list = ch.log[key] || [];
             complete = ch.daily.length > 0;
             for (var j = 0; j < ch.daily.length; j++) {
@@ -1259,15 +1493,18 @@
           }
           if (complete) mark.classList.add('is-won');
           else if (i === todayIndex) mark.classList.add('is-today');
-          else if (key && key < todayKey) mark.classList.add('is-missed');
+          else if (key < todayKey) mark.classList.add('is-missed');
           daysRow.appendChild(mark);
         }
         card.appendChild(daysRow);
       }
 
-      if (!ch.startedAt) {
+      if (!ch.startedAt || st.kind === 'scheduled') {
         var preview = makeEl('div', 'track-check');
-        preview.appendChild(makeEl('p', 'track-check-label', 'Daily checklist'));
+        preview.appendChild(makeEl('p', 'track-check-label',
+          st.kind === 'scheduled'
+            ? 'Starts ' + shortDate(ch.startDate) + ' · daily checklist'
+            : 'Daily checklist'));
         var previewList = makeEl('ul', 'mini-list');
         ch.daily.forEach(function (item) {
           var li = makeEl('li', 'mini-item');
@@ -1314,31 +1551,44 @@
           'Closed with ' + st.won + ' of ' + ch.duration + ' days won.'));
       }
 
-      if (st.kind === 'idle' || st.kind === 'won' || st.kind === 'over') {
+      var canStart = st.kind === 'idle' || st.kind === 'scheduled' ||
+        st.kind === 'won' || st.kind === 'over';
+      if (canStart || manageChallenges) {
         var actions = makeEl('div', 'track-actions');
-        var start = makeEl('button', 'track-btn is-primary',
-          st.kind === 'idle' ? 'Start challenge' : 'Run it again');
-        start.type = 'button';
-        start.addEventListener('click', function () {
-          ch.startedAt = todayKey;
-          ch.log = {};
-          save();
-          renderAll();
-          toast(st.kind === 'idle' ? '✓ Challenge started · day 1' : '✓ Challenge restarted');
-        });
-        actions.appendChild(start);
+        if (canStart) {
+          var start = makeEl('button', 'track-btn is-primary',
+            st.kind === 'idle' ? 'Start challenge'
+              : st.kind === 'scheduled' ? 'Start now'
+                : 'Run it again');
+          start.type = 'button';
+          start.addEventListener('click', function () {
+            var plannedFuture = st.kind === 'idle' && ch.startDate && ch.startDate > todayKey;
+            if (plannedFuture) {
+              ch.startedAt = ch.startDate;
+              save();
+              renderAll();
+              toast('✓ Challenge scheduled · ' + shortDate(ch.startDate));
+              return;
+            }
+            ch.startDate = todayKey;
+            ch.endDate = shiftKey(todayKey, ch.duration - 1);
+            ch.startedAt = todayKey;
+            ch.log = {};
+            save();
+            renderAll();
+            toast(st.kind === 'idle' ? '✓ Challenge started · day 1' : '✓ Challenge restarted');
+          });
+          actions.appendChild(start);
+        }
         if (manageChallenges) {
+          actions.appendChild(editButton('Configure ' + ch.title, function () {
+            openTrackSheet('challenge', ch);
+          }));
           actions.appendChild(deleteButton('Delete ' + ch.title, function () {
             askDelete('challenge', ch.title, function () { removeChallenge(ch); });
           }));
         }
         card.appendChild(actions);
-      } else if (manageChallenges) {
-        var manageRow = makeEl('div', 'track-actions');
-        manageRow.appendChild(deleteButton('Delete ' + ch.title, function () {
-          askDelete('challenge', ch.title, function () { removeChallenge(ch); });
-        }));
-        card.appendChild(manageRow);
       }
 
       els.challengeList.appendChild(card);
@@ -1375,6 +1625,412 @@
     } else {
       vibrate(8);
     }
+  }
+
+  /* ------------------------------- workouts ------------------------------ */
+
+  function workoutById(id) {
+    for (var i = 0; i < state.workouts.length; i++) {
+      if (state.workouts[i].id === id) return state.workouts[i];
+    }
+    return null;
+  }
+
+  function workoutEntry(w, key) {
+    return w.log && w.log[key] ? w.log[key] : null;
+  }
+
+  function workoutDoneIds(w, key) {
+    var entry = workoutEntry(w, key);
+    return entry && Array.isArray(entry.done) ? entry.done : [];
+  }
+
+  function workoutComplete(w, key) {
+    var entry = workoutEntry(w, key);
+    if (!entry) return false;
+    if (entry.finished) return true;
+    return w.exercises.length > 0 && entry.done.length >= w.exercises.length;
+  }
+
+  function workoutPartial(w, key) {
+    var entry = workoutEntry(w, key);
+    return !!entry && !workoutComplete(w, key);
+  }
+
+  function workoutScheduledOn(w, key) {
+    return w.days.indexOf(fromKey(key).getDay()) !== -1;
+  }
+
+  function workoutDose(exercise) {
+    if (exercise.sets && exercise.reps) return exercise.sets + ' × ' + exercise.reps;
+    if (exercise.reps) return exercise.reps + ' reps';
+    if (exercise.sets) return exercise.sets + ' sets';
+    return '';
+  }
+
+  function workoutTotalSets(w) {
+    return w.exercises.reduce(function (sum, exercise) {
+      return sum + (exercise.sets || 0);
+    }, 0);
+  }
+
+  function workoutNextDay(w) {
+    if (!w.days.length) return -1;
+    var todayIndex = fromKey(todayKey).getDay();
+    for (var step = 1; step <= 7; step += 1) {
+      var day = (todayIndex + step) % 7;
+      if (w.days.indexOf(day) !== -1) return day;
+    }
+    return -1;
+  }
+
+  function workoutStatus(w) {
+    if (workoutComplete(w, todayKey)) return { kind: 'done', label: 'Done today' };
+    if (workoutPartial(w, todayKey)) return { kind: 'active', label: 'In session' };
+    if (workoutScheduledOn(w, todayKey)) return { kind: 'today', label: 'Today' };
+    var next = workoutNextDay(w);
+    return {
+      kind: 'rest',
+      label: next >= 0 ? 'Next ' + DAY_LABELS[next] : 'Any day'
+    };
+  }
+
+  function startWorkout(w) {
+    if (!w.log) w.log = {};
+    var entry = w.log[todayKey];
+    if (!entry) entry = w.log[todayKey] = { started: true, done: [], finished: false };
+    entry.started = true;
+    save();
+    renderWorkouts();
+    toast('✓ Workout started · ' + w.title);
+  }
+
+  function toggleWorkoutExercise(w, exerciseId) {
+    var belongs = w.exercises.some(function (exercise) { return exercise.id === exerciseId; });
+    if (!belongs) return;
+
+    if (!w.log) w.log = {};
+    var entry = w.log[todayKey];
+    if (!entry) entry = w.log[todayKey] = { started: true, done: [], finished: false };
+    entry.started = true;
+
+    var list = (Array.isArray(entry.done) ? entry.done : []).slice();
+    var index = list.indexOf(exerciseId);
+    var adding = index === -1;
+    if (adding) list.push(exerciseId);
+    else list.splice(index, 1);
+
+    entry.done = list;
+    entry.finished = false;
+
+    var completeNow = w.exercises.length > 0 && list.length >= w.exercises.length;
+    if (completeNow) entry.finished = true;
+
+    save();
+    renderWorkouts();
+
+    if (adding) vibrate(8);
+    if (completeNow) toast('✓ Workout complete · ' + w.title);
+  }
+
+  function finishWorkout(w) {
+    var entry = workoutEntry(w, todayKey);
+    if (!entry) return;
+    entry.finished = true;
+    save();
+    renderWorkouts();
+    toast('✓ Workout logged · ' + workoutDoneIds(w, todayKey).length + ' of ' + w.exercises.length);
+  }
+
+  function removeWorkout(w) {
+    state.workouts = state.workouts.filter(function (item) { return item.id !== w.id; });
+    save();
+    renderAll();
+    toast('✓ Workout deleted');
+  }
+
+  /* The training week, Sunday-to-Saturday, with each day's session state. */
+  /* A session only exists from the day its template was created. Days before
+     that are rest, not missed workouts. */
+  function workoutExistedOn(w, key) {
+    return !w.createdAt || keyOf(new Date(w.createdAt)) <= key;
+  }
+
+  function workoutWeek() {
+    var today = fromKey(todayKey);
+    var weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - today.getDay());
+    var out = [];
+
+    for (var i = 0; i < 7; i += 1) {
+      var date = new Date(weekStart);
+      date.setDate(weekStart.getDate() + i);
+      var key = keyOf(date);
+      var scheduled = state.workouts.filter(function (w) {
+        return workoutScheduledOn(w, key) && workoutExistedOn(w, key);
+      });
+      var logged = state.workouts.filter(function (w) {
+        return workoutEntry(w, key);
+      });
+      var complete = logged.filter(function (w) {
+        return workoutComplete(w, key);
+      });
+      var active = logged.some(function (w) {
+        return !workoutComplete(w, key);
+      });
+
+      var status;
+      if (key > todayKey) {
+        status = scheduled.length ? 'scheduled' : 'rest';
+      } else if (key === todayKey) {
+        status = complete.length && !active ? 'done' : (active || scheduled.length ? 'active' : 'rest');
+      } else {
+        status = complete.length ? 'done' : (scheduled.length || logged.length ? 'missed' : 'rest');
+      }
+
+      out.push({
+        key: key,
+        date: date,
+        scheduled: scheduled.length,
+        complete: complete.length,
+        active: active,
+        status: status
+      });
+    }
+
+    return out;
+  }
+
+  function renderWorkoutSummary() {
+    els.workoutSummary.textContent = '';
+
+    var week = workoutWeek();
+    var doneDays = week.filter(function (day) { return day.status === 'done'; }).length;
+    var scheduledTotal = week.reduce(function (sum, day) { return sum + day.scheduled; }, 0);
+    var missedDays = week.filter(function (day) { return day.status === 'missed'; }).length;
+
+    var todaySessions = state.workouts.filter(function (w) {
+      return workoutScheduledOn(w, todayKey) || workoutEntry(w, todayKey);
+    });
+    var todayDone = todaySessions.filter(function (w) {
+      return workoutComplete(w, todayKey);
+    }).length;
+
+    els.workoutsSub.textContent = doneDays + ' session' + (doneDays === 1 ? '' : 's') +
+      ' this week' + (scheduledTotal ? ' · ' + scheduledTotal + ' scheduled' : '');
+
+    var card = makeEl('div', 'workout-summary-card');
+    var top = makeEl('div', 'workout-summary-top');
+
+    var copy = makeEl('div', 'workout-summary-copy');
+    copy.appendChild(makeEl('p', 'workout-summary-kicker', 'This week'));
+    var count = makeEl('p', 'workout-summary-count');
+    count.appendChild(makeEl('b', null, String(doneDays)));
+    count.appendChild(document.createTextNode(
+      doneDays === 1 ? ' session cleared' : ' sessions cleared'));
+    copy.appendChild(count);
+    top.appendChild(copy);
+
+    var todayBox = makeEl('div', 'workout-summary-today');
+    todayBox.appendChild(makeEl('span', 'workout-summary-label', 'Today'));
+    var todayText;
+    if (!todaySessions.length) {
+      todayText = 'Rest day';
+    } else if (todayDone === todaySessions.length) {
+      todayText = 'Cleared · ' + todaySessions.map(function (w) { return w.title; }).join(' · ');
+    } else {
+      todayText = todaySessions.map(function (w) { return w.title; }).join(' · ');
+    }
+    var todayValue = makeEl('span', 'workout-summary-value', todayText);
+    todayValue.dir = 'auto';
+    todayBox.appendChild(todayValue);
+    top.appendChild(todayBox);
+    card.appendChild(top);
+
+    var strip = makeEl('div', 'workout-week');
+    strip.setAttribute('role', 'group');
+    strip.setAttribute('aria-label', 'Workout week');
+    week.forEach(function (day) {
+      var chip = makeEl('div', 'workout-week-day is-' + day.status +
+        (day.key === todayKey ? ' is-today' : ''));
+      chip.appendChild(makeEl('span', 'workout-week-label', DAY_LABELS[day.date.getDay()]));
+      chip.appendChild(makeEl('span', 'workout-week-date', String(day.date.getDate())));
+
+      var dot = makeEl('span', 'wk-dot');
+      dot.setAttribute('aria-hidden', 'true');
+      if (day.status === 'done') {
+        dot.classList.add('is-check');
+        dot.textContent = '✓';
+      } else if (day.status === 'active') {
+        dot.classList.add('is-win');
+      } else if (day.status === 'missed') {
+        dot.classList.add('is-cross');
+        dot.textContent = '✕';
+      } else if (day.status === 'scheduled') {
+        dot.classList.add('is-scheduled');
+      }
+      chip.appendChild(dot);
+
+      var label = day.date.toLocaleDateString(undefined, {
+        weekday: 'long', month: 'short', day: 'numeric'
+      });
+      label += day.status === 'done' ? ' — workout cleared'
+        : day.status === 'active' ? ' — training day'
+          : day.status === 'missed' ? ' — missed workout'
+            : day.status === 'scheduled' ? ' — scheduled'
+              : ' — rest';
+      chip.setAttribute('aria-label', label);
+      chip.title = label;
+      strip.appendChild(chip);
+    });
+    card.appendChild(strip);
+
+    var note = makeEl('p', 'workout-summary-note',
+      scheduledTotal + ' scheduled · ' + missedDays + ' missed' +
+      (state.workouts.length
+        ? ' · ' + state.workouts.length + ' session template' + (state.workouts.length === 1 ? '' : 's')
+        : ''));
+    card.appendChild(note);
+
+    els.workoutSummary.appendChild(card);
+  }
+
+  function buildWorkoutCard(w, index) {
+    var status = workoutStatus(w);
+    var accent = ACCENTS[(index + 1) % ACCENTS.length];
+    var card = makeEl('article', 'track-card workout-card' +
+      (status.kind === 'done' ? ' is-won' : '') +
+      (status.kind === 'active' ? ' is-live' : ''));
+    card.style.setProperty('--track-a', accent[0]);
+    card.style.setProperty('--track-b', accent[1]);
+
+    var top = makeEl('div', 'track-top');
+    top.dir = textDir(w.title);
+    var wrap = makeEl('div', 'track-title-wrap');
+    wrap.dir = 'auto';
+    wrap.appendChild(makeEl('span', 'workout-kicker', 'Training session'));
+    var heading = makeEl('h3', 'track-title', w.title);
+    heading.dir = 'auto';
+    wrap.appendChild(heading);
+    if (w.focus) {
+      var focus = makeEl('p', 'track-why', w.focus);
+      focus.dir = 'auto';
+      wrap.appendChild(focus);
+    }
+    top.appendChild(wrap);
+    var statusEl = makeEl('span', 'track-status is-' + status.kind, status.label);
+    statusEl.dir = 'auto';
+    top.appendChild(statusEl);
+    card.appendChild(top);
+
+    var schedule = makeEl('div', 'workout-schedule');
+    schedule.dir = 'ltr';
+    if (w.days.length) {
+      w.days.slice().sort(function (a, b) { return a - b; }).forEach(function (day) {
+        var chip = makeEl('span', 'workout-day-chip' +
+          (day === fromKey(todayKey).getDay() ? ' is-today' : ''), DAY_LABELS[day]);
+        schedule.appendChild(chip);
+      });
+    } else {
+      schedule.appendChild(makeEl('span', 'workout-day-chip is-any', 'Any day'));
+    }
+    schedule.appendChild(makeEl('span', 'workout-schedule-meta',
+      w.exercises.length + ' exercise' + (w.exercises.length === 1 ? '' : 's') +
+      ' · ' + workoutTotalSets(w) + ' sets'));
+    card.appendChild(schedule);
+
+    var entry = workoutEntry(w, todayKey);
+    var doneIds = workoutDoneIds(w, todayKey);
+    if (entry) {
+      var progress = makeEl('div', 'workout-progress');
+      var bar = makeEl('div', 'track-meter workout-meter');
+      var fill = makeEl('span');
+      var pct = w.exercises.length
+        ? Math.round((doneIds.length / w.exercises.length) * 100)
+        : 0;
+      fill.style.width = pct + '%';
+      bar.appendChild(fill);
+      progress.appendChild(bar);
+      progress.appendChild(makeEl('span', 'workout-progress-text',
+        doneIds.length + ' of ' + w.exercises.length + ' exercises'));
+      card.appendChild(progress);
+    }
+
+    var block = makeEl('div', 'track-check');
+    var interactive = !!entry || status.kind === 'today' || status.kind === 'active';
+    block.appendChild(makeEl('p', 'track-check-label',
+      interactive ? 'Today · exercises' : 'Session exercises'));
+    var list = makeEl('ul', 'mini-list workout-ex-list');
+    w.exercises.forEach(function (exercise) {
+      var done = doneIds.indexOf(exercise.id) !== -1;
+      var li = makeEl('li', 'mini-item' + (done ? ' is-done' : ''));
+      li.dir = textDir(exercise.name);
+
+      if (interactive) {
+        var btn = makeEl('button', 'mini-check');
+        btn.type = 'button';
+        btn.setAttribute('role', 'checkbox');
+        btn.setAttribute('aria-checked', done ? 'true' : 'false');
+        btn.setAttribute('aria-label',
+          (done ? 'Undo: ' : 'Complete: ') + exercise.name);
+        btn.innerHTML = CHECK_SVG;
+        btn.addEventListener('click', function () {
+          toggleWorkoutExercise(w, exercise.id);
+        });
+        li.appendChild(btn);
+      } else {
+        var mark = makeEl('span', 'mini-check');
+        mark.setAttribute('aria-hidden', 'true');
+        li.appendChild(mark);
+      }
+
+      var text = makeEl('span', 'mini-text', exercise.name);
+      text.dir = 'auto';
+      li.appendChild(text);
+      var dose = workoutDose(exercise);
+      if (dose) li.appendChild(makeEl('span', 'workout-dose', dose));
+      list.appendChild(li);
+    });
+    block.appendChild(list);
+    card.appendChild(block);
+
+    var actions = makeEl('div', 'track-actions');
+    if (status.kind === 'active') {
+      var finish = makeEl('button', 'track-btn is-primary', 'Finish workout');
+      finish.type = 'button';
+      finish.addEventListener('click', function () { finishWorkout(w); });
+      actions.appendChild(finish);
+    } else if (status.kind !== 'done') {
+      var start = makeEl('button', 'track-btn is-primary',
+        status.kind === 'today' ? 'Start workout' : 'Train today');
+      start.type = 'button';
+      start.addEventListener('click', function () { startWorkout(w); });
+      actions.appendChild(start);
+    } else {
+      actions.appendChild(makeEl('span', 'workout-done-note', '✓ Cleared today'));
+    }
+
+    if (managePrograms) {
+      actions.appendChild(editButton('Edit ' + w.title, function () {
+        openWorkoutSheet(w);
+      }));
+      actions.appendChild(deleteButton('Delete ' + w.title, function () {
+        askDelete('workout', w.title, function () { removeWorkout(w); });
+      }));
+    }
+
+    if (actions.childNodes.length) card.appendChild(actions);
+    return card;
+  }
+
+  function renderWorkouts() {
+    els.workoutList.textContent = '';
+    els.workoutList.classList.toggle('is-managing', managePrograms);
+    renderWorkoutSummary();
+    state.workouts.forEach(function (w, index) {
+      els.workoutList.appendChild(buildWorkoutCard(w, index));
+    });
+    els.workoutsEmpty.hidden = state.workouts.length > 0;
   }
 
   /* -------------------------------- programs ----------------------------- */
@@ -1836,6 +2492,10 @@
     });
 
     els.programsEmpty.hidden = state.programs.length > 0;
+    var live = state.programs.filter(function (p) { return programStatus(p).kind === 'live'; }).length;
+    els.programsSub.textContent = state.programs.length +
+      ' track' + (state.programs.length === 1 ? '' : 's') +
+      (live ? ' · ' + live + ' live' : '');
   }
 
   /* --------------------------------- focus ------------------------------- */
@@ -2108,6 +2768,7 @@
     renderProgramToday(flash);
     renderChallenges();
     renderPrograms();
+    renderWorkouts();
     updateFocusCard();
 
     document.body.classList.toggle('editing', editMode);
@@ -2140,10 +2801,112 @@
     els.formError.hidden = true;
   }
 
+  function buildDayPicker() {
+    if (!els.fieldDays) return;
+    els.fieldDays.textContent = '';
+    DAY_LABELS.forEach(function (label, index) {
+      var btn = makeEl('button', 'day-pick', label);
+      btn.type = 'button';
+      btn.dataset.day = String(index);
+      btn.setAttribute('aria-pressed', 'false');
+      btn.setAttribute('aria-label', DAY_LABELS_LONG[index]);
+      btn.addEventListener('click', function () {
+        var on = btn.getAttribute('aria-pressed') !== 'true';
+        btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        btn.classList.toggle('is-on', on);
+      });
+      els.fieldDays.appendChild(btn);
+    });
+  }
+
+  function setPickedDays(days) {
+    Array.prototype.forEach.call(els.fieldDays.querySelectorAll('[data-day]'), function (btn) {
+      var on = days.indexOf(Number(btn.dataset.day)) !== -1;
+      btn.classList.toggle('is-on', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
+  function pickedDays() {
+    var out = [];
+    Array.prototype.forEach.call(els.fieldDays.querySelectorAll('[data-day]'), function (btn) {
+      if (btn.getAttribute('aria-pressed') === 'true') out.push(Number(btn.dataset.day));
+    });
+    return out;
+  }
+
+  function updateDateHint() {
+    var start = validDateKey(els.fieldStartDate.value);
+    var end = validDateKey(els.fieldEndDate.value);
+    if (!start || !end) {
+      els.dateHint.textContent = 'Choose a start and end date';
+      els.dateHint.classList.remove('is-bad');
+      return;
+    }
+    var days = daysBetween(start, end) + 1;
+    els.dateHint.textContent = days >= MIN_DAYS
+      ? days + ' days'
+      : 'End date must be at least one day after the start';
+    els.dateHint.classList.toggle('is-bad', days < MIN_DAYS);
+  }
+
+  function syncEndFromDuration() {
+    var start = validDateKey(els.fieldStartDate.value) || todayKey;
+    var duration = parseInt(els.fieldDuration.value, 10);
+    if (!duration || duration < MIN_DAYS || duration > MAX_DAYS) {
+      updateDateHint();
+      return;
+    }
+    els.fieldEndDate.value = shiftKey(start, duration - 1);
+    updateDateHint();
+  }
+
+  function syncDurationFromEnd() {
+    var start = validDateKey(els.fieldStartDate.value);
+    var end = validDateKey(els.fieldEndDate.value);
+    if (start && end) {
+      var days = daysBetween(start, end) + 1;
+      if (days >= MIN_DAYS && days <= MAX_DAYS) els.fieldDuration.value = String(days);
+    }
+    updateDateHint();
+  }
+
+  function syncDatesFromStart() {
+    var start = validDateKey(els.fieldStartDate.value) || todayKey;
+    var duration = clampDays(els.fieldDuration.value);
+    els.fieldEndDate.value = shiftKey(start, duration - 1);
+    updateDateHint();
+  }
+
+  function exerciseLine(exercise) {
+    var text = exercise.name;
+    if (exercise.sets && exercise.reps) text += ' ' + exercise.sets + '×' + exercise.reps;
+    return text;
+  }
+
+  function parseExerciseLine(line) {
+    var text = trimText(line, MAX_TITLE);
+    if (!text) return null;
+    var match = text.match(/^(.*?)\s+(\d{1,2})\s*[x×]\s*(\d{1,3})$/i);
+    if (match && trimText(match[1], MAX_TITLE)) {
+      return {
+        name: trimText(match[1], MAX_TITLE),
+        sets: clampInt(match[2], 1, 20, 0),
+        reps: clampInt(match[3], 1, 100, 0)
+      };
+    }
+    return { name: text, sets: 0, reps: 0 };
+  }
+
   function applySheetMode() {
     var isTask = sheetMode === 'task';
+    var isChallenge = sheetMode === 'challenge';
+    var isWorkout = sheetMode === 'workout';
+
     els.taskExtras.hidden = !isTask;
-    els.trackExtras.hidden = isTask;
+    els.trackExtras.hidden = isTask || isWorkout;
+    els.trackDates.hidden = !isChallenge;
+    els.workoutExtras.hidden = !isWorkout;
 
     if (isTask) {
       els.sheetTitle.textContent = editingId ? 'Edit task' : (newRecurring ? 'New non-negotiable' : 'New task');
@@ -2154,8 +2917,18 @@
       return;
     }
 
-    var isChallenge = sheetMode === 'challenge';
-    els.sheetTitle.textContent = isChallenge ? 'New challenge' : 'New program';
+    if (isWorkout) {
+      els.sheetTitle.textContent = editingId ? 'Edit workout' : 'New workout';
+      els.labelTitle.textContent = 'Workout name';
+      els.labelWhy.textContent = 'Why this session matters';
+      els.fieldTitle.placeholder = 'e.g. Push Day';
+      els.fieldWhy.placeholder = 'What does this session build?';
+      return;
+    }
+
+    els.sheetTitle.textContent = editingId
+      ? (isChallenge ? 'Edit challenge' : 'Edit program')
+      : (isChallenge ? 'New challenge' : 'New program');
     els.labelTitle.textContent = isChallenge ? 'Challenge name' : 'Program name';
     els.labelWhy.textContent = 'Why it takes you forward';
     els.fieldTitle.placeholder = isChallenge ? 'e.g. 7-Day No Sugar' : 'e.g. Morning Protocol';
@@ -2166,7 +2939,6 @@
     els.fieldItems.placeholder = isChallenge
       ? 'No added sugar\n2L water\n20 minute walk'
       : 'Wake at 06:00\n10 min sunlight\nCold shower';
-    els.fieldDuration.value = isChallenge ? '7' : '21';
   }
 
   function openTaskSheet(task, recurringPreset) {
@@ -2185,13 +2957,49 @@
     showSheet();
   }
 
-  function openTrackSheet(mode) {
+  function openTrackSheet(mode, item) {
     sheetMode = mode;
-    editingId = null;
-    els.fieldTitle.value = '';
-    els.fieldWhy.value = '';
-    els.fieldItems.value = '';
-    els.fieldDuration.value = mode === 'challenge' ? '7' : '21';
+    editingId = item ? item.id : null;
+
+    els.fieldTitle.value = item ? item.title : '';
+    els.fieldWhy.value = item ? item.why : '';
+    if (item && mode === 'challenge') {
+      els.fieldItems.value = item.daily.map(function (entry) { return entry.title; }).join('\n');
+    } else if (item && mode === 'program') {
+      els.fieldItems.value = item.items.join('\n');
+    } else {
+      els.fieldItems.value = '';
+    }
+
+    var duration = item ? item.duration : (mode === 'challenge' ? 7 : 21);
+    els.fieldDuration.value = String(duration);
+
+    if (mode === 'challenge') {
+      var start = item && item.startDate ? item.startDate : todayKey;
+      var end = item && item.endDate ? item.endDate : shiftKey(start, duration - 1);
+      els.fieldStartDate.value = start;
+      els.fieldEndDate.value = end;
+      updateDateHint();
+    }
+
+    els.sheetDelete.hidden = true;
+    clearError();
+    applySheetMode();
+    showSheet();
+  }
+
+  function openWorkoutSheet(item) {
+    sheetMode = 'workout';
+    editingId = item ? item.id : null;
+
+    els.fieldTitle.value = item ? item.title : '';
+    els.fieldWhy.value = item ? item.why : '';
+    els.fieldFocus.value = item ? item.focus : '';
+    els.fieldExercises.value = item
+      ? item.exercises.map(exerciseLine).join('\n')
+      : '';
+    setPickedDays(item ? item.days : [fromKey(todayKey).getDay()]);
+
     els.sheetDelete.hidden = true;
     clearError();
     applySheetMode();
@@ -2258,8 +3066,91 @@
     toast(wasEditing ? 'Task updated' : 'Task added');
   }
 
+  function saveWorkout() {
+    var wasEditing = !!editingId;
+    var title = trimText(els.fieldTitle.value, MAX_TITLE);
+    if (!title) {
+      showError('Give the workout a name first.');
+      els.fieldTitle.focus();
+      return;
+    }
+
+    var exercises = els.fieldExercises.value.split('\n')
+      .map(parseExerciseLine)
+      .filter(Boolean)
+      .slice(0, MAX_ITEMS);
+
+    if (!exercises.length) {
+      showError('Add at least one exercise.');
+      els.fieldExercises.focus();
+      return;
+    }
+
+    var existing = editingId ? workoutById(editingId) : null;
+    var oldIds = {};
+    if (existing) {
+      existing.exercises.forEach(function (exercise) {
+        oldIds[exercise.name.toLowerCase()] = exercise.id;
+      });
+    }
+
+    var used = {};
+    var nextExercises = exercises.map(function (exercise) {
+      var id = oldIds[exercise.name.toLowerCase()] || uid();
+      if (used[id]) id = uid();
+      used[id] = true;
+      return {
+        id: id,
+        name: exercise.name,
+        sets: exercise.sets,
+        reps: exercise.reps
+      };
+    });
+
+    var data = {
+      title: title,
+      why: trimText(els.fieldWhy.value, MAX_WHY),
+      focus: trimText(els.fieldFocus.value, 40),
+      days: pickedDays(),
+      exercises: nextExercises
+    };
+
+    if (existing) {
+      existing.title = data.title;
+      existing.why = data.why;
+      existing.focus = data.focus;
+      existing.days = data.days;
+      existing.exercises = data.exercises;
+
+      var valid = {};
+      data.exercises.forEach(function (exercise) { valid[exercise.id] = true; });
+      Object.keys(existing.log).forEach(function (key) {
+        var entry = existing.log[key];
+        entry.done = (entry.done || []).filter(function (id) { return valid[id]; });
+        if (!entry.started && !entry.done.length) delete existing.log[key];
+      });
+    } else {
+      state.workouts.unshift({
+        id: uid(),
+        title: data.title,
+        why: data.why,
+        focus: data.focus,
+        days: data.days,
+        exercises: data.exercises,
+        log: {},
+        createdAt: Date.now()
+      });
+    }
+
+    save();
+    closeSheet();
+    renderAll();
+    toast(wasEditing ? 'Workout updated' : 'Workout added');
+  }
+
   function saveTrack() {
     var mode = sheetMode;
+    var wasEditing = !!editingId;
     var title = trimText(els.fieldTitle.value, MAX_TITLE);
     if (!title) {
       showError('Give it a name first.');
@@ -2273,7 +3164,7 @@
     }).filter(Boolean).slice(0, MAX_ITEMS);
 
     if (!items.length) {
-      showError(sheetMode === 'challenge'
+      showError(mode === 'challenge'
         ? 'Add at least one daily action.'
         : 'Add at least one routine item.');
       els.fieldItems.focus();
@@ -2283,37 +3174,89 @@
     var why = trimText(els.fieldWhy.value, MAX_WHY);
 
     if (mode === 'challenge') {
-      state.challenges.unshift({
-        id: uid(),
-        title: title,
-        why: why,
-        duration: duration,
-        daily: items.map(function (text) {
-          return { id: uid(), title: text };
-        }),
-        startedAt: null,
-        log: {}
+      var startDate = validDateKey(els.fieldStartDate.value) || todayKey;
+      var endDate = validDateKey(els.fieldEndDate.value) ||
+        shiftKey(startDate, duration - 1);
+      if (endDate <= startDate) {
+        showError('End date must be after the start date.');
+        els.fieldEndDate.focus();
+        return;
+      }
+      duration = clampDays(daysBetween(startDate, endDate) + 1);
+      endDate = shiftKey(startDate, duration - 1);
+
+      var existing = editingId
+        ? state.challenges.filter(function (ch) { return ch.id === editingId; })[0]
+        : null;
+      var oldIds = {};
+      if (existing) {
+        existing.daily.forEach(function (entry) {
+          oldIds[entry.title.toLowerCase()] = entry.id;
+        });
+      }
+      var used = {};
+      var daily = items.map(function (text) {
+        var id = oldIds[text.toLowerCase()] || uid();
+        if (used[id]) id = uid();
+        used[id] = true;
+        return { id: id, title: text };
       });
+
+      if (existing) {
+        existing.title = title;
+        existing.why = why;
+        existing.duration = duration;
+        existing.startDate = startDate;
+        existing.endDate = endDate;
+        existing.daily = daily;
+        /* Configuring the beginning moves the day count with it. */
+        if (existing.startedAt) existing.startedAt = startDate;
+      } else {
+        state.challenges.unshift({
+          id: uid(),
+          title: title,
+          why: why,
+          duration: duration,
+          startDate: startDate,
+          endDate: endDate,
+          daily: daily,
+          startedAt: null,
+          log: {}
+        });
+      }
     } else {
-      state.programs.unshift({
-        id: uid(),
-        title: title,
-        why: why,
-        duration: duration,
-        items: items,
-        startedAt: null
-      });
+      var existingProgram = editingId
+        ? state.programs.filter(function (p) { return p.id === editingId; })[0]
+        : null;
+      if (existingProgram) {
+        existingProgram.title = title;
+        existingProgram.why = why;
+        existingProgram.duration = duration;
+        existingProgram.items = items;
+      } else {
+        state.programs.unshift({
+          id: uid(),
+          title: title,
+          why: why,
+          duration: duration,
+          items: items,
+          startedAt: null
+        });
+      }
     }
 
     save();
     closeSheet();
     renderAll();
-    toast(mode === 'challenge' ? 'Challenge added' : 'Program added');
+    toast(wasEditing
+      ? (mode === 'challenge' ? 'Challenge updated' : 'Program updated')
+      : (mode === 'challenge' ? 'Challenge added' : 'Program added'));
   }
 
   function saveSheet(event) {
     event.preventDefault();
     if (sheetMode === 'task') saveTask();
+    else if (sheetMode === 'workout') saveWorkout();
     else saveTrack();
   }
 
@@ -2346,6 +3289,10 @@
     program: {
       title: 'Delete this program?',
       note: 'Its routine items are removed from your list with it.'
+    },
+    workout: {
+      title: 'Delete this workout?',
+      note: 'Its exercise history and session logs go with it.'
     }
   };
 
@@ -2535,6 +3482,7 @@
   els.addHabitBtn.addEventListener('click', function () { openTaskSheet(null, true); });
   els.addChallengeBtn.addEventListener('click', function () { openTrackSheet('challenge'); });
   els.addProgramBtn.addEventListener('click', function () { openTrackSheet('program'); });
+  els.addWorkoutBtn.addEventListener('click', function () { openWorkoutSheet(null); });
 
   els.editBtn.addEventListener('click', function () {
     editMode = !editMode;
@@ -2552,6 +3500,7 @@
   els.editPrograms.addEventListener('click', function () {
     managePrograms = !managePrograms;
     renderPrograms();
+    renderWorkouts();
     els.editPrograms.classList.toggle('is-on', managePrograms);
     els.editPrograms.setAttribute('aria-pressed', managePrograms ? 'true' : 'false');
   });
@@ -2597,6 +3546,12 @@
   els.fieldTitle.addEventListener('input', function () {
     if (!els.fieldTitle.value.trim()) return;
     clearError();
+  });
+
+  els.fieldStartDate.addEventListener('change', syncDatesFromStart);
+  els.fieldEndDate.addEventListener('change', syncDurationFromEnd);
+  els.fieldDuration.addEventListener('input', function () {
+    if (sheetMode === 'challenge') syncEndFromDuration();
   });
 
   els.focusSwitch.addEventListener('change', function () {
@@ -2786,6 +3741,7 @@
     });
   }
 
+  buildDayPicker();
   ensureProgramLinks();
   renderAll();
   updateFocus();
