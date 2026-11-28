@@ -7,21 +7,21 @@
     <title>Your AURA code</title>
   </head>
   <!--
-    AURA // email sign-in code (the project issues 6 to 10 digits).
+    AURA // email sign-in code (the project decides the code length).
 
     Paste this into the "Magic Link" email template of the AURA project
     (Authentication → Emails → Magic Link), with the subject line
     "Your AURA code". The same body works for the "Confirm signup" template.
 
-    It is code-only on purpose: there is no link to click, so no mail client
-    can ever land the user on a dead callback URL. Every AURA address in here
-    is the live app: https://kyrollll.github.io/AURA/ (four l's — the three-l
-    spelling of the account does not resolve, and would 404).
+    The code is the only thing that signs you in. "Open AURA" is a plain link
+    to the app; no link in this email carries a token, so no mail client can
+    land the user on a dead callback URL. Every AURA address in here is the
+    live app: https://kyrollll.github.io/AURA/ (four l's — the three-l spelling
+    of the account does not resolve, and would 404).
 
-    The logo is a small, already-cropped 480px PNG served by that same site,
-    with explicit width/height so Gmail lays it out before the bytes arrive.
-    If images are blocked, the gold alt text reads AURA instead of a bare
-    broken-image icon.
+    The wordmark is live text, not an image: there is no file to load, so no
+    client (Gmail included) can ever show a broken-image icon or a grey box.
+    It is set in a system font stack at a fixed size, so it stays crisp.
   -->
   <body style="margin:0;padding:0;background:#08070b;color:#ffffff;-webkit-font-smoothing:antialiased;">
     <div style="display:none;max-height:0;overflow:hidden;opacity:0;">
@@ -36,16 +36,16 @@
             style="max-width:460px;background:#141319;border:1px solid rgba(245,201,78,0.22);border-radius:20px;overflow:hidden;">
             <tr>
               <td style="padding:32px 32px 8px 32px;text-align:center;">
-                <a href="https://kyrollll.github.io/AURA/" target="_blank"
-                  style="display:block;width:240px;margin:0 auto 22px auto;text-decoration:none;border:0;">
-                  <img src="https://kyrollll.github.io/AURA/assets/aura-email-mark.png"
-                    alt="AURA" width="240" height="81" border="0"
-                    style="display:block;width:240px;height:81px;margin:0 auto;border:0;outline:none;text-decoration:none;background:transparent;color:#f5c94e;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:19px;line-height:81px;letter-spacing:0.2em;font-weight:700;-ms-interpolation-mode:bicubic;" />
-                </a>
-
-                <p style="margin:0 0 10px 0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:11px;line-height:16px;letter-spacing:0.22em;text-transform:uppercase;color:#f5c94e;font-weight:700;">
-                  AURA Account
-                </p>
+                <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:32px;line-height:36px;font-weight:700;letter-spacing:0.32em;text-indent:0.32em;text-transform:uppercase;color:#ffe49a;margin:0 0 12px 0;">
+                  AURA
+                </div>
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center"
+                  style="margin:0 auto 18px auto;">
+                  <tr>
+                    <td width="46" height="1" bgcolor="#6f5c22"
+                      style="width:46px;height:1px;line-height:1px;font-size:0;background:#6f5c22;">&nbsp;</td>
+                  </tr>
+                </table>
 
                 <h1 style="margin:0 0 10px 0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:24px;line-height:32px;color:#ffffff;font-weight:700;letter-spacing:-0.01em;">
                   Your verification code

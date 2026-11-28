@@ -297,7 +297,6 @@ sw.js                      Offline cache — aura-v44, versioned shell assets
 AURALOGO.png               Official logo tile (source for every app icon)
 AURALOGO-ONLY.png          Wordmark alone, alpha cut (source for the in-app mark)
 assets/aura-mark.png       Header/footer mark, trimmed and scaled from AURALOGO-ONLY
-assets/aura-email-mark.png  Email-only mark (480px, cropped) for the code template
 icons/                     PNG icons (any + maskable), apple-touch icon and favicon
                             built from AURALOGO
 tools/make_icons.py        Icon + mark generator (Python + Pillow)
