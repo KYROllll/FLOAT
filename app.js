@@ -4125,9 +4125,9 @@
       recurring: els.fieldRecurring.checked
     };
 
-    /* A new task always joins the live day, even while an earlier date is
-       being reviewed. Only non-negotiables recur beyond it. */
-    var wasReviewing = selectedKey !== todayKey;
+    /* A new task lands on the exact day being viewed, so a past day can be
+       filled in later. Only non-negotiables recur beyond it. */
+    var targetKey = selectedKey;
 
     if (editingId) {
       state.tasks.forEach(function (task) {
@@ -4137,28 +4137,38 @@
         task.time = data.time;
         task.recurring = data.recurring;
         if (data.recurring) task.date = '';
-        else if (!task.date) task.date = todayKey;
+        else if (!task.date) task.date = targetKey;
       });
     } else {
-      state.tasks.unshift({
+      var created = {
         id: uid(),
         title: data.title,
         why: data.why,
         time: data.time,
         recurring: data.recurring,
-        date: data.recurring ? '' : todayKey,
+        date: data.recurring ? '' : targetKey,
         key: streakKeyFor(data.title),
         createdAt: Date.now()
-      });
+      };
+      state.tasks.unshift(created);
+      /* A past day renders from its own frozen record, so a task added there
+         has to join that record directly. */
+      if (targetKey !== todayKey) {
+        var record = state.days[targetKey];
+        if (!record) record = state.days[targetKey] = { items: [], done: [] };
+        if (!Array.isArray(record.items)) record.items = [];
+        record.items.unshift(frozenTask(created));
+      }
     }
 
-    if (wasReviewing) selectedKey = todayKey;
     save();
     closeSheet();
     renderAll();
     toast(wasEditing
       ? 'Task updated'
-      : wasReviewing ? '✓ Task added to today' : 'Task added');
+      : targetKey === todayKey
+        ? 'Task added'
+        : '✓ Task added to ' + fromKey(targetKey).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }));
   }
 
   /* Build mode accepts either explicit `Day 1` / `Day 1:` headers or a blank

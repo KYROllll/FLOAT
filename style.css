@@ -485,7 +485,7 @@ button {
   background: transparent;
   color: var(--muted);
   transition: background 0.22s var(--ease), color 0.22s var(--ease),
-    transform 0.22s var(--ease);
+    box-shadow 0.22s var(--ease), transform 0.22s var(--ease);
 }
 
 .wk:active {
@@ -559,50 +559,18 @@ button {
   text-shadow: 0 0 7px rgba(239, 68, 68, 0.6);
 }
 
-/* The selected day is a filled gold pill, so its marker is a pure darker dot:
-   no disc, no halo, just the status colour straight on the yellow. */
-.wk.is-selected .wk-dot {
-  background: transparent;
-  color: var(--gold-ink);
-  box-shadow: none;
-}
-
-.wk.is-selected .wk-dot::before {
-  width: 7px;
-  height: 7px;
-  background: #5d5668;
-  box-shadow: none;
-}
-
-.wk.is-selected .wk-dot.is-win::before {
-  background: #0d8a3d;
-  box-shadow: none;
-}
-
-.wk.is-selected .wk-dot.is-loss::before {
-  background: #d21f1f;
-  box-shadow: none;
-}
-
-.wk.is-selected .wk-dot.is-check {
-  color: #0a7a35;
-  text-shadow: none;
-}
-
-.wk.is-selected .wk-dot.is-cross {
-  color: #c61b1b;
-  text-shadow: none;
-}
-
+/* The selected day is a dark-glass well with a soft champagne edge: the marker
+   keeps its own status colour, so a won day still reads green inside it. */
 .wk.is-today {
   color: var(--ink);
 }
 
 .wk.is-selected {
-  color: var(--gold-ink);
-  background: linear-gradient(180deg, var(--gold-bright), var(--gold));
-  box-shadow: 0 8px 20px rgba(245, 201, 78, 0.24),
-    inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  color: #f2dfa9;
+  background: linear-gradient(180deg, rgba(245, 201, 78, 0.14), rgba(245, 201, 78, 0.05));
+  box-shadow: inset 0 0 0 1px rgba(245, 201, 78, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 6px 16px -12px rgba(0, 0, 0, 0.9);
 }
 
 .wk:disabled {
@@ -5401,11 +5369,6 @@ body.demo-open {
 
 .wk-dot.is-rest::before {
   display: none;
-}
-
-.wk.is-selected .wk-dot.is-rest {
-  color: #5b21b6;
-  text-shadow: none;
 }
 
 .cal-cell.is-rest {
