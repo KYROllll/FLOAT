@@ -2508,19 +2508,17 @@ body.editing .task-del {
   overflow: hidden;
 }
 
+/* The timeline is a clock, not a verdict: it only ever shows how much of the
+   window has elapsed, so it keeps one gold track whether the card is live, won
+   or lost. Outcome colours belong to the status pill and the day marks. */
 .track-meter span {
   display: block;
   height: 100%;
   width: 0;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--track-a, #8b5cf6), var(--track-b, #f5c94e));
-  box-shadow: 0 0 12px var(--track-b, #f5c94e);
+  background: linear-gradient(90deg, var(--gold-deep), var(--gold) 58%, var(--gold-bright));
+  box-shadow: 0 0 12px rgba(245, 201, 78, 0.4);
   transition: width 0.55s var(--ease);
-}
-
-.track-card.is-won .track-meter span {
-  background: linear-gradient(90deg, #22c55e, #00e676);
-  box-shadow: 0 0 12px rgba(34, 197, 94, 0.6);
 }
 
 .track-meta {

@@ -3947,12 +3947,19 @@
     return result.won ? 'win' : 'loss';
   }
 
+  /* A run of wins only becomes a streak on its second day: one standalone win
+     is still `0`, two in a row is `1`, three in a row is `2` and so on. */
+  function streakFromRun(run) {
+    return run > 1 ? run - 1 : 0;
+  }
+
   /* The one streak walk the whole app reads: the header pill, the Calendar's
      Current and Best tiles are all this function, so no two numbers can drift.
      A run counts consecutive WIN days; rest days and days that carried nothing
      scheduled are neutral, so they neither add to a run nor break it. Only a
      LOSS ends it — and an open today is not a loss yet, so today's shortfall
-     never wipes out the run behind it. */
+     never wipes out the run behind it. A lone win day is not a streak yet, so
+     both tiles report the run's second day as `1` (see `streakFromRun`). */
   function winStreaks() {
     var current = 0;
     var cursor = todayKey;
@@ -3974,6 +3981,7 @@
       }
       break;
     }
+    current = streakFromRun(current);
 
     var keys = Object.keys(state.days).concat(Object.keys(state.restDays || {})).sort();
     var best = current;
@@ -3984,7 +3992,8 @@
         if (mark === 'rest' || mark === 'empty') continue;
         if (mark === 'win') {
           run += 1;
-          if (run > best) best = run;
+          var streak = streakFromRun(run);
+          if (streak > best) best = streak;
         } else {
           run = 0;
         }
