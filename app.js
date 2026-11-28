@@ -1454,32 +1454,6 @@
     return streak >= 2 ? streak - 1 : 0;
   }
 
-  function perfectStreak() {
-    /* A rest day is skipped rather than counted, so it freezes the run
-       without padding it. An unfinished today can still be saved. */
-    if (!isRestDay(todayKey) && !activeTasksOn(todayKey).length) return 0;
-    var cursor = todayKey;
-    var n = 0;
-    var guard = 0;
-    while (guard < MAX_STREAK) {
-      guard += 1;
-      if (isRestDay(cursor)) {
-        cursor = shiftKey(cursor, -1);
-        continue;
-      }
-      if (!allDone(cursor)) {
-        if (cursor === todayKey) {
-          cursor = shiftKey(cursor, -1);
-          continue;
-        }
-        break;
-      }
-      n += 1;
-      cursor = shiftKey(cursor, -1);
-    }
-    return n;
-  }
-
   // Smallest completed count whose rounded percentage clears the win bar.
   function winTarget(total) {
     if (!total) return 0;
@@ -1779,14 +1753,20 @@
 
     if (els.restToggle) {
       /* Recovery is a starting choice, never a retreat: once a single action
-         is ticked the day is in play and Rest Day stays locked. */
-      var restLocked = !rest && done > 0;
+         is ticked the day is in play. A challenge day is in play from the
+         start, so Rest Day stays locked across its whole window. */
+      var challengeHold = challengesOn(selectedKey).length > 0;
+      var restLocked = !rest && (done > 0 || challengeHold);
+      var restReason = challengeHold && done === 0
+        ? 'Rest Day is locked on an active challenge day'
+        : 'Rest Day is locked once progress starts';
       els.restToggle.classList.toggle('is-on', rest);
       els.restToggle.classList.toggle('is-locked', restLocked);
+      els.restToggle.classList.toggle('is-challenge-locked', restLocked && challengeHold);
       els.restToggle.setAttribute('aria-pressed', rest ? 'true' : 'false');
       els.restToggle.setAttribute('aria-disabled', restLocked ? 'true' : 'false');
       els.restToggle.title = restLocked
-        ? 'Rest Day is locked once progress starts'
+        ? restReason
         : rest ? 'Turn this rest day off' : 'Mark this day as recovery';
       if (els.restToggleText) {
         els.restToggleText.textContent = rest
@@ -1810,9 +1790,14 @@
       els.topMeta.textContent = 'Today’s standard, executed.';
     }
 
-    var streak = perfectStreak();
+    /* The header reads the very same runs the Calendar reads — straight from
+       the stored day records — so the two numbers can never disagree. */
+    var streak = winStreaks().current;
     els.perfectCount.textContent = String(streak);
     els.perfectPill.classList.toggle('is-hot', streak > 0);
+    els.perfectPill.title = streak > 0
+      ? streak + ' consecutive win days'
+      : 'Consecutive win days';
   }
 
   function programOf(task) {
@@ -2249,7 +2234,7 @@
         ? 'Rest day'
         : st.verdict === 'win' ? 'WIN'
           : st.verdict === 'loss' ? 'LOSS'
-            : st.kind === 'live' ? 'LIVE' : st.label;
+            : st.kind === 'live' ? 'Active' : st.label;
       var statusEl = makeEl('span', 'track-status is-' + statusKind, statusLabel);
       statusEl.dir = 'auto';
       top.appendChild(statusEl);
@@ -4778,6 +4763,13 @@
         if (dayResult(selectedKey).done > 0) {
           vibrate(14);
           toast('Rest day is locked · progress already started');
+          return;
+        }
+        /* An active challenge owns the day: recovery cannot be declared over
+           it, so the window's days stay winnable. */
+        if (challengesOn(selectedKey).length) {
+          vibrate(14);
+          toast('Rest day is locked · a challenge is running');
           return;
         }
         state.restDays[selectedKey] = true;

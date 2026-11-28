@@ -2423,10 +2423,36 @@ body.editing .task-del {
   border-color: rgba(168, 162, 180, 0.16);
 }
 
+/* Running right now: the one solid gold pill on the card, with a live dot. */
 .track-status.is-live {
-  color: #fff0c4;
-  background: rgba(245, 201, 78, 0.12);
-  border-color: rgba(245, 201, 78, 0.32);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #1b1204;
+  background: linear-gradient(180deg, #ffe6a3, #f5c94e);
+  border-color: transparent;
+  box-shadow: 0 0 14px rgba(245, 201, 78, 0.36);
+}
+
+.track-status.is-live::before {
+  content: "";
+  flex: none;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #1b1204;
+  animation: liveDot 1.9s var(--ease) infinite;
+}
+
+@keyframes liveDot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track-status.is-live::before {
+    animation: none;
+  }
 }
 
 .track-status.is-won {
@@ -5781,6 +5807,17 @@ body.rest-day .focus-card {
 
 .rest-toggle.is-locked .rest-toggle-icon {
   filter: grayscale(1);
+}
+
+/* A day inside a challenge window reads as owned, not merely unavailable. */
+.rest-toggle.is-challenge-locked {
+  border-color: rgba(167, 139, 250, 0.3);
+  background: rgba(139, 92, 246, 0.1);
+  color: #c4b5fd;
+}
+
+.rest-toggle.is-challenge-locked .rest-toggle-icon {
+  filter: none;
 }
 
 .rest-toggle-icon {

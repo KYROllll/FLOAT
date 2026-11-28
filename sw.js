@@ -1,5 +1,5 @@
 /* AURA // DAILY OS — offline shell */
-const CACHE_NAME = 'aura-v30';
+const CACHE_NAME = 'aura-v31';
 const CORE_ASSETS = [
   './',
   './index.html',
