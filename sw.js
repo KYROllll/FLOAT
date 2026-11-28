@@ -1,11 +1,16 @@
 /* AURA // DAILY OS — offline shell */
-const CACHE_NAME = 'aura-v40';
+/* SHELL_VERSION must match the ?v= queries on the script/style tags in
+   index.html. Bump it (and those queries) whenever a shell file changes: the
+   versioned URL is what guarantees a new HTML can never pair with an older
+   cached app.js, which is exactly how the account gate once failed to appear. */
+const SHELL_VERSION = '41';
+const CACHE_NAME = 'aura-v' + SHELL_VERSION;
 const CORE_ASSETS = [
   './',
   './index.html',
-  './style.css',
-  './supabase-client.js',
-  './app.js',
+  './style.css?v=' + SHELL_VERSION,
+  './supabase-client.js?v=' + SHELL_VERSION,
+  './app.js?v=' + SHELL_VERSION,
   './manifest.json',
   './assets/aura-mark.png',
   './icons/favicon.png',
@@ -17,8 +22,12 @@ const CORE_ASSETS = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
+    /* cache: 'reload' bypasses the HTTP cache (GitHub Pages sends max-age=600),
+       so the precache holds the bytes of this deploy, not a stale copy. */
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(CORE_ASSETS))
+      .then((cache) => cache.addAll(
+        CORE_ASSETS.map((url) => new Request(url, { cache: 'reload' }))
+      ))
       .then(() => self.skipWaiting())
   );
 });
@@ -35,6 +44,11 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+/* A page that loaded a newer shell can ask this worker to take over at once. */
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET') return;
@@ -42,7 +56,8 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  /* Navigations: fresh shell when online, cached shell offline. */
+  /* Navigations: always ask the network first, fall back to the cached shell
+     offline. That keeps the HTML current even when the worker is mid-update. */
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
@@ -56,9 +71,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  /* Static assets: cache first, refreshed quietly in the background. */
+  /* Assets are cache-first, which is safe because every shell asset carries
+     the ?v=<SHELL_VERSION> query: a new version is a new URL, so it can never
+     resolve to an older cached file. Matching is exact — ignoreSearch would
+     hand back the previous version's copy again. */
   event.respondWith(
-    caches.match(request, { ignoreSearch: true }).then((cached) => {
+    caches.match(request).then((cached) => {
       if (cached) {
         fetch(request).then((response) => {
           if (response && response.ok) {

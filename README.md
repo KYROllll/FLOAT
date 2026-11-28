@@ -22,7 +22,9 @@ Open **http://localhost:8080**. The service worker and Home Screen install need 
 2. **Share → Add to Home Screen**.
 3. Launch it from the Home Screen — it runs standalone, respects the notch and home indicator, and works offline.
 
-The service worker uses cache `aura-v40` and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the current palette, the new app icons and the in-app mark on the next launch.
+The service worker uses cache `aura-v41` (SHELL_VERSION in `sw.js`) and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the current palette, the new app icons and the in-app mark on the next launch.
+
+**Shell updates can never mix versions.** Every script and stylesheet is requested with the shell version (`app.js?v=41`, `style.css?v=41`), and `sw.js` caches with exact matching, so a new `index.html` can never be paired with an older cached `app.js` — the failure that once left `#authGate` hidden on live installs. The worker precaches with `cache: 'reload'` (GitHub Pages sends `max-age=600`, so the HTTP cache is not trusted), `register()` uses `updateViaCache: 'none'`, and the app checks `registration.update()` on load and whenever it returns to the foreground, takes over a waiting worker immediately, and reloads once when a newer worker claims the page. Bump `SHELL_VERSION` (and the `?v=` queries) together with any shell change.
 
 On mobile the app's background is a fixed layer pinned to the viewport, not a fixed-attachment body gradient: iOS Safari sizes that gradient once, so switching to a shorter tab (Challenges with one track, say) used to leave a bare grey strip under the content. The canvas itself is a flat near-black, the page is at least `100dvh` tall, and a tab switch resets the scroll offset before the new view is painted — so no view, repaint or toolbar collapse can expose an empty block above the tab bar.
 
@@ -254,7 +256,7 @@ app.js                     State, migration, per-day snapshots, verdicts, streak
 supabase-client.js         Tiny Supabase Auth + PostgREST client (publishable key only)
 supabase/aura_user_state.sql  Table + RLS policies for the per-user cloud state
 manifest.json              PWA manifest (AURA, standalone, portrait)
-sw.js                      Offline cache — aura-v40
+sw.js                      Offline cache — aura-v41, versioned shell assets
 AURALOGO.png               Official logo tile (source for every app icon)
 AURALOGO-ONLY.png          Wordmark alone, alpha cut (source for the in-app mark)
 assets/aura-mark.png       Header/footer mark, trimmed and scaled from AURALOGO-ONLY

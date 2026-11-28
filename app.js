@@ -5703,11 +5703,62 @@
     event.preventDefault();
   }, { passive: false });
 
+  /* The shell is cached by a service worker, and GitHub Pages serves every
+     file (sw.js included) with max-age=600. Without this, a returning install
+     can keep running yesterday's app.js against today's index.html — which is
+     how the account gate once stayed hidden. So: never trust the HTTP cache
+     for sw.js, look for a new worker on load and whenever the app comes back
+     to the foreground, take over a waiting worker at once, and reload once
+     when a newer worker has claimed this page. */
   if ('serviceWorker' in navigator && window.isSecureContext) {
-    window.addEventListener('load', function () {
-      navigator.serviceWorker.register('./sw.js').catch(function () {
-        /* Registration is optional; the app runs without it. */
+    /* Captured before registering: a page that was already controlled is the
+       one that may be running an older shell. */
+    var hadController = !!navigator.serviceWorker.controller;
+    var swReloaded = false;
+    var shellModalOpen = function () {
+      return [els.sheet, els.confirm, els.studio, els.demo].some(function (el) {
+        return el && !el.hidden;
       });
+    };
+    var reloadForNewShell = function () {
+      if (swReloaded) return;
+      /* Never pull the page out from under a half-typed sheet: that edit is
+         picked up on the next normal visit instead. */
+      if (shellModalOpen()) return;
+      try {
+        if (window.sessionStorage.getItem('aura.sw.reloaded') === '1') return;
+        window.sessionStorage.setItem('aura.sw.reloaded', '1');
+      } catch (err) {}
+      swReloaded = true;
+      window.location.reload();
+    };
+
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      /* Only a worker that replaced one which already controlled this page
+         needs a reload; the first install must not reload a fresh visit. */
+      if (hadController) reloadForNewShell();
+    });
+
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+        .then(function (registration) {
+          if (registration.waiting) {
+            registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+          }
+          return registration.update();
+        })
+        .catch(function () {
+          /* Registration is optional; the app runs without it. */
+        });
+    });
+
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) return;
+      navigator.serviceWorker.getRegistration().then(function (registration) {
+        if (!registration) return;
+        if (registration.waiting) registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+        registration.update().catch(function () {});
+      }).catch(function () {});
     });
   }
 
