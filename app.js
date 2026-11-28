@@ -1796,7 +1796,7 @@
     els.perfectCount.textContent = String(streak);
     els.perfectPill.classList.toggle('is-hot', streak > 0);
     els.perfectPill.title = streak > 0
-      ? streak + ' consecutive win days'
+      ? streak + (streak === 1 ? ' consecutive win day' : ' consecutive win days')
       : 'Consecutive win days';
   }
 
@@ -3947,14 +3947,18 @@
     return result.won ? 'win' : 'loss';
   }
 
-  /* Streaks are read from the stored day records themselves: consecutive WIN
-     days, with rest days freezing the run and a lost or empty day ending it. */
+  /* The one streak walk the whole app reads: the header pill, the Calendar's
+     Current and Best tiles are all this function, so no two numbers can drift.
+     A run counts consecutive WIN days; rest days and days that carried nothing
+     scheduled are neutral, so they neither add to a run nor break it. Only a
+     LOSS ends it — and an open today is not a loss yet, so today's shortfall
+     never wipes out the run behind it. */
   function winStreaks() {
     var current = 0;
     var cursor = todayKey;
     for (var guard = 0; guard < MAX_STREAK; guard += 1) {
       var mark = dayTally(cursor);
-      if (mark === 'rest') {
+      if (mark === 'rest' || mark === 'empty') {
         cursor = shiftKey(cursor, -1);
         continue;
       }
@@ -3977,7 +3981,7 @@
       var run = 0;
       for (var key = keys[0]; key <= todayKey; key = shiftKey(key, 1)) {
         var mark = dayTally(key);
-        if (mark === 'rest') continue;
+        if (mark === 'rest' || mark === 'empty') continue;
         if (mark === 'win') {
           run += 1;
           if (run > best) best = run;
@@ -4038,8 +4042,11 @@
     view = target;
     state.view = view;
     save();
-    renderAll();
+    /* Reset before the repaint: a shorter view painted at the old, deeper
+       offset leaves an empty strip above the tab bar on mobile. */
     window.scrollTo(0, 0);
+    renderAll();
+    if (window.scrollY !== 0) window.scrollTo(0, 0);
   }
 
   /* --------------------------------- sheet ------------------------------- */

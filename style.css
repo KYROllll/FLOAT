@@ -66,17 +66,13 @@ html {
 
 body {
   /* Fill the visual viewport even when a view is short (a single program, an
-     empty list). Without this the body box ended above the tab bar and the
-     leftover strip fell back to the flat html colour, which read as grey.
-     100dvh tracks the browser chrome; 100vh is the fallback. */
+     empty list), and paint a flat dark canvas. The gradient lives on the fixed
+     layer below instead: a `background-attachment: fixed` body gradient is
+     sized once by iOS Safari, so after a tab switch shrank the page (or the
+     toolbar collapsed) it stopped short and left an empty grey strip. */
   min-height: 100vh;
   min-height: 100dvh;
-  background:
-    radial-gradient(95% 52% at 6% -8%, rgba(124, 74, 214, 0.34) 0%, transparent 62%),
-    radial-gradient(80% 44% at 100% 0%, rgba(245, 201, 78, 0.12) 0%, transparent 62%),
-    radial-gradient(110% 58% at 50% 108%, rgba(255, 168, 52, 0.12) 0%, transparent 68%),
-    linear-gradient(180deg, #0c0b10 0%, var(--bg) 46%, var(--bg-deep) 100%);
-  background-attachment: fixed;
+  background-color: var(--bg);
   color: var(--ink);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", ui-sans-serif,
     "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans Hebrew", sans-serif;
@@ -87,12 +83,22 @@ body {
   overscroll-behavior-y: none;
 }
 
+/* The app's light, pinned to the viewport rather than the page: it covers the
+   full screen no matter how tall the current view is or how far it is scrolled,
+   so no repaint or tab switch can expose a bare strip underneath. */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(120% 100% at 50% 40%, transparent 58%, rgba(0, 0, 0, 0.42) 100%);
+  background-color: var(--bg-deep);
+  background-image:
+    radial-gradient(120% 100% at 50% 40%, transparent 58%, rgba(0, 0, 0, 0.42) 100%),
+    radial-gradient(95% 52% at 6% -8%, rgba(124, 74, 214, 0.34) 0%, transparent 62%),
+    radial-gradient(80% 44% at 100% 0%, rgba(245, 201, 78, 0.12) 0%, transparent 62%),
+    radial-gradient(110% 58% at 50% 108%, rgba(255, 168, 52, 0.12) 0%, transparent 68%),
+    linear-gradient(180deg, #0c0b10 0%, var(--bg) 46%, var(--bg-deep) 100%);
+  transform: translateZ(0);
   z-index: 0;
 }
 
