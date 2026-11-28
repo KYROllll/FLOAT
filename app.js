@@ -557,7 +557,7 @@
      user-entered code is submitted to it over HTTPS. Wire the URL up via the
      <meta name="aura-access-endpoint"> tag, window.AURA_ACCESS_ENDPOINT, or
      the ACCESS_VERIFY_URL constant below. */
-  var ACCESS_VERIFY_URL = '';
+  var ACCESS_VERIFY_URL = 'https://vxmonbjokwcsmboblupd.supabase.co/functions/v1/verify-aura-code';
   var ACCESS_STORAGE_KEYS = ['aura.access.unlocked', 'aura.accessUnlocked', 'auraUnlocked'];
 
   function accessEndpoint() {
