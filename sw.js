@@ -1,9 +1,10 @@
 /* AURA // DAILY OS — offline shell */
-const CACHE_NAME = 'aura-v39';
+const CACHE_NAME = 'aura-v40';
 const CORE_ASSETS = [
   './',
   './index.html',
   './style.css',
+  './supabase-client.js',
   './app.js',
   './manifest.json',
   './assets/aura-mark.png',

@@ -80,6 +80,79 @@
     </div>
   </div>
 
+  <!-- Account gate: shown after the access code is accepted, until Supabase
+       Auth has a signed-in user. -->
+  <div class="auth-gate" id="authGate" hidden>
+    <div class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+      <p class="auth-kicker">AURA ACCOUNT</p>
+      <h2 class="auth-title" id="authTitle">Sign in</h2>
+      <p class="auth-note" id="authNote">Your plan, habits and streaks, synced across your devices.</p>
+
+      <div class="auth-toggle" id="authToggle" role="tablist" aria-label="Account mode">
+        <button class="auth-tab is-active" id="authModeSignIn" type="button" role="tab" aria-selected="true">
+          Sign In
+        </button>
+        <button class="auth-tab" id="authModeSignUp" type="button" role="tab" aria-selected="false">
+          Sign Up
+        </button>
+      </div>
+
+      <form class="auth-form" id="authForm" novalidate>
+        <label class="field">
+          <span class="field-label">Email</span>
+          <input
+            id="authEmail"
+            name="email"
+            type="email"
+            inputmode="email"
+            autocomplete="email"
+            autocapitalize="none"
+            spellcheck="false"
+            maxlength="254"
+            required
+          />
+        </label>
+
+        <label class="field">
+          <span class="field-label">Password</span>
+          <input
+            id="authPassword"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            minlength="6"
+            maxlength="128"
+            required
+          />
+        </label>
+
+        <label class="field" id="authConfirmField" hidden>
+          <span class="field-label">Confirm password</span>
+          <input
+            id="authPasswordConfirm"
+            name="confirm-password"
+            type="password"
+            autocomplete="new-password"
+            minlength="6"
+            maxlength="128"
+          />
+        </label>
+
+        <p class="form-error" id="authError" role="alert" hidden></p>
+        <p class="auth-message" id="authMessage" role="status" hidden></p>
+
+        <button class="btn btn-primary" id="authSubmit" type="submit">Sign In</button>
+      </form>
+
+      <p class="auth-loading" id="authLoading" hidden>
+        <span class="aura-spinner" aria-hidden="true"></span>
+        <span>Checking your session…</span>
+      </p>
+
+      <p class="auth-foot" id="authFoot">Your data stays private to your account.</p>
+    </div>
+  </div>
+
   <div class="app" id="app">
     <!-- ============================== HEADER ============================= -->
     <header class="topbar">
@@ -372,9 +445,21 @@
       <p class="cal-hint">Tap a day to open it on Today.</p>
     </div>
 
+    <section class="account-bar" id="accountBar" aria-label="AURA account" hidden>
+      <span class="account-avatar" id="accountAvatar" aria-hidden="true">A</span>
+      <div class="account-copy">
+        <p class="account-email" id="accountEmail"></p>
+        <p class="account-status" id="accountStatus" aria-live="polite">
+          <span class="account-dot" aria-hidden="true"></span>
+          <span id="accountStatusText">Synced to cloud</span>
+        </p>
+      </div>
+      <button class="account-signout" id="signOutBtn" type="button">Sign out</button>
+    </section>
+
     <footer class="foot">
       <img class="foot-logo" src="./assets/aura-mark.png" alt="AURA" width="720" height="150" />
-      <p><span class="dot-live" aria-hidden="true"></span> Saved on this device</p>
+      <p id="footStatus"><span class="dot-live" aria-hidden="true"></span> Saved on this device</p>
       <button class="foot-lock" id="lockBtn" type="button" aria-label="Lock AURA">Lock</button>
     </footer>
   </div>
@@ -628,6 +713,7 @@
     <div class="noscript">AURA needs JavaScript to run your day.</div>
   </noscript>
 
+  <script src="./supabase-client.js"></script>
   <script src="./app.js"></script>
 </body>
 </html>

@@ -7,6 +7,7 @@
   'use strict';
 
   var STORAGE_KEY = 'aura.daily.v3';
+  var STATE_OWNER_KEY = 'aura.state.owner';
   var LEGACY_KEYS = ['arena.daily.v2', 'arena.daily.v1'];
   var MAX_TITLE = 80;
   var MAX_WHY = 120;
@@ -533,8 +534,54 @@
     accessCode: document.getElementById('accessCode'),
     accessError: document.getElementById('accessError'),
     accessSubmit: document.getElementById('accessSubmit'),
-    lockBtn: document.getElementById('lockBtn')
+    lockBtn: document.getElementById('lockBtn'),
+    authGate: document.getElementById('authGate'),
+    authTitle: document.getElementById('authTitle'),
+    authNote: document.getElementById('authNote'),
+    authToggle: document.getElementById('authToggle'),
+    authModeSignIn: document.getElementById('authModeSignIn'),
+    authModeSignUp: document.getElementById('authModeSignUp'),
+    authForm: document.getElementById('authForm'),
+    authEmail: document.getElementById('authEmail'),
+    authPassword: document.getElementById('authPassword'),
+    authConfirmField: document.getElementById('authConfirmField'),
+    authPasswordConfirm: document.getElementById('authPasswordConfirm'),
+    authError: document.getElementById('authError'),
+    authMessage: document.getElementById('authMessage'),
+    authSubmit: document.getElementById('authSubmit'),
+    authLoading: document.getElementById('authLoading'),
+    authFoot: document.getElementById('authFoot'),
+    accountBar: document.getElementById('accountBar'),
+    accountAvatar: document.getElementById('accountAvatar'),
+    accountEmail: document.getElementById('accountEmail'),
+    accountStatus: document.getElementById('accountStatus'),
+    accountStatusText: document.getElementById('accountStatusText'),
+    signOutBtn: document.getElementById('signOutBtn'),
+    footStatus: document.getElementById('footStatus')
   };
+
+  var sb = window.AuraSupabase || null;
+
+  /* Whether a local AURA save existed before this boot. A fresh device must
+     not merge its seeded demo data into an existing cloud account. */
+  var hadLocalState = (function () {
+    try { return !!window.localStorage.getItem(STORAGE_KEY); } catch (err) { return false; }
+  })();
+
+  var cloud = {
+    user: null,
+    saveTimer: 0,
+    retryTimer: 0,
+    saving: false,
+    dirty: false,
+    hydrating: false,
+    blocked: false,
+    savePromise: null,
+    resolveSave: null
+  };
+
+  var authMode = 'signin';
+  var authBusy = false;
 
   var state = loadState();
   var todayKey = keyOf(new Date());
@@ -593,6 +640,11 @@
       els.accessGate.hidden = false;
       els.accessGate.setAttribute('aria-hidden', 'false');
     }
+    if (els.authGate) {
+      els.authGate.hidden = true;
+      els.authGate.setAttribute('aria-hidden', 'true');
+    }
+    document.body.classList.remove('is-auth');
     document.body.classList.add('is-locked');
     if (els.accessCode) {
       window.setTimeout(function () { try { els.accessCode.focus(); } catch (e) {} }, 50);
@@ -605,6 +657,206 @@
       els.accessGate.setAttribute('aria-hidden', 'true');
     }
     document.body.classList.remove('is-locked');
+  }
+
+  /* ------------------------------ account gate --------------------------- */
+
+  function setAuthError(message) {
+    if (!els.authError) return;
+    if (message) {
+      els.authError.textContent = message;
+      els.authError.hidden = false;
+    } else {
+      els.authError.textContent = '';
+      els.authError.hidden = true;
+    }
+  }
+
+  function setAuthMessage(message) {
+    if (!els.authMessage) return;
+    if (message) {
+      els.authMessage.textContent = message;
+      els.authMessage.hidden = false;
+    } else {
+      els.authMessage.textContent = '';
+      els.authMessage.hidden = true;
+    }
+  }
+
+  function setAuthMode(mode) {
+    authMode = mode === 'signup' ? 'signup' : 'signin';
+    var signup = authMode === 'signup';
+
+    if (els.authModeSignIn) {
+      els.authModeSignIn.classList.toggle('is-active', !signup);
+      els.authModeSignIn.setAttribute('aria-selected', signup ? 'false' : 'true');
+    }
+    if (els.authModeSignUp) {
+      els.authModeSignUp.classList.toggle('is-active', signup);
+      els.authModeSignUp.setAttribute('aria-selected', signup ? 'true' : 'false');
+    }
+    if (els.authTitle) els.authTitle.textContent = signup ? 'Create your account' : 'Sign in';
+    if (els.authNote) {
+      els.authNote.textContent = signup
+        ? 'One account keeps your tasks, habits and streaks in sync.'
+        : 'Your plan, habits and streaks, synced across your devices.';
+    }
+    if (els.authSubmit) els.authSubmit.textContent = signup ? 'Create account' : 'Sign In';
+    if (els.authConfirmField) els.authConfirmField.hidden = !signup;
+    if (els.authPassword) els.authPassword.setAttribute('autocomplete', signup ? 'new-password' : 'current-password');
+    setAuthError('');
+    setAuthMessage('');
+  }
+
+  function showAuthGate(mode) {
+    if (els.authGate) {
+      els.authGate.hidden = false;
+      els.authGate.setAttribute('aria-hidden', 'false');
+    }
+    document.body.classList.add('is-auth');
+    if (els.authForm) els.authForm.hidden = false;
+    if (els.authToggle) els.authToggle.hidden = false;
+    if (els.authLoading) els.authLoading.hidden = true;
+    if (els.authFoot) els.authFoot.hidden = false;
+    setAuthMode(mode || 'signin');
+    if (els.authEmail) {
+      window.setTimeout(function () { try { els.authEmail.focus(); } catch (e) {} }, 60);
+    }
+  }
+
+  function showAuthChecking() {
+    if (els.authGate) {
+      els.authGate.hidden = false;
+      els.authGate.setAttribute('aria-hidden', 'false');
+    }
+    document.body.classList.add('is-auth');
+    if (els.authForm) els.authForm.hidden = true;
+    if (els.authToggle) els.authToggle.hidden = true;
+    if (els.authLoading) els.authLoading.hidden = false;
+    if (els.authFoot) els.authFoot.hidden = true;
+    setAuthError('');
+    setAuthMessage('');
+  }
+
+  function hideAuthGate() {
+    if (els.authGate) {
+      els.authGate.hidden = true;
+      els.authGate.setAttribute('aria-hidden', 'true');
+    }
+    document.body.classList.remove('is-auth');
+  }
+
+  function mapAuthError(err) {
+    var text = String((err && err.message) || '').toLowerCase();
+    if (text.indexOf('invalid login credentials') !== -1) return 'Incorrect email or password.';
+    if (text.indexOf('email not confirmed') !== -1) {
+      return 'Confirm your email first. Check your inbox for the confirmation link.';
+    }
+    if (text.indexOf('user already registered') !== -1) {
+      return 'An account with this email already exists. Switch to Sign In.';
+    }
+    if (text.indexOf('password should be at least') !== -1) {
+      return 'Password must be at least 6 characters.';
+    }
+    if (text.indexOf('unable to validate email') !== -1 ||
+      text.indexOf('invalid email') !== -1) {
+      return 'Enter a valid email address.';
+    }
+    if (text.indexOf('rate limit') !== -1 || text.indexOf('too many') !== -1) {
+      return 'Too many attempts. Wait a minute and try again.';
+    }
+    if (text.indexOf('signups not allowed') !== -1) {
+      return 'Sign ups are currently disabled for this project.';
+    }
+    return (err && err.message) ? err.message : 'Something went wrong. Try again.';
+  }
+
+  function validEmail(value) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
+  }
+
+  async function handleAuthSubmit(event) {
+    if (event) event.preventDefault();
+    if (authBusy) return;
+
+    var email = els.authEmail ? String(els.authEmail.value || '').trim() : '';
+    var password = els.authPassword ? String(els.authPassword.value || '') : '';
+    var confirm = els.authPasswordConfirm ? String(els.authPasswordConfirm.value || '') : '';
+    var signup = authMode === 'signup';
+
+    setAuthError('');
+    setAuthMessage('');
+
+    if (!validEmail(email)) { setAuthError('Enter a valid email address.'); return; }
+    if (password.length < 6) { setAuthError('Password must be at least 6 characters.'); return; }
+    if (signup && password !== confirm) { setAuthError('Passwords do not match.'); return; }
+    if (!sb || !sb.configured()) {
+      setAuthError('Supabase Auth is not configured.');
+      return;
+    }
+
+    authBusy = true;
+    if (els.authSubmit) {
+      els.authSubmit.disabled = true;
+      els.authSubmit.textContent = signup ? 'Creating account…' : 'Signing in…';
+    }
+
+    try {
+      if (signup) {
+        var result = await sb.signUp(email, password);
+        if (result && result.needsConfirmation) {
+          setAuthMode('signin');
+          setAuthMessage('Check your email to confirm your account, then sign in here.');
+          if (els.authPassword) els.authPassword.value = '';
+          if (els.authPasswordConfirm) els.authPasswordConfirm.value = '';
+          return;
+        }
+        await onSignedIn(result && result.session);
+      } else {
+        var session = await sb.signIn(email, password);
+        await onSignedIn(session);
+      }
+    } catch (err) {
+      setAuthError(mapAuthError(err));
+    } finally {
+      authBusy = false;
+      if (els.authSubmit) {
+        els.authSubmit.disabled = false;
+        els.authSubmit.textContent = authMode === 'signup' ? 'Create account' : 'Sign In';
+      }
+    }
+  }
+
+  async function afterUnlock() {
+    hideAccessGate();
+
+    if (!sb || !sb.configured()) {
+      hideAuthGate();
+      toast('Cloud sync is not configured');
+      return;
+    }
+
+    showAuthChecking();
+    var session = null;
+    try {
+      session = await sb.getSession();
+    } catch (err) {
+      session = null;
+    }
+
+    if (session && session.user) {
+      cloud.user = session.user;
+      updateAccountUI();
+      try {
+        await hydrateCloudState(cloud.user);
+      } catch (err) {
+        toast('Cloud state could not be loaded — using this device');
+      }
+      hideAuthGate();
+      return;
+    }
+
+    showAuthGate('signin');
   }
 
   function setAccessError(msg) {
@@ -647,7 +899,7 @@
         if (valid) {
           setUnlocked(true);
           if (els.accessCode) els.accessCode.value = '';
-          hideAccessGate();
+          afterUnlock();
           if (typeof toast === 'function') toast('Unlocked');
         } else {
           setAccessError('Invalid or expired access code.');
@@ -1206,26 +1458,8 @@
     };
   }
 
-  function loadState() {
-    function parse(key) {
-      try {
-        return JSON.parse(window.localStorage.getItem(key) || 'null');
-      } catch (err) {
-        return null;
-      }
-    }
-
-    var raw = parse(STORAGE_KEY);
-    if (!raw || typeof raw !== 'object' || !Array.isArray(raw.tasks)) {
-      for (var i = 0; i < LEGACY_KEYS.length; i += 1) {
-        var legacy = parse(LEGACY_KEYS[i]);
-        if (legacy && Array.isArray(legacy.tasks)) {
-          raw = legacy;
-          break;
-        }
-      }
-    }
-    if (!raw || typeof raw !== 'object' || !Array.isArray(raw.tasks)) return seedState();
+  function normalizeState(raw) {
+    if (!raw || typeof raw !== 'object' || !Array.isArray(raw.tasks)) return null;
 
     var tasks = [];
     var seen = {};
@@ -1386,6 +1620,29 @@
     };
   }
 
+  function loadState() {
+    function parse(key) {
+      try {
+        return JSON.parse(window.localStorage.getItem(key) || 'null');
+      } catch (err) {
+        return null;
+      }
+    }
+
+    var raw = parse(STORAGE_KEY);
+    if (!raw || typeof raw !== 'object' || !Array.isArray(raw.tasks)) {
+      for (var i = 0; i < LEGACY_KEYS.length; i += 1) {
+        var legacy = parse(LEGACY_KEYS[i]);
+        if (legacy && Array.isArray(legacy.tasks)) {
+          raw = legacy;
+          break;
+        }
+      }
+    }
+
+    return normalizeState(raw) || seedState();
+  }
+
   var saveWarned = false;
 
   function save() {
@@ -1403,6 +1660,250 @@
         toast('This device isn’t saving progress');
       }
     }
+
+    /* Local storage stays the instant, offline fallback. The cloud copy is
+       debounced so a burst of ticks becomes one upsert. */
+    if (!cloud.hydrating && cloud.user) scheduleCloudSave();
+  }
+
+  /* --------------------------- cloud sync -------------------------------- */
+
+  function setSyncStatus(text, stateName) {
+    if (!els.accountStatusText) return;
+    els.accountStatusText.textContent = text;
+    if (els.accountStatus) {
+      els.accountStatus.dataset.state = stateName || 'idle';
+    }
+  }
+
+  function updateAccountUI() {
+    var signedIn = !!cloud.user;
+    if (els.accountBar) els.accountBar.hidden = !signedIn;
+    if (els.footStatus) {
+      els.footStatus.innerHTML = signedIn
+        ? '<span class="dot-live" aria-hidden="true"></span> Saved to your account'
+        : '<span class="dot-live" aria-hidden="true"></span> Saved on this device';
+    }
+    if (!signedIn) return;
+    var email = String(cloud.user.email || 'Signed in');
+    if (els.accountEmail) els.accountEmail.textContent = email;
+    if (els.accountAvatar) els.accountAvatar.textContent = (email.charAt(0) || 'A').toUpperCase();
+    setSyncStatus('Synced to cloud', 'synced');
+  }
+
+  function scheduleCloudSave() {
+    if (!cloud.user || !sb || cloud.blocked) return;
+    if (cloud.saveTimer) window.clearTimeout(cloud.saveTimer);
+    setSyncStatus('Saving…', 'saving');
+    cloud.saveTimer = window.setTimeout(function () {
+      cloud.saveTimer = 0;
+      flushCloudSave();
+    }, 1200);
+  }
+
+  async function flushCloudSave(options) {
+    if (!cloud.user || !sb || cloud.blocked) return;
+    if (cloud.saving) {
+      cloud.dirty = true;
+      return cloud.savePromise;
+    }
+    if (cloud.saveTimer) {
+      window.clearTimeout(cloud.saveTimer);
+      cloud.saveTimer = 0;
+    }
+
+    cloud.saving = true;
+    cloud.dirty = false;
+    cloud.savePromise = new Promise(function (resolve) { cloud.resolveSave = resolve; });
+    var snapshot = JSON.parse(JSON.stringify(state));
+    try {
+      await sb.saveState(cloud.user.id, snapshot, options);
+      setSyncStatus('Synced to cloud', 'synced');
+    } catch (err) {
+      cloud.dirty = true;
+      setSyncStatus('Saved locally · retrying', 'error');
+      if (cloud.retryTimer) window.clearTimeout(cloud.retryTimer);
+      cloud.retryTimer = window.setTimeout(function () {
+        cloud.retryTimer = 0;
+        flushCloudSave();
+      }, 15000);
+    } finally {
+      cloud.saving = false;
+      if (cloud.resolveSave) {
+        var resolve = cloud.resolveSave;
+        cloud.resolveSave = null;
+        cloud.savePromise = null;
+        resolve();
+      }
+      if (cloud.dirty && !cloud.retryTimer) scheduleCloudSave();
+    }
+  }
+
+  function mergeById(localList, cloudList) {
+    var out = [];
+    var index = {};
+    (cloudList || []).forEach(function (item) {
+      if (!item || !item.id) return;
+      index[item.id] = out.length;
+      out.push(item);
+    });
+    (localList || []).forEach(function (item) {
+      if (!item || !item.id || index[item.id] != null) return;
+      index[item.id] = out.length;
+      out.push(item);
+    });
+    return out;
+  }
+
+  /* Cloud is authoritative, but local-only days and items are kept so a
+     device that was offline does not lose work on its first sign-in. */
+  function mergeStates(localState, cloudState) {
+    if (!cloudState) return localState;
+    if (!localState) return cloudState;
+
+    var days = {};
+    Object.keys(cloudState.days || {}).forEach(function (key) {
+      days[key] = cloudState.days[key];
+    });
+    Object.keys(localState.days || {}).forEach(function (key) {
+      var localDay = localState.days[key];
+      var cloudDay = days[key];
+      if (!cloudDay) {
+        days[key] = localDay;
+        return;
+      }
+      var done = (cloudDay.done || []).slice();
+      (localDay.done || []).forEach(function (id) {
+        if (done.indexOf(id) === -1) done.push(id);
+      });
+      days[key] = {
+        items: mergeById(localDay.items, cloudDay.items),
+        done: done
+      };
+    });
+
+    var restDays = {};
+    Object.keys(cloudState.restDays || {}).forEach(function (key) {
+      restDays[key] = true;
+    });
+    Object.keys(localState.restDays || {}).forEach(function (key) {
+      restDays[key] = true;
+    });
+
+    return {
+      v: 3,
+      view: cloudState.view || localState.view || 'today',
+      tasks: mergeById(localState.tasks, cloudState.tasks),
+      days: days,
+      restDays: restDays,
+      challenges: mergeById(localState.challenges, cloudState.challenges),
+      programs: mergeById(localState.programs, cloudState.programs),
+      workouts: mergeById(localState.workouts, cloudState.workouts),
+      focus: cloudState.focus || localState.focus || { active: false, targets: [] }
+    };
+  }
+
+  function readStateOwner() {
+    try { return window.localStorage.getItem(STATE_OWNER_KEY) || ''; } catch (err) { return ''; }
+  }
+
+  function writeStateOwner(userId) {
+    try {
+      if (userId) window.localStorage.setItem(STATE_OWNER_KEY, userId);
+      else window.localStorage.removeItem(STATE_OWNER_KEY);
+    } catch (err) {}
+  }
+
+  async function hydrateCloudState(user) {
+    if (!user || !user.id || !sb) return;
+    cloud.hydrating = true;
+    cloud.blocked = false;
+    var row = null;
+    var loadFailed = false;
+    var owner = readStateOwner();
+    var sameOwner = !owner || owner === user.id;
+    try {
+      row = await sb.loadState(user.id);
+      var cloudState = row && row.state_json ? normalizeState(row.state_json) : null;
+
+      if (!row && owner && owner !== user.id) {
+        /* A different account was last active on this device and this new
+           account has no cloud row yet. Start clean instead of uploading the
+           previous account's local copy. */
+        state = seedState();
+        save();
+        renderAll();
+        cloud.dirty = true;
+      } else if (cloudState) {
+        var localState = hadLocalState && sameOwner ? state : null;
+        state = mergeStates(localState, cloudState);
+        if (state.view !== 'challenges' && state.view !== 'calendar') state.view = 'today';
+        /* If local-only work was folded in, push the merged copy back up. */
+        if (localState) cloud.dirty = true;
+        save();
+        renderAll();
+      } else if (row) {
+        /* A row exists but its payload is not usable. Keep local data and
+           replace the bad payload on the next save. */
+        if (!sameOwner) {
+          state = seedState();
+          save();
+          renderAll();
+        }
+        cloud.dirty = true;
+      }
+
+      writeStateOwner(user.id);
+    } catch (err) {
+      /* Do not overwrite a row we could not read: keep the local fallback and
+         wait for the next sign-in/reload to retry. */
+      loadFailed = true;
+      cloud.blocked = true;
+      cloud.dirty = false;
+      setSyncStatus('Cloud unavailable · saved locally', 'error');
+    } finally {
+      cloud.hydrating = false;
+    }
+
+    if (loadFailed) return;
+    if (!row) cloud.dirty = true;
+    if (cloud.dirty) flushCloudSave();
+    else setSyncStatus('Synced to cloud', 'synced');
+  }
+
+  async function onSignedIn(session) {
+    if (!session || !session.user) return;
+    cloud.user = session.user;
+    updateAccountUI();
+    showAuthChecking();
+    try {
+      await hydrateCloudState(cloud.user);
+    } finally {
+      hideAuthGate();
+    }
+    toast('✓ Signed in');
+  }
+
+  async function handleSignOut() {
+    if (cloud.saveTimer) window.clearTimeout(cloud.saveTimer);
+    if (cloud.retryTimer) window.clearTimeout(cloud.retryTimer);
+    cloud.saveTimer = 0;
+    cloud.retryTimer = 0;
+    try {
+      if (cloud.saving && cloud.savePromise) await cloud.savePromise;
+      else await flushCloudSave({ keepalive: true });
+    } catch (err) {}
+    if (cloud.saveTimer) window.clearTimeout(cloud.saveTimer);
+    if (cloud.retryTimer) window.clearTimeout(cloud.retryTimer);
+    cloud.saveTimer = 0;
+    cloud.retryTimer = 0;
+    try { if (sb) await sb.signOut(); } catch (err) {}
+    cloud.user = null;
+    cloud.dirty = false;
+    cloud.blocked = false;
+    updateAccountUI();
+    showAuthGate('signin');
+    toast('Signed out');
   }
 
   /* Re-read the saved day before repainting, so a second tab (or a page
@@ -4990,6 +5491,14 @@
   els.taskForm.addEventListener('submit', saveSheet);
   if (els.accessForm) els.accessForm.addEventListener('submit', handleAccessSubmit);
   if (els.lockBtn) els.lockBtn.addEventListener('click', lockApp);
+  if (els.authForm) els.authForm.addEventListener('submit', handleAuthSubmit);
+  if (els.authModeSignIn) {
+    els.authModeSignIn.addEventListener('click', function () { setAuthMode('signin'); });
+  }
+  if (els.authModeSignUp) {
+    els.authModeSignUp.addEventListener('click', function () { setAuthMode('signup'); });
+  }
+  if (els.signOutBtn) els.signOutBtn.addEventListener('click', handleSignOut);
   els.sheetDelete.addEventListener('click', deleteFromSheet);
   els.sheetClose.addEventListener('click', closeSheet);
   els.sheetCancel.addEventListener('click', closeSheet);
@@ -5047,9 +5556,16 @@
   });
 
   document.addEventListener('visibilitychange', function () {
-    if (document.hidden) return;
+    if (document.hidden) {
+      flushCloudSave({ keepalive: true });
+      return;
+    }
     syncFromStorage();
     rollover();
+  });
+
+  window.addEventListener('pagehide', function () {
+    flushCloudSave({ keepalive: true });
   });
 
   /* iOS can restore a standalone page from the back/forward cache. Repaint
@@ -5205,7 +5721,8 @@
   renderAll();
   save();
 
-  /* Access-code gate: keep the app locked until a server-verified code is
-     entered. Persisted per browser/device via localStorage. */
-  if (isUnlocked()) hideAccessGate(); else showAccessGate();
+  /* Access-code gate first, then the Supabase account gate. Both persist
+     per browser/device; the account session is restored on every load. */
+  updateAccountUI();
+  if (isUnlocked()) afterUnlock(); else showAccessGate();
 })();

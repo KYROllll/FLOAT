@@ -1509,6 +1509,10 @@ body.editing .task-del {
   margin-bottom: 13px;
 }
 
+.field[hidden] {
+  display: none;
+}
+
 .field-label {
   display: block;
   margin-bottom: 6px;
@@ -5995,6 +5999,7 @@ body.rest-day .focus-card {
 body.superfocus .topbar,
 body.superfocus .weekstrip,
 body.superfocus .progress-card,
+body.superfocus .account-bar,
 body.superfocus .foot {
   filter: blur(7px) saturate(75%);
   opacity: 0.2;
@@ -6052,6 +6057,7 @@ body.superfocus .tabbar {
   body.superfocus .topbar,
   body.superfocus .weekstrip,
   body.superfocus .progress-card,
+  body.superfocus .account-bar,
   body.superfocus .foot,
   .view.is-focusing .section-head,
   .view.is-focusing .task-card.is-focus-dim,
@@ -6156,6 +6162,253 @@ body.superfocus .tabbar {
   border-color: var(--gold-line);
 }
 
-body.is-locked {
+body.is-locked,
+body.is-auth {
   overflow: hidden;
+}
+
+/* ==========================================================================
+   AURA account gate (Supabase Auth)
+   ========================================================================== */
+.auth-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow-y: auto;
+  background: radial-gradient(120% 100% at 50% 0%, rgba(139, 92, 246, 0.18), transparent 60%),
+    linear-gradient(180deg, #08070b 0%, #020203 100%);
+  backdrop-filter: blur(8px);
+}
+
+.auth-gate[hidden] {
+  display: none;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 380px;
+  margin: auto;
+  padding: 28px 24px 22px;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(27, 26, 32, 0.96), rgba(12, 11, 16, 0.98));
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.auth-kicker {
+  margin: 0 0 6px;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.auth-title {
+  margin: 0 0 8px;
+  font-size: 23px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.auth-note {
+  margin: 0 0 18px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.auth-toggle {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 18px;
+  padding: 4px;
+  border-radius: 13px;
+  border: 1px solid var(--line-soft);
+  background: rgba(12, 11, 16, 0.72);
+}
+
+.auth-toggle[hidden] {
+  display: none;
+}
+
+.auth-tab {
+  flex: 1;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 0.2s var(--ease), color 0.2s var(--ease);
+}
+
+.auth-tab.is-active {
+  background: linear-gradient(180deg, var(--gold-bright), var(--gold));
+  color: var(--gold-ink);
+  box-shadow: 0 6px 16px rgba(245, 201, 78, 0.18);
+}
+
+.auth-form .field {
+  margin-bottom: 12px;
+}
+
+.auth-form .btn {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.auth-form .btn:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.auth-message {
+  margin: 0 0 12px;
+  padding: 11px 13px;
+  border-radius: 12px;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  background: rgba(34, 197, 94, 0.09);
+  color: #a7f3c4;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.auth-message[hidden] {
+  display: none;
+}
+
+.auth-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 18px 0 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.auth-loading[hidden] {
+  display: none;
+}
+
+.auth-foot {
+  margin: 16px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--line-soft);
+  color: var(--muted-dim);
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.auth-foot[hidden] {
+  display: none;
+}
+
+/* ==========================================================================
+   Signed-in account status
+   ========================================================================== */
+.account-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 34px;
+  padding: 13px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(27, 26, 32, 0.78), rgba(12, 11, 16, 0.88));
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.24);
+}
+
+.account-bar[hidden] {
+  display: none;
+}
+
+.account-bar + .foot {
+  margin-top: 14px;
+}
+
+.account-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, var(--gold-bright), var(--gold));
+  color: var(--gold-ink);
+  font-size: 16px;
+  font-weight: 800;
+  box-shadow: 0 0 18px rgba(245, 201, 78, 0.22);
+}
+
+.account-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.account-email {
+  margin: 0;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.35;
+}
+
+.account-dot {
+  flex: none;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 7px rgba(34, 197, 94, 0.7);
+}
+
+.account-status[data-state="saving"] .account-dot {
+  background: var(--gold);
+  box-shadow: 0 0 7px rgba(245, 201, 78, 0.7);
+}
+
+.account-status[data-state="error"] .account-dot {
+  background: #ef4444;
+  box-shadow: 0 0 7px rgba(239, 68, 68, 0.7);
+}
+
+.account-signout {
+  flex: none;
+  min-height: 34px;
+  padding: 7px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.account-signout:hover {
+  color: var(--ink);
+  border-color: var(--gold-line);
 }

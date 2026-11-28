@@ -4,7 +4,7 @@ A mobile-first daily discipline OS. One deep dark screen: the week, today's plan
 
 The brand comes from `AURALOGO.png`: near-black letters, a deep violet/indigo core, and a luminous golden-yellow aura. The app sits on the same near-black (`#08070b`) as the wordmark's letter core, and a slow ambient layer drifts those indigo and gold lights behind the whole UI. The in-app mark is `AURALOGO-ONLY.png` — the wordmark with its own alpha edge — so the neon rim sits straight on the dark surface in the header and again, small, above the footer line, with no plate or white fringe behind it. The daily progress scale keeps its own red → amber → green language so LOSS and WIN never lose their meaning — the progress card carries a live **WIN / LOSS** pill that flips the moment the 67% threshold is cleared, and every day in the week strip carries the same verdict. A day with nothing scheduled stays neutral: it reads **CLEAR** and gets no red dot.
 
-Built with plain **HTML, CSS and vanilla JavaScript**. No frameworks, no build step, no fonts or CDNs. Everything is stored on the device.
+Built with plain **HTML, CSS and vanilla JavaScript**. No frameworks, no build step, no fonts or CDNs. The app still works from local storage, and a signed-in Supabase account keeps tasks, habits, streaks and progress in sync across devices.
 
 ---
 
@@ -22,9 +22,62 @@ Open **http://localhost:8080**. The service worker and Home Screen install need 
 2. **Share → Add to Home Screen**.
 3. Launch it from the Home Screen — it runs standalone, respects the notch and home indicator, and works offline.
 
-The service worker uses cache `aura-v39` and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the current palette, the new app icons and the in-app mark on the next launch.
+The service worker uses cache `aura-v40` and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the current palette, the new app icons and the in-app mark on the next launch.
 
 On mobile the app's background is a fixed layer pinned to the viewport, not a fixed-attachment body gradient: iOS Safari sizes that gradient once, so switching to a shorter tab (Challenges with one track, say) used to leave a bare grey strip under the content. The canvas itself is a flat near-black, the page is at least `100dvh` tall, and a tab switch resets the scroll offset before the new view is painted — so no view, repaint or toolbar collapse can expose an empty block above the tab bar.
+
+---
+
+## Access code + Supabase Auth
+
+AURA opens in two steps:
+
+1. **Access code** — the existing server-verified gate. Nothing changes here.
+2. **AURA account** — after a valid code, Supabase Auth takes over. If there is no session, a clean Sign In / Sign Up screen appears with email and password. The session is restored on the next launch, and **Lock** only hides the app; it does not sign you out.
+
+The account gate uses the project's **publishable/anon key** only. A `service_role` key must never be shipped to the browser. Configuration lives in one public place:
+
+- `supabase-client.js` — `DEFAULT_URL` and `DEFAULT_KEY`
+
+Both can also be overridden at runtime with `window.AURA_SUPABASE_URL` and `window.AURA_SUPABASE_ANON_KEY` before `supabase-client.js` loads.
+
+### One-time database setup
+
+Run [`supabase/aura_user_state.sql`](./supabase/aura_user_state.sql) in the Supabase SQL editor. It creates:
+
+```sql
+create table public.aura_user_state (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  state_json jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+```
+
+and enables row-level security with select / insert / update / delete policies for `auth.uid() = user_id`. Without those policies the anon key cannot read or write the row.
+
+### Sign up and email confirmation
+
+- **Confirm email off** — sign-up returns a session and the app enters AURA immediately.
+- **Confirm email on** — sign-up returns no session. The app switches back to Sign In and shows: *“Check your email to confirm your account, then sign in here.”* Signing in before confirming shows the same instruction instead of a generic failure.
+
+### State sync
+
+On sign-in the app reads the row for `auth.uid()`:
+
+- **No row yet** — the local AURA state is uploaded, so existing work is not lost.
+- **Row exists** — the cloud state is hydrated. If this device already had local AURA data, local-only tasks, days and completions are merged in; cloud entries win on conflicts. The merged copy is pushed back up.
+
+Every local save is still written to `localStorage` immediately. Cloud writes are debounced (1.2 s) and upserted with:
+
+```http
+POST /rest/v1/aura_user_state?on_conflict=user_id
+Prefer: resolution=merge-duplicates
+{ "user_id": "...", "state_json": { ... }, "updated_at": "..." }
+```
+
+Saves are also flushed when the tab is hidden or the page is closed. If the network or Supabase is unavailable, the app keeps working locally and retries the cloud write. A session whose access token has expired is refreshed before use, and if that refresh only fails because the device is offline the session is kept — an offline launch never throws a signed-in user back to the sign-in screen, it opens their local state with the account card reading **Cloud unavailable · saved locally**. Only a refresh token the server actually rejects ends the session. The footer shows **Saved on this device** when signed out and **Saved to your account** when signed in; the account card above it shows the signed-in email, a live sync status and a **Sign out** button.
+
+The Auth session is kept in `localStorage` under `aura.supabase.session`, and `aura.state.owner` remembers which account the local copy belongs to. That owner check prevents one account's local data from being merged into a different account on a shared device.
 
 ---
 
@@ -183,7 +236,7 @@ Key: `aura.daily.v3` (the app reads the old `arena.daily.v2` — or `arena.daily
 }
 ```
 
-`days` maps a local `YYYY-MM-DD` date to a full snapshot of that date: the exact `items` scheduled on it (title, why, time, recurrence and program link) and the `done` ids ticked on it. Every day keeps its own copy, so adding, editing or deleting a task on one date never rewrites another: switching to an earlier day shows what that day actually held, what was checked (✓), and that day's score. The current day is the only snapshot kept in step with the live task list; past days are sealed and can be ticked but not re-edited. A non-recurring task carries `date`, the one day it belongs to; only tasks with `recurring: true` are rebuilt into every new day. A new task gets the `date` of the day on screen, and is also written into that day's own record, so an earlier date can still be filled in and shows the task immediately. Editing a card on any day updates the live task and that day's frozen copy together; deleting it there drops it from the live list and from that day's record, while every other day keeps what it held. Empty days have no record, which is why they stay neutral — no LOSS and no red dot. Days stored by older builds as `history` (a bare list of completed ids) are migrated once into best-effort snapshots, so no logged tick is lost. Tasks and day items carry a stable `key` derived from the habit name; the streak follows that key across renames and re-adds. Challenge `log` keeps its own date-keyed shape, one entry per checklist item completed that day; `startDate`/`endDate` are the challenge's beginning and finish, and `duration` always matches that range. A challenge carries `mode` (`habit` or `build`): habit mode stores its recurring checklist in `daily`, while build mode stores one `plan` slot per day, each with its own `items`; a build challenge also keeps `planText`, the raw day plan exactly as typed, so re-opening it never loses a day header. `restDays` is a date-keyed map of intentional recovery days; it sits beside `days` so a rest day can never be mistaken for a win, a loss or an empty day. The window runs on its own — there is no separate started flag. Workout `log` is date-keyed too: `started` marks an active session, `done` holds the exercise ids ticked that day, and `finished` closes the session. `weeks` plus `startDate` define the program window, so only dates inside it are scheduled sessions. `createdAt` dates the template, so weekdays before it existed stay rest days instead of being counted as missed sessions. `focus.targets` holds the ids of the tasks and challenge actions kept sharp in Superfocus (`task:<id>` or `challenge:<challengeId>:<itemId>`); `focus.active` is the on/off state, and targets that no longer exist on Today are ignored. Workout and program records from earlier builds stay in storage, but neither is rendered on Today anymore. A task created by a program carries `programId` (the program), `programItem` (the routine line it fills) and, inside a day snapshot, `programTitle` so a past day still reads correctly after that program is deleted. A linked task counts toward a day only while its program covers that date, so a finished track retires its items without erasing them. There is no account and no network call.
+`days` maps a local `YYYY-MM-DD` date to a full snapshot of that date: the exact `items` scheduled on it (title, why, time, recurrence and program link) and the `done` ids ticked on it. Every day keeps its own copy, so adding, editing or deleting a task on one date never rewrites another: switching to an earlier day shows what that day actually held, what was checked (✓), and that day's score. The current day is the only snapshot kept in step with the live task list; past days are sealed and can be ticked but not re-edited. A non-recurring task carries `date`, the one day it belongs to; only tasks with `recurring: true` are rebuilt into every new day. A new task gets the `date` of the day on screen, and is also written into that day's own record, so an earlier date can still be filled in and shows the task immediately. Editing a card on any day updates the live task and that day's frozen copy together; deleting it there drops it from the live list and from that day's record, while every other day keeps what it held. Empty days have no record, which is why they stay neutral — no LOSS and no red dot. Days stored by older builds as `history` (a bare list of completed ids) are migrated once into best-effort snapshots, so no logged tick is lost. Tasks and day items carry a stable `key` derived from the habit name; the streak follows that key across renames and re-adds. Challenge `log` keeps its own date-keyed shape, one entry per checklist item completed that day; `startDate`/`endDate` are the challenge's beginning and finish, and `duration` always matches that range. A challenge carries `mode` (`habit` or `build`): habit mode stores its recurring checklist in `daily`, while build mode stores one `plan` slot per day, each with its own `items`; a build challenge also keeps `planText`, the raw day plan exactly as typed, so re-opening it never loses a day header. `restDays` is a date-keyed map of intentional recovery days; it sits beside `days` so a rest day can never be mistaken for a win, a loss or an empty day. The window runs on its own — there is no separate started flag. Workout `log` is date-keyed too: `started` marks an active session, `done` holds the exercise ids ticked that day, and `finished` closes the session. `weeks` plus `startDate` define the program window, so only dates inside it are scheduled sessions. `createdAt` dates the template, so weekdays before it existed stay rest days instead of being counted as missed sessions. `focus.targets` holds the ids of the tasks and challenge actions kept sharp in Superfocus (`task:<id>` or `challenge:<challengeId>:<itemId>`); `focus.active` is the on/off state, and targets that no longer exist on Today are ignored. Workout and program records from earlier builds stay in storage, but neither is rendered on Today anymore. A task created by a program carries `programId` (the program), `programItem` (the routine line it fills) and, inside a day snapshot, `programTitle` so a past day still reads correctly after that program is deleted. A linked task counts toward a day only while its program covers that date, so a finished track retires its items without erasing them. Local storage remains the instant, offline copy; when a Supabase user is signed in, the same state is debounced into `public.aura_user_state` and hydrated back on sign-in.
 
 Every tick is written to `localStorage` immediately and read back to confirm the write stuck; if the device refuses to save (private mode, full quota) the app says so once instead of pretending. The day is also re-read from storage whenever the app comes back to the foreground or is restored from the back/forward cache, so a returning view can never show stale or missing checkmarks, and the win threshold is computed from one shared helper used by both the progress card and the week strip.
 
@@ -196,9 +249,12 @@ index.html                 Three views, in-page Superfocus, scale, sheet, studio
 style.css                  Near-black palette, ambient indigo/gold aura, header and
                            footer wordmark, cards, motion, tab bar
 app.js                     State, migration, per-day snapshots, verdicts, streaks,
-                           challenges, workouts, body map, calendar, demos, Superfocus
+                           challenges, workouts, body map, calendar, demos, Superfocus,
+                           auth gate and debounced cloud sync
+supabase-client.js         Tiny Supabase Auth + PostgREST client (publishable key only)
+supabase/aura_user_state.sql  Table + RLS policies for the per-user cloud state
 manifest.json              PWA manifest (AURA, standalone, portrait)
-sw.js                      Offline cache — aura-v39
+sw.js                      Offline cache — aura-v40
 AURALOGO.png               Official logo tile (source for every app icon)
 AURALOGO-ONLY.png          Wordmark alone, alpha cut (source for the in-app mark)
 assets/aura-mark.png       Header/footer mark, trimmed and scaled from AURALOGO-ONLY
