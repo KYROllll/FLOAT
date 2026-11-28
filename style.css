@@ -2515,6 +2515,150 @@ body.editing .task-del {
   background: rgba(239, 68, 68, 0.45);
 }
 
+/* Build tracks: one clean toggle unfolds every day's milestones in place. */
+.track-expand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 38px;
+  margin-top: 12px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(168, 162, 180, 0.14);
+  background: rgba(7, 8, 12, 0.42);
+  color: var(--ink-dim);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.25s var(--ease), background 0.25s var(--ease),
+    color 0.25s var(--ease);
+}
+
+.track-expand:active {
+  transform: scale(0.995);
+}
+
+.track-expand.is-open {
+  border-color: rgba(245, 201, 78, 0.28);
+  background: rgba(245, 201, 78, 0.07);
+  color: var(--gold-bright);
+}
+
+.track-expand-chev {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  opacity: 0.8;
+  transition: transform 0.3s var(--ease);
+}
+
+.track-expand-chev svg {
+  width: 14px;
+  height: 14px;
+}
+
+.track-expand.is-open .track-expand-chev {
+  transform: rotate(180deg);
+}
+
+/* 0fr → 1fr keeps the reveal smooth without measuring the content. */
+.track-plan {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 0.34s var(--ease), opacity 0.28s var(--ease);
+}
+
+.track-plan.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.track-plan-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.track-plan-days {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.track-plan-day {
+  padding: 9px 11px;
+  border-radius: 11px;
+  border: 1px solid rgba(168, 162, 180, 0.1);
+  background: rgba(7, 8, 12, 0.4);
+}
+
+.track-plan-day.is-today {
+  border-color: rgba(245, 201, 78, 0.26);
+  background: rgba(245, 201, 78, 0.06);
+}
+
+.track-plan-day.is-rest {
+  border-color: rgba(167, 139, 250, 0.22);
+}
+
+.track-plan-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 5px;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted-dim);
+}
+
+.track-plan-dayno {
+  color: var(--gold-bright);
+  font-weight: 800;
+}
+
+.track-plan-date {
+  font-variant-numeric: tabular-nums;
+}
+
+.track-plan-tag {
+  margin-inline-start: auto;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(168, 162, 180, 0.2);
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.track-plan-tag.is-won {
+  border-color: rgba(34, 197, 94, 0.3);
+  color: #86efac;
+}
+
+.track-plan-tag.is-rest {
+  border-color: rgba(167, 139, 250, 0.3);
+  color: #c4b5fd;
+}
+
+.track-plan-item {
+  margin: 0;
+  padding: 2px 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-dim);
+  overflow-wrap: anywhere;
+}
+
 .track-check {
   margin-top: 13px;
   padding-top: 12px;
@@ -5347,6 +5491,19 @@ body.demo-open {
   box-shadow: 0 0 16px rgba(139, 92, 246, 0.35);
 }
 
+/* A day already in play cannot be turned into a rest day. */
+.rest-toggle.is-locked {
+  border-color: rgba(168, 162, 180, 0.18);
+  background: rgba(168, 162, 180, 0.05);
+  color: var(--muted-dim);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.rest-toggle.is-locked .rest-toggle-icon {
+  filter: grayscale(1);
+}
+
 .rest-toggle-icon {
   font-size: 12px;
   line-height: 1;
@@ -5541,193 +5698,52 @@ body.demo-open {
   transform: scale(0.96);
 }
 
-/* Picker: the one surface that stays readable while Today fades back. */
-.sf-picker {
-  position: relative;
-  z-index: 23;
-  margin: 0 0 12px;
-  padding: 14px;
-  border-radius: 20px;
-  border: 1px solid rgba(245, 201, 78, 0.24);
-  background:
-    radial-gradient(120% 120% at 100% 0%, rgba(245, 201, 78, 0.08), transparent 58%),
-    linear-gradient(160deg, #1b1720 0%, #121017 60%, #0b0a10 100%);
-  box-shadow: 0 20px 44px -28px rgba(0, 0, 0, 0.95),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
 
-.sf-picker[hidden] {
-  display: none;
-}
-
-.sf-picker-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.sf-picker-kicker {
-  margin: 0;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--gold-bright);
-}
-
-.sf-picker-sub {
-  margin: 4px 0 0;
-  font-size: 10.5px;
-  line-height: 1.4;
-  color: var(--muted);
-}
-
-.sf-picker-done {
-  flex: none;
-  min-height: 32px;
-  padding: 0 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(34, 197, 94, 0.34);
-  background: rgba(34, 197, 94, 0.12);
-  color: #bbf7d0;
-  font: inherit;
-  font-size: 10.5px;
-  font-weight: 800;
-}
-
-.sf-picker-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  max-height: 44vh;
-  margin: 11px 0 0;
-  padding: 0;
-  overflow-y: auto;
-  list-style: none;
-  -webkit-overflow-scrolling: touch;
-}
-
-.sf-picker-item {
-  margin: 0;
-}
-
-.sf-picker-toggle {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  width: 100%;
-  min-height: 44px;
-  padding: 8px 10px;
-  border-radius: 12px;
-  border: 1px solid rgba(168, 162, 180, 0.12);
-  background: rgba(7, 6, 10, 0.45);
-  color: var(--ink-dim);
-  text-align: start;
-}
-
-.sf-picker-item.is-on .sf-picker-toggle {
-  border-color: rgba(34, 197, 94, 0.38);
-  background: rgba(34, 197, 94, 0.08);
-  color: #d8ffe6;
-}
-
-.sf-picker-check {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: 1.5px solid currentColor;
-  opacity: 0.55;
-}
-
-.sf-picker-check svg {
-  width: 12px;
-  height: 12px;
-  opacity: 0;
-  transform: scale(0.6);
-  transition: opacity 0.16s, transform 0.22s var(--pop);
-}
-
-.sf-picker-item.is-on .sf-picker-check {
-  border-color: transparent;
-  background: linear-gradient(180deg, var(--green-bright), var(--green));
-  color: #04150b;
-  opacity: 1;
-}
-
-.sf-picker-item.is-on .sf-picker-check svg {
-  opacity: 1;
-  transform: scale(1);
-}
-
-.sf-picker-name {
-  flex: 1 1 auto;
-  min-width: 0;
-  font-size: 12px;
-  font-weight: 650;
-  overflow-wrap: anywhere;
-}
-
-.sf-picker-tag {
-  flex: none;
-  font-size: 7.5px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted-dim);
-}
-
-.sf-picker-item.is-done .sf-picker-name {
-  color: var(--muted);
-  text-decoration: line-through;
-  text-decoration-color: rgba(168, 162, 180, 0.4);
-}
-
-.sf-picker-empty {
-  margin: 11px 0 0;
-  font-size: 11px;
-  color: var(--muted);
-}
-
-.sf-picker-empty[hidden] {
-  display: none;
-}
-
-/* Only the chosen cards stay sharp; the rest of Today recedes. */
-.view.is-focusing > :not(.focus-bar):not(.sf-picker):not(.sf-keep) {
-  filter: blur(7px);
+/* The chrome — logo, week strip, scale, headers — blurs away so nothing but
+   the day's tasks is left to look at. The rows themselves stay legible and
+   tappable: choosing happens by tapping a task in place. */
+body.superfocus .topbar,
+body.superfocus .weekstrip,
+body.superfocus .progress-card,
+body.superfocus .foot {
+  filter: blur(7px) saturate(75%);
   opacity: 0.2;
   pointer-events: none;
   user-select: none;
+  transition: filter 0.4s var(--ease), opacity 0.4s var(--ease);
+}
+
+.view.is-focusing .section-head {
+  filter: blur(5px);
+  opacity: 0.22;
+  pointer-events: none;
   transition: filter 0.35s var(--ease), opacity 0.35s var(--ease);
 }
 
-.view.is-focusing .section.sf-keep > .section-head {
-  filter: blur(5px);
-  opacity: 0.25;
-  pointer-events: none;
-}
-
+/* Unchosen rows dim back but never blur: they have to stay readable enough
+   to be tapped into focus. */
 .view.is-focusing .task-card.is-focus-dim,
 .view.is-focusing .today-challenge-card.is-focus-dim {
-  filter: blur(6px);
-  opacity: 0.18;
-  pointer-events: none;
-  user-select: none;
+  opacity: 0.3;
+  filter: saturate(0.55) brightness(0.85);
+  transition: opacity 0.3s var(--ease), filter 0.3s var(--ease);
+}
+
+.view.is-focusing .task-card.is-focus-dim:active {
+  opacity: 0.5;
 }
 
 .view.is-focusing .today-challenge-card.is-focus-target .mini-item.is-focus-dim {
-  filter: blur(4px);
-  opacity: 0.2;
-  pointer-events: none;
+  opacity: 0.32;
+  filter: saturate(0.55);
 }
 
 .view.is-focusing .task-card.is-focus-target,
 .view.is-focusing .today-challenge-card.is-focus-target {
-  box-shadow: 0 0 0 1px rgba(245, 201, 78, 0.26),
+  opacity: 1;
+  filter: none;
+  border-color: rgba(245, 201, 78, 0.42);
+  box-shadow: 0 0 0 1px rgba(245, 201, 78, 0.34),
     0 18px 40px -26px rgba(0, 0, 0, 0.95);
 }
 
@@ -5735,22 +5751,18 @@ body.superfocus .tabbar {
   display: none;
 }
 
-body.superfocus .foot {
-  filter: blur(5px);
-  opacity: 0.22;
-  pointer-events: none;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .focus-bar {
     animation: none;
   }
 
-  .view.is-focusing > :not(.focus-bar):not(.sf-picker):not(.sf-keep),
-  .view.is-focusing .section.sf-keep > .section-head,
+  body.superfocus .topbar,
+  body.superfocus .weekstrip,
+  body.superfocus .progress-card,
+  body.superfocus .foot,
+  .view.is-focusing .section-head,
   .view.is-focusing .task-card.is-focus-dim,
-  .view.is-focusing .today-challenge-card.is-focus-dim,
-  .view.is-focusing .today-challenge-card.is-focus-target .mini-item.is-focus-dim {
+  .view.is-focusing .today-challenge-card.is-focus-dim {
     transition: none;
   }
 }

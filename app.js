@@ -433,19 +433,14 @@
     scaleStatus: document.getElementById('scaleStatus'),
     restToggle: document.getElementById('restToggle'),
     restToggleText: document.getElementById('restToggleText'),
+    restToggleIcon: document.getElementById('restToggleIcon'),
     focusSub: document.getElementById('focusSub'),
     focusModeNote: document.getElementById('focusModeNote'),
     focusSwitch: document.getElementById('focusSwitch'),
     focusSwitchText: document.getElementById('focusSwitchText'),
     focusBar: document.getElementById('focusBar'),
     focusBarSub: document.getElementById('focusBarSub'),
-    focusBarChange: document.getElementById('focusBarChange'),
     focusBarExit: document.getElementById('focusBarExit'),
-    sfPicker: document.getElementById('sfPicker'),
-    sfPickerSub: document.getElementById('sfPickerSub'),
-    sfPickerList: document.getElementById('sfPickerList'),
-    sfPickerDone: document.getElementById('sfPickerDone'),
-    sfPickerEmpty: document.getElementById('sfPickerEmpty'),
     planList: document.getElementById('planList'),
     planEmpty: document.getElementById('planEmpty'),
     planCount: document.getElementById('planCount'),
@@ -552,7 +547,9 @@
   var newRecurring = false;
   var toastTimer = 0;
 
-  var sfPickerOpen = false;
+  /* Build cards remember whether their day plan is unfolded, so a repaint
+     never snaps an open plan shut. */
+  var openBuildCards = {};
 
   /* ------------------------------- helpers ------------------------------- */
 
@@ -1771,11 +1768,22 @@
     );
 
     if (els.restToggle) {
+      /* Recovery is a starting choice, never a retreat: once a single action
+         is ticked the day is in play and Rest Day stays locked. */
+      var restLocked = !rest && done > 0;
       els.restToggle.classList.toggle('is-on', rest);
+      els.restToggle.classList.toggle('is-locked', restLocked);
       els.restToggle.setAttribute('aria-pressed', rest ? 'true' : 'false');
+      els.restToggle.setAttribute('aria-disabled', restLocked ? 'true' : 'false');
+      els.restToggle.title = restLocked
+        ? 'Rest Day is locked once progress starts'
+        : rest ? 'Turn this rest day off' : 'Mark this day as recovery';
       if (els.restToggleText) {
-        els.restToggleText.textContent = rest ? 'Rest day on' : 'Rest day';
+        els.restToggleText.textContent = rest
+          ? 'Rest day on'
+          : restLocked ? 'Rest day locked' : 'Rest day';
       }
+      if (els.restToggleIcon) els.restToggleIcon.textContent = restLocked ? '🔒' : '☾';
     }
 
     if (rest) {
@@ -1807,8 +1815,10 @@
     /* A frozen past day can name a program that has since been deleted. */
     var programTitle = program ? program.title : (task.programTitle || '');
     var isProgram = !!task.programId;
-    /* Past days are a record: they can be ticked, never edited or deleted. */
-    var editable = selectedKey === todayKey;
+    /* The day on screen owns its cards: a task added on, or carried into, a
+       past day can be edited and deleted right there. Only program items stay
+       owned by their track. */
+    var editable = !isProgram;
 
     var li = document.createElement('li');
     li.className = 'task-card';
@@ -1836,15 +1846,23 @@
     /* A program task keeps its structure: it is checked off here but never
        opened as a standalone ad-hoc task. */
     var body;
-    if (isProgram || !editable) {
+    if (!editable) {
       body = document.createElement('div');
       body.className = 'task-body is-locked';
     } else {
       body = document.createElement('button');
       body.type = 'button';
       body.className = 'task-body';
-      body.setAttribute('aria-label', 'Edit ' + task.title);
+      body.setAttribute('aria-label', superfocusOn()
+        ? (isFocusTarget(focusId) ? 'Release from Superfocus: ' : 'Keep in Superfocus: ') + task.title
+        : 'Edit ' + task.title);
       body.addEventListener('click', function () {
+        /* In Superfocus a tap chooses what stays sharp; editing comes back
+           the moment focus is turned off. */
+        if (superfocusOn()) {
+          toggleFocusTarget(focusId);
+          return;
+        }
         openTaskSheet(task);
       });
     }
@@ -1897,8 +1915,10 @@
       del.innerHTML = X_SVG;
       del.addEventListener('click', function (event) {
         event.stopPropagation();
+        /* Delete from the day on screen, not silently from today. */
+        var cardKey = selectedKey;
         askDelete(task.recurring ? 'habit' : 'task', task.title, function () {
-          removeTask(task.id);
+          removeTask(task.id, cardKey);
         });
       });
       side.appendChild(del);
@@ -2003,11 +2023,16 @@
         btn.setAttribute('aria-checked', ticked ? 'true' : 'false');
         btn.setAttribute('aria-label', (ticked ? 'Undo: ' : 'Complete: ') + item.title);
         btn.innerHTML = CHECK_SVG;
-        btn.addEventListener('click', function () {
+        btn.addEventListener('click', function (event) {
+          event.stopPropagation();
           toggleChallengeItem(ch, item.id, todayKey);
         });
         var text = makeEl('span', 'mini-text', item.title);
         text.dir = 'auto';
+        /* While Superfocus is on, the row itself is the focus switch. */
+        li.addEventListener('click', function () {
+          if (superfocusOn()) toggleFocusTarget(focusId);
+        });
         li.appendChild(btn);
         li.appendChild(text);
         listEl.appendChild(li);
@@ -2239,6 +2264,70 @@
           daysRow.appendChild(mark);
         }
         card.appendChild(daysRow);
+      }
+
+      /* A build track can unfold every day's milestones right on the card,
+         and fold them away again on the same tap. */
+      if (build && ch.plan) {
+        var planOpen = !!openBuildCards[ch.id];
+        var planToggle = makeEl('button', 'track-expand' + (planOpen ? ' is-open' : ''));
+        planToggle.type = 'button';
+        planToggle.setAttribute('aria-expanded', planOpen ? 'true' : 'false');
+        planToggle.setAttribute('aria-controls', 'trackPlan-' + ch.id);
+        var planToggleText = makeEl('span', 'track-expand-text',
+          planOpen ? 'Hide the day plan' : 'Show all ' + ch.duration + ' days');
+        planToggle.appendChild(planToggleText);
+        var planChev = makeEl('span', 'track-expand-chev');
+        planChev.setAttribute('aria-hidden', 'true');
+        planChev.innerHTML =
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" ' +
+          'stroke-linecap="round" stroke-linejoin="round"><path d="m6 9.5 6 6 6-6"/></svg>';
+        planToggle.appendChild(planChev);
+
+        var planWrap = makeEl('div', 'track-plan' + (planOpen ? ' is-open' : ''));
+        planWrap.id = 'trackPlan-' + ch.id;
+        var planInner = makeEl('div', 'track-plan-inner');
+        var planList = makeEl('ol', 'track-plan-days');
+        for (var slotIndex = 0; slotIndex < ch.duration; slotIndex += 1) {
+          var slotKey = shiftKey(ch.startDate, slotIndex);
+          var slotRest = isRestDay(slotKey);
+          var slotRow = makeEl('li', 'track-plan-day' +
+            (slotKey === todayKey ? ' is-today' : '') +
+            (slotRest ? ' is-rest' : ''));
+          var slotHead = makeEl('div', 'track-plan-head');
+          slotHead.dir = 'ltr';
+          slotHead.appendChild(makeEl('b', 'track-plan-dayno', 'Day ' + (slotIndex + 1)));
+          slotHead.appendChild(makeEl('span', 'track-plan-date', shortDate(slotKey)));
+          if (slotRest) {
+            slotHead.appendChild(makeEl('span', 'track-plan-tag is-rest', 'rest'));
+          } else if (slotKey <= todayKey && challengeDayComplete(ch, slotKey)) {
+            slotHead.appendChild(makeEl('span', 'track-plan-tag is-won', 'won'));
+          }
+          slotRow.appendChild(slotHead);
+          challengeItemsFor(ch, slotKey).forEach(function (entry) {
+            var line = makeEl('p', 'track-plan-item', entry.title);
+            line.dir = 'auto';
+            slotRow.appendChild(line);
+          });
+          planList.appendChild(slotRow);
+        }
+        planInner.appendChild(planList);
+        planWrap.appendChild(planInner);
+
+        planToggle.addEventListener('click', function () {
+          var next = !planToggle.classList.contains('is-open');
+          planToggle.classList.toggle('is-open', next);
+          planToggle.setAttribute('aria-expanded', next ? 'true' : 'false');
+          planWrap.classList.toggle('is-open', next);
+          planToggleText.textContent = next
+            ? 'Hide the day plan'
+            : 'Show all ' + ch.duration + ' days';
+          if (next) openBuildCards[ch.id] = true;
+          else delete openBuildCards[ch.id];
+        });
+
+        card.appendChild(planToggle);
+        card.appendChild(planWrap);
       }
 
       if (st.kind === 'scheduled') {
@@ -3639,14 +3728,6 @@
     return superfocusOn() && focusTargetsToday().indexOf(id) !== -1;
   }
 
-  /* Turning it on with nothing chosen defaults to the unfinished work, so the
-     screen never opens with every card dimmed and nothing to act on. */
-  function defaultFocusTargets() {
-    var items = focusablesToday();
-    var open = items.filter(function (item) { return !item.done; });
-    return (open.length ? open : items).map(function (item) { return item.id; });
-  }
-
   function setFocusTargets(next) {
     var seen = {};
     state.focus.targets = (next || []).filter(function (id) {
@@ -3670,20 +3751,18 @@
     view = 'today';
     state.view = view;
     state.focus.active = true;
-    if (!focusTargetsToday().length) {
-      state.focus.targets = defaultFocusTargets();
-    }
-    sfPickerOpen = false;
+    /* Start empty: the choosing happens on Today itself, by tapping. */
+    state.focus.targets = [];
     save();
     renderAll();
     window.scrollTo(0, 0);
-    toast('Superfocus on · only your chosen tasks stay sharp');
+    toast('Superfocus on · tap the tasks to keep sharp');
     vibrate(10);
   }
 
   function stopSuperfocus() {
     state.focus.active = false;
-    sfPickerOpen = false;
+    state.focus.targets = [];
     save();
     renderAll();
     toast('Superfocus off');
@@ -3697,94 +3776,46 @@
     setFocusTargets(list);
   }
 
-  function openSfPicker() {
-    sfPickerOpen = true;
-    renderSuperfocus();
-  }
-
-  function closeSfPicker() {
-    sfPickerOpen = false;
-    renderSuperfocus();
-  }
-
-  function renderSuperfocusPicker() {
-    if (!els.sfPickerList) return;
-    els.sfPickerList.textContent = '';
-    var items = focusablesToday();
-    var targets = focusTargetsToday();
-    els.sfPickerEmpty.hidden = items.length > 0;
-
-    items.forEach(function (item) {
-      var on = targets.indexOf(item.id) !== -1;
-      var li = makeEl('li', 'sf-picker-item' + (on ? ' is-on' : '') +
-        (item.done ? ' is-done' : ''));
-      var btn = makeEl('button', 'sf-picker-toggle');
-      btn.type = 'button';
-      btn.setAttribute('role', 'checkbox');
-      btn.setAttribute('aria-checked', on ? 'true' : 'false');
-      btn.setAttribute('aria-label',
-        (on ? 'Remove from Superfocus: ' : 'Add to Superfocus: ') + item.title);
-      var mark = makeEl('span', 'sf-picker-check');
-      mark.innerHTML = CHECK_SVG;
-      var text = makeEl('span', 'sf-picker-name', item.title);
-      text.dir = 'auto';
-      var tag = makeEl('span', 'sf-picker-tag',
-        item.done ? 'done' : item.kind === 'challenge' ? 'challenge' : 'task');
-      btn.appendChild(mark);
-      btn.appendChild(text);
-      btn.appendChild(tag);
-      btn.addEventListener('click', function () { toggleFocusTarget(item.id); });
-      li.appendChild(btn);
-      els.sfPickerList.appendChild(li);
-    });
-
-    els.sfPickerSub.textContent = targets.length
-      ? targets.length + ' of ' + items.length + ' tasks stay sharp'
-      : 'Pick at least one task to keep in focus.';
-  }
-
   function renderSuperfocus() {
     var on = superfocusOn();
     var targets = on ? focusTargetsToday() : [];
 
     if (els.focusSwitch) {
       els.focusSwitch.checked = on;
-      els.focusSwitch.disabled = on;
+      /* Never disabled: the same switch is how Superfocus is turned off. */
+      els.focusSwitch.disabled = false;
     }
     if (els.focusSwitchText) els.focusSwitchText.textContent = on ? 'ON' : 'OFF';
 
     document.body.classList.toggle('superfocus', on);
     if (els.viewToday) els.viewToday.classList.toggle('is-focusing', on);
     if (els.focusBar) els.focusBar.hidden = !on;
-    if (els.sfPicker) els.sfPicker.hidden = !on || !sfPickerOpen;
+    if (els.focusSub) {
+      els.focusSub.textContent = on
+        ? 'Tap a task on Today to keep it sharp. Tap it again to release it.'
+        : 'Turn it on, then tap the tasks on Today you want to keep sharp.';
+    }
 
     Array.prototype.forEach.call(
       document.querySelectorAll('.sf-keep'),
       function (el) { el.classList.remove('sf-keep'); }
     );
-    if (!on) {
-      sfPickerOpen = false;
-      return;
-    }
+    if (!on) return;
 
-    /* A section stays crisp only when it holds a chosen task; everything
-       inside it that was not chosen fades back with the rest of Today. */
+    /* The task lists stay legible and tappable so a task can be chosen in
+       place; the chrome around them — logo, week strip, scale, headers — is
+       what blurs away. */
     Array.prototype.forEach.call(
-      document.querySelectorAll('.is-focus-target'),
-      function (el) {
-        var section = el.closest ? el.closest('.section') : null;
-        if (section) section.classList.add('sf-keep');
-      }
+      document.querySelectorAll('#viewToday .section'),
+      function (section) { section.classList.add('sf-keep'); }
     );
 
     if (els.focusBarSub) {
       els.focusBarSub.textContent = targets.length
         ? targets.length + ' task' + (targets.length === 1 ? '' : 's') +
-          ' in focus · everything else dimmed'
-        : 'No tasks chosen · open Change to pick';
+          ' sharp · everything else blurred'
+        : 'Nothing sharp yet · tap a task on Today';
     }
-
-    renderSuperfocusPicker();
   }
 
   /* -------------------------------- render all ---------------------------- */
@@ -4052,6 +4083,20 @@
     showSheet();
   }
 
+  /* A build plan is stored per day slot, but editing must show the exact text
+     that was written. Keep the original text when the challenge has one; a
+     rebuilt plan gets an explicit Day header for every slot so no milestone
+     can drift onto another date. */
+  function buildPlanText(ch) {
+    if (typeof ch.planText === 'string' && ch.planText.trim()) {
+      return ch.planText.replace(/\r\n?/g, '\n');
+    }
+    return (ch.plan || []).map(function (slot, index) {
+      var lines = (slot.items || []).map(function (entry) { return entry.title; });
+      return 'Day ' + (index + 1) + '\n' + lines.join('\n');
+    }).join('\n\n');
+  }
+
   function openTrackSheet(mode, item) {
     sheetMode = mode;
     editingId = item ? item.id : null;
@@ -4061,9 +4106,7 @@
     els.fieldWhy.value = item ? item.why : '';
     if (item && mode === 'challenge') {
       if (sheetChallengeMode === 'build' && Array.isArray(item.plan)) {
-        els.fieldItems.value = item.plan.map(function (slot) {
-          return (slot.items || []).map(function (entry) { return entry.title; }).join('\n');
-        }).join('\n\n');
+        els.fieldItems.value = buildPlanText(item);
       } else {
         els.fieldItems.value = item.daily.map(function (entry) { return entry.title; }).join('\n');
       }
@@ -4139,6 +4182,21 @@
         if (data.recurring) task.date = '';
         else if (!task.date) task.date = targetKey;
       });
+      /* Every day but today renders its own sealed snapshot, so an edit made
+         on a viewed day has to land in that day's copy too — including a
+         frozen card whose task no longer exists in the live list. */
+      if (targetKey !== todayKey) {
+        var editRecord = state.days[targetKey];
+        if (editRecord && Array.isArray(editRecord.items)) {
+          editRecord.items.forEach(function (item) {
+            if (item.id !== editingId) return;
+            item.title = data.title;
+            item.why = data.why;
+            item.time = data.time;
+            item.recurring = data.recurring;
+          });
+        }
+      }
     } else {
       var created = {
         id: uid(),
@@ -4319,6 +4377,12 @@
         plan = parseBuildPlan(els.fieldItems.value, duration, existing);
       }
 
+      /* Keep the raw day plan exactly as written, so opening it again shows
+         the same Day headers and line breaks the user typed. */
+      var planText = modeValue === 'build'
+        ? els.fieldItems.value.replace(/\r\n?/g, '\n')
+        : '';
+
       if (existing) {
         existing.title = title;
         existing.why = why;
@@ -4328,6 +4392,7 @@
         existing.endDate = endDate;
         existing.daily = daily;
         existing.plan = plan;
+        existing.planText = planText;
         /* Configuring the beginning moves the day count with it. */
         if (existing.startedAt) existing.startedAt = startDate;
       } else {
@@ -4341,6 +4406,7 @@
           endDate: endDate,
           daily: daily,
           plan: plan,
+          planText: planText,
           startedAt: null,
           log: {}
         });
@@ -4401,11 +4467,11 @@
   var CONFIRM_COPY = {
     task: {
       title: 'Delete this task?',
-      note: 'It leaves today’s plan; earlier days keep their own record.'
+      note: 'It leaves the day you delete it on; other days keep their own record.'
     },
     habit: {
       title: 'Delete this non-negotiable?',
-      note: 'It leaves today’s list; earlier days keep their own ticks.'
+      note: 'It leaves that day’s list; other days keep their own ticks.'
     },
     challenge: {
       title: 'Delete this challenge?',
@@ -4498,12 +4564,12 @@
     if (run) run();
   }
 
-  /* Remove a task today without rewriting history: the day it is deleted on
-     drops it, while earlier days keep the copy and ticks they were lived with. */
-  function purgeTasks(ids) {
+  /* Remove a task on the day it is deleted on without rewriting the rest of
+     history: other days keep the copy and ticks they were lived with. */
+  function purgeTasks(ids, key) {
     if (!ids.length) return;
     state.tasks = state.tasks.filter(function (t) { return ids.indexOf(t.id) === -1; });
-    var record = state.days[todayKey];
+    var record = state.days[key || todayKey];
     if (!record) return;
     record.items = (record.items || []).filter(function (item) {
       return ids.indexOf(item.id) === -1;
@@ -4513,11 +4579,22 @@
     });
   }
 
-  function removeTask(id) {
-    purgeTasks([id]);
+  function removeTask(id, key) {
+    purgeTasks([id], key);
     save();
     renderAll();
     toast('✓ Task deleted');
+  }
+
+  /* A day card can outlive the live task it came from, so the sheet needs to
+     read the frozen copy when the task itself is already gone. */
+  function dayItemById(id, key) {
+    var record = state.days[key];
+    var items = record && Array.isArray(record.items) ? record.items : [];
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].id === id) return items[i];
+    }
+    return null;
   }
 
   function removeProgram(p) {
@@ -4535,10 +4612,15 @@
     if (!editingId) return;
     var id = editingId;
     var task = state.tasks.filter(function (t) { return t.id === id; })[0];
-    if (!task || task.programId) return;
-    askDelete(task.recurring ? 'habit' : 'task', task.title, function () {
+    if (task && task.programId) return;
+    var frozen = task ? null : dayItemById(id, selectedKey);
+    if (!task && !frozen) return;
+    var recurring = task ? !!task.recurring : !!frozen.recurring;
+    var title = task ? task.title : frozen.title;
+    var sheetKey = selectedKey;
+    askDelete(recurring ? 'habit' : 'task', title, function () {
       closeSheet();
-      removeTask(id);
+      removeTask(id, sheetKey);
     });
   }
 
@@ -4587,7 +4669,8 @@
   });
 
   /* Rest days are a deliberate choice, so a single tap toggles the selected
-     date. They never score as a win or a loss. */
+     date. They never score as a win or a loss, and they can only be claimed
+     while the day still sits at 0 — no escape hatch once progress starts. */
   if (els.restToggle) {
     els.restToggle.addEventListener('click', function () {
       if (!state.restDays) state.restDays = {};
@@ -4595,6 +4678,11 @@
         delete state.restDays[selectedKey];
         toast('Rest day cleared');
       } else {
+        if (dayResult(selectedKey).done > 0) {
+          vibrate(14);
+          toast('Rest day is locked · progress already started');
+          return;
+        }
         state.restDays[selectedKey] = true;
         toast('Rest day · streak frozen');
       }
@@ -4696,14 +4784,7 @@
     else stopSuperfocus();
   });
 
-  if (els.focusBarChange) {
-    els.focusBarChange.addEventListener('click', function () {
-      if (sfPickerOpen) closeSfPicker();
-      else openSfPicker();
-    });
-  }
   if (els.focusBarExit) els.focusBarExit.addEventListener('click', stopSuperfocus);
-  if (els.sfPickerDone) els.sfPickerDone.addEventListener('click', closeSfPicker);
 
   document.addEventListener('keydown', function (event) {
     if (event.key !== 'Escape') return;
@@ -4711,7 +4792,6 @@
     else if (!els.confirm.hidden) closeConfirm(true);
     else if (!els.studio.hidden) closeStudio();
     else if (!els.sheet.hidden) closeSheet();
-    else if (sfPickerOpen) closeSfPicker();
     else if (superfocusOn()) stopSuperfocus();
   });
 
@@ -4829,11 +4909,10 @@
     todayKey = key;
     if (followingToday) selectedKey = key;
     /* A new day has its own tasks, so a running focus session keeps only the
-       targets that still exist and falls back to the new day's open work. */
+       targets that still exist; anything new is picked by tapping. */
     if (state.focus.active) {
-      var carried = focusTargetsToday();
-      state.focus.targets = carried.length ? carried : defaultFocusTargets();
-      if (!state.focus.targets.length) state.focus.active = false;
+      state.focus.targets = focusTargetsToday();
+      if (!focusablesToday().length) state.focus.active = false;
     }
     renderAll();
     /* The new day's snapshot is born empty, so every routine starts fresh. */
@@ -4869,9 +4948,8 @@
   /* A saved session may point at yesterday's one-day tasks; re-target it to
      today's work before the first paint. */
   if (state.focus.active) {
-    var bootTargets = focusTargetsToday();
-    state.focus.targets = bootTargets.length ? bootTargets : defaultFocusTargets();
-    if (!state.focus.targets.length) state.focus.active = false;
+    state.focus.targets = focusTargetsToday();
+    if (!focusablesToday().length) state.focus.active = false;
   }
   renderAll();
   save();

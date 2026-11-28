@@ -77,21 +77,8 @@
           <p class="focus-bar-sub" id="focusBarSub">0 tasks in focus</p>
         </div>
         <div class="focus-bar-actions">
-          <button class="focus-bar-btn" id="focusBarChange" type="button">Change</button>
-          <button class="focus-bar-btn is-exit" id="focusBarExit" type="button">Exit</button>
+          <button class="focus-bar-btn is-exit" id="focusBarExit" type="button">Turn off</button>
         </div>
-      </section>
-
-      <section class="sf-picker" id="sfPicker" aria-label="Choose Superfocus tasks" hidden>
-        <div class="sf-picker-head">
-          <div>
-            <p class="sf-picker-kicker">In Superfocus</p>
-            <p class="sf-picker-sub" id="sfPickerSub">Only the tasks you pick stay sharp.</p>
-          </div>
-          <button class="sf-picker-done" id="sfPickerDone" type="button">Done</button>
-        </div>
-        <ul class="sf-picker-list" id="sfPickerList"></ul>
-        <p class="sf-picker-empty" id="sfPickerEmpty" hidden>Nothing to focus on today. Add a task first.</p>
       </section>
 
       <nav class="weekstrip" id="weekStrip" aria-label="Week selector"></nav>
@@ -155,7 +142,7 @@
         </div>
 
         <button class="rest-toggle" id="restToggle" type="button" aria-pressed="false">
-          <span class="rest-toggle-icon" aria-hidden="true">☾</span>
+          <span class="rest-toggle-icon" id="restToggleIcon" aria-hidden="true">☾</span>
           <span id="restToggleText">Rest day</span>
         </button>
       </section>
@@ -167,7 +154,7 @@
           <div class="focus-card-copy">
             <p class="focus-kicker"><span class="focus-spark" aria-hidden="true"></span>Superfocus</p>
             <h2>One thing. No noise.</h2>
-            <p class="focus-sub" id="focusSub">Pick tasks on Today. Everything else fades back.</p>
+            <p class="focus-sub" id="focusSub">Turn it on, then tap the tasks on Today you want to keep sharp.</p>
           </div>
           <label class="focus-switch">
             <input id="focusSwitch" type="checkbox" role="switch" aria-label="Superfocus mode" />
@@ -178,7 +165,7 @@
           </label>
         </div>
         <div class="focus-card-foot">
-          <span id="focusModeNote">Today only · tabs locked while on</span>
+          <span id="focusModeNote">Tap a task to keep it sharp · tap again to release</span>
           <span class="focus-dot" aria-hidden="true"></span>
           <span class="focus-tip">Blurred, quiet, locked</span>
         </div>
