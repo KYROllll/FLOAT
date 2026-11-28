@@ -538,14 +538,14 @@
     authGate: document.getElementById('authGate'),
     authTitle: document.getElementById('authTitle'),
     authNote: document.getElementById('authNote'),
-    authToggle: document.getElementById('authToggle'),
-    authModeSignIn: document.getElementById('authModeSignIn'),
-    authModeSignUp: document.getElementById('authModeSignUp'),
     authForm: document.getElementById('authForm'),
+    authEmailField: document.getElementById('authEmailField'),
     authEmail: document.getElementById('authEmail'),
-    authPassword: document.getElementById('authPassword'),
-    authConfirmField: document.getElementById('authConfirmField'),
-    authPasswordConfirm: document.getElementById('authPasswordConfirm'),
+    authCode: document.getElementById('authCode'),
+    authCodeRow: document.getElementById('authCodeRow'),
+    authLinks: document.getElementById('authLinks'),
+    authResend: document.getElementById('authResend'),
+    authChangeEmail: document.getElementById('authChangeEmail'),
     authError: document.getElementById('authError'),
     authMessage: document.getElementById('authMessage'),
     authSubmit: document.getElementById('authSubmit'),
@@ -580,8 +580,14 @@
     resolveSave: null
   };
 
-  var authMode = 'signin';
+  /* Account gate state: which step is showing, the address the code was sent
+     to, and the resend cooldown. Nothing here survives a reload. */
+  var authStep = 'email';
+  var authAddress = '';
   var authBusy = false;
+  var resendTimer = 0;
+  var CODE_LENGTH = 6;
+  var RESEND_SECONDS = 30;
 
   var state = loadState();
   var todayKey = keyOf(new Date());
@@ -683,45 +689,195 @@
     }
   }
 
-  function setAuthMode(mode) {
-    authMode = mode === 'signup' ? 'signup' : 'signin';
-    var signup = authMode === 'signup';
-
-    if (els.authModeSignIn) {
-      els.authModeSignIn.classList.toggle('is-active', !signup);
-      els.authModeSignIn.setAttribute('aria-selected', signup ? 'false' : 'true');
-    }
-    if (els.authModeSignUp) {
-      els.authModeSignUp.classList.toggle('is-active', signup);
-      els.authModeSignUp.setAttribute('aria-selected', signup ? 'true' : 'false');
-    }
-    if (els.authTitle) els.authTitle.textContent = signup ? 'Create your account' : 'Sign in';
-    if (els.authNote) {
-      els.authNote.textContent = signup
-        ? 'One account keeps your tasks, habits and streaks in sync.'
-        : 'Your plan, habits and streaks, synced across your devices.';
-    }
-    if (els.authSubmit) els.authSubmit.textContent = signup ? 'Create account' : 'Sign In';
-    if (els.authConfirmField) els.authConfirmField.hidden = !signup;
-    if (els.authPassword) els.authPassword.setAttribute('autocomplete', signup ? 'new-password' : 'current-password');
-    setAuthError('');
-    setAuthMessage('');
+  function codeBoxes() {
+    if (!els.authCodeRow) return [];
+    return Array.prototype.slice.call(els.authCodeRow.querySelectorAll('.code-box'));
   }
 
-  function showAuthGate(mode) {
+  function codeValue() {
+    return codeBoxes().map(function (box) {
+      return box.value || '';
+    }).join('').replace(/\D/g, '').slice(0, CODE_LENGTH);
+  }
+
+  function setCodeValue(value) {
+    var digits = String(value || '').replace(/\D/g, '').slice(0, CODE_LENGTH);
+    codeBoxes().forEach(function (box, index) {
+      box.value = digits.charAt(index) || '';
+      box.classList.toggle('is-filled', !!box.value);
+    });
+  }
+
+  function focusCodeBox(index) {
+    var boxes = codeBoxes();
+    if (!boxes.length) return;
+    var box = boxes[Math.max(0, Math.min(boxes.length - 1, index))];
+    try {
+      box.focus();
+      box.select();
+    } catch (err) {}
+  }
+
+  function setAuthBusy(busy, label) {
+    if (!els.authSubmit) return;
+    els.authSubmit.disabled = !!busy;
+    els.authSubmit.textContent = busy
+      ? (label || 'Working…')
+      : (authStep === 'code' ? 'Verify & continue' : 'Send code');
+  }
+
+  function startResendCountdown(seconds) {
+    if (resendTimer) window.clearInterval(resendTimer);
+    var left = seconds;
+    var update = function () {
+      if (!els.authResend) return;
+      if (left <= 0) {
+        window.clearInterval(resendTimer);
+        resendTimer = 0;
+        els.authResend.disabled = false;
+        els.authResend.textContent = 'Resend code';
+        return;
+      }
+      els.authResend.disabled = true;
+      els.authResend.textContent = 'Resend in ' + left + 's';
+      left -= 1;
+    };
+    update();
+    resendTimer = window.setInterval(update, 1000);
+  }
+
+  function setAuthStep(step) {
+    authStep = step === 'code' ? 'code' : 'email';
+    var inCode = authStep === 'code';
+
+    if (els.authTitle) els.authTitle.textContent = inCode ? 'Enter your code' : 'Enter your email';
+    if (els.authNote) {
+      els.authNote.textContent = inCode
+        ? 'We emailed a 6-digit code to ' + authAddress + '.'
+        : 'Your plan, habits and streaks, synced across your devices.';
+    }
+    if (els.authEmailField) els.authEmailField.hidden = inCode;
+    if (els.authCode) els.authCode.hidden = !inCode;
+    if (els.authLinks) els.authLinks.hidden = !inCode;
+    if (els.authFoot) {
+      els.authFoot.textContent = inCode
+        ? 'The code works once. Check spam if it has not arrived.'
+        : 'No password. AURA emails you a one-time code.';
+    }
+    setAuthError('');
+
+    if (inCode) {
+      setCodeValue('');
+      window.setTimeout(function () { focusCodeBox(0); }, 60);
+      return;
+    }
+
+    if (resendTimer) {
+      window.clearInterval(resendTimer);
+      resendTimer = 0;
+    }
+    if (els.authResend) {
+      els.authResend.disabled = false;
+      els.authResend.textContent = 'Resend code';
+    }
+    window.setTimeout(function () {
+      if (!els.authEmail) return;
+      try { els.authEmail.focus(); } catch (err) {}
+    }, 60);
+  }
+
+  function handleCodeInput(event) {
+    var box = event.target;
+    if (!box || !box.getAttribute || box.getAttribute('data-code-box') === null) return;
+    var index = Number(box.getAttribute('data-code-box')) || 0;
+    var digits = String(box.value || '').replace(/\D/g, '');
+
+    if (!digits) {
+      box.value = '';
+      box.classList.remove('is-filled');
+      return;
+    }
+
+    if (digits.length === 1) {
+      box.value = digits;
+      box.classList.add('is-filled');
+      if (index < CODE_LENGTH - 1) focusCodeBox(index + 1);
+    } else {
+      /* Paste, autofill or a fast typist: spread the digits forward. */
+      var boxes = codeBoxes();
+      digits.split('').forEach(function (digit, offset) {
+        var target = boxes[index + offset];
+        if (!target) return;
+        target.value = digit;
+        target.classList.add('is-filled');
+      });
+      focusCodeBox(Math.min(CODE_LENGTH - 1, index + digits.length));
+    }
+
+    if (codeValue().length === CODE_LENGTH && !authBusy) {
+      window.setTimeout(function () {
+        if (!authBusy && codeValue().length === CODE_LENGTH) submitCode();
+      }, 180);
+    }
+  }
+
+  function handleCodeKeydown(event) {
+    var box = event.target;
+    if (!box || !box.getAttribute || box.getAttribute('data-code-box') === null) return;
+    var index = Number(box.getAttribute('data-code-box')) || 0;
+
+    if (event.key === 'Backspace' && !box.value) {
+      event.preventDefault();
+      var previous = codeBoxes()[index - 1];
+      if (previous) {
+        previous.value = '';
+        previous.classList.remove('is-filled');
+        focusCodeBox(index - 1);
+      }
+      return;
+    }
+    if (event.key === 'ArrowLeft' && index > 0) {
+      event.preventDefault();
+      focusCodeBox(index - 1);
+      return;
+    }
+    if (event.key === 'ArrowRight' && index < CODE_LENGTH - 1) {
+      event.preventDefault();
+      focusCodeBox(index + 1);
+      return;
+    }
+    if (event.key.length === 1 && !/[0-9]/.test(event.key)) event.preventDefault();
+  }
+
+  function handleCodePaste(event) {
+    var text = event.clipboardData && event.clipboardData.getData
+      ? event.clipboardData.getData('text')
+      : '';
+    var digits = String(text || '').replace(/\D/g, '');
+    if (!digits) return;
+    event.preventDefault();
+    setCodeValue(digits);
+    focusCodeBox(Math.min(digits.length, CODE_LENGTH - 1));
+    if (digits.length >= CODE_LENGTH && !authBusy) {
+      window.setTimeout(function () {
+        if (!authBusy && codeValue().length === CODE_LENGTH) submitCode();
+      }, 180);
+    }
+  }
+
+  function showAuthGate(step) {
     if (els.authGate) {
       els.authGate.hidden = false;
       els.authGate.setAttribute('aria-hidden', 'false');
     }
     document.body.classList.add('is-auth');
     if (els.authForm) els.authForm.hidden = false;
-    if (els.authToggle) els.authToggle.hidden = false;
     if (els.authLoading) els.authLoading.hidden = true;
     if (els.authFoot) els.authFoot.hidden = false;
-    setAuthMode(mode || 'signin');
-    if (els.authEmail) {
-      window.setTimeout(function () { try { els.authEmail.focus(); } catch (e) {} }, 60);
-    }
+    if (!step || step === 'email') authAddress = '';
+    setAuthMessage('');
+    setAuthStep(step || 'email');
+    setAuthBusy(false);
   }
 
   function showAuthChecking() {
@@ -731,7 +887,8 @@
     }
     document.body.classList.add('is-auth');
     if (els.authForm) els.authForm.hidden = true;
-    if (els.authToggle) els.authToggle.hidden = true;
+    if (els.authLinks) els.authLinks.hidden = true;
+    if (els.authCode) els.authCode.hidden = true;
     if (els.authLoading) els.authLoading.hidden = false;
     if (els.authFoot) els.authFoot.hidden = true;
     setAuthError('');
@@ -746,93 +903,155 @@
     document.body.classList.remove('is-auth');
   }
 
-  function mapAuthError(err) {
-    var text = String((err && err.message) || '').toLowerCase();
-    if (text.indexOf('invalid login credentials') !== -1) return 'Incorrect email or password.';
-    if (text.indexOf('email not confirmed') !== -1) {
-      return 'Confirm your email first. Check your inbox for the confirmation link.';
+  /* Every failure is translated into AURA's own words. Raw backend text is
+     never shown, which also keeps the account provider out of the UI. */
+  function mapAuthError(err, step) {
+    var raw = String((err && err.message) || '');
+    var text = raw.toLowerCase();
+    var code = String((err && err.code) || '').toLowerCase();
+    var status = Number(err && err.status) || 0;
+
+    if (status === 429 || text.indexOf('rate limit') !== -1 || text.indexOf('too many') !== -1) {
+      return 'Too many attempts. Wait a minute, then try again.';
     }
-    if (text.indexOf('user already registered') !== -1) {
-      return 'An account with this email already exists. Switch to Sign In.';
+    if (!status || status >= 500) {
+      return 'AURA can’t reach your account right now. Check your connection and try again.';
     }
-    if (text.indexOf('password should be at least') !== -1) {
-      return 'Password must be at least 6 characters.';
+    if (code === 'otp_expired' || text.indexOf('expired') !== -1) {
+      return 'That code has expired. Tap Resend code to get a new one.';
     }
-    if (text.indexOf('unable to validate email') !== -1 ||
-      text.indexOf('invalid email') !== -1) {
+    if (text.indexOf('signups not allowed') !== -1 ||
+      (text.indexOf('signup') !== -1 && text.indexOf('disabled') !== -1)) {
+      return 'New AURA accounts are paused right now.';
+    }
+    if (code === 'validation_failed' || text.indexOf('invalid email') !== -1 ||
+      text.indexOf('unable to validate email') !== -1) {
       return 'Enter a valid email address.';
     }
-    if (text.indexOf('rate limit') !== -1 || text.indexOf('too many') !== -1) {
-      return 'Too many attempts. Wait a minute and try again.';
+    if (step === 'code') {
+      return 'That code is not right. Check the 6 digits and try again.';
     }
-    if (text.indexOf('signups not allowed') !== -1) {
-      return 'Sign ups are currently disabled for this project.';
-    }
-    return (err && err.message) ? err.message : 'Something went wrong. Try again.';
+    return 'AURA could not send the code. Try again in a moment.';
   }
 
   function validEmail(value) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
   }
 
+  /* Step 1: ask for a code. Step 2: the code is the only way in. */
   async function handleAuthSubmit(event) {
     if (event) event.preventDefault();
     if (authBusy) return;
+    if (authStep === 'code') {
+      submitCode();
+      return;
+    }
 
-    var email = els.authEmail ? String(els.authEmail.value || '').trim() : '';
-    var password = els.authPassword ? String(els.authPassword.value || '') : '';
-    var confirm = els.authPasswordConfirm ? String(els.authPasswordConfirm.value || '') : '';
-    var signup = authMode === 'signup';
-
+    var email = String((els.authEmail && els.authEmail.value) || '').trim().toLowerCase();
     setAuthError('');
     setAuthMessage('');
 
-    if (!validEmail(email)) { setAuthError('Enter a valid email address.'); return; }
-    if (password.length < 6) { setAuthError('Password must be at least 6 characters.'); return; }
-    if (signup && password !== confirm) { setAuthError('Passwords do not match.'); return; }
-    if (!sb || !sb.configured()) {
-      setAuthError('Supabase Auth is not configured.');
+    if (!validEmail(email)) {
+      setAuthError('Enter a valid email address.');
+      return;
+    }
+    if (!sb || !sb.configured() || typeof sb.sendCode !== 'function') {
+      setAuthError('AURA accounts are unavailable right now. Reload and try again.');
       return;
     }
 
     authBusy = true;
-    if (els.authSubmit) {
-      els.authSubmit.disabled = true;
-      els.authSubmit.textContent = signup ? 'Creating account…' : 'Signing in…';
-    }
-
+    setAuthBusy(true, 'Sending…');
     try {
-      if (signup) {
-        var result = await sb.signUp(email, password);
-        if (result && result.needsConfirmation) {
-          setAuthMode('signin');
-          setAuthMessage('Check your email to confirm your account, then sign in here.');
-          if (els.authPassword) els.authPassword.value = '';
-          if (els.authPasswordConfirm) els.authPasswordConfirm.value = '';
-          return;
-        }
-        await onSignedIn(result && result.session);
-      } else {
-        var session = await sb.signIn(email, password);
-        await onSignedIn(session);
-      }
+      await sb.sendCode(email);
+      authAddress = email;
+      setAuthStep('code');
+      setAuthMessage('Code sent to ' + email + '.');
+      startResendCountdown(RESEND_SECONDS);
     } catch (err) {
-      setAuthError(mapAuthError(err));
+      setAuthError(mapAuthError(err, 'email'));
     } finally {
       authBusy = false;
-      if (els.authSubmit) {
-        els.authSubmit.disabled = false;
-        els.authSubmit.textContent = authMode === 'signup' ? 'Create account' : 'Sign In';
-      }
+      setAuthBusy(false);
     }
+  }
+
+  async function submitCode() {
+    if (authBusy) return;
+    var code = codeValue();
+    setAuthError('');
+
+    if (code.length !== CODE_LENGTH) {
+      setAuthError('Enter all 6 digits.');
+      focusCodeBox(code.length);
+      return;
+    }
+    if (!sb || typeof sb.verifyCode !== 'function') {
+      setAuthError('AURA accounts are unavailable right now. Reload and try again.');
+      return;
+    }
+
+    authBusy = true;
+    setAuthBusy(true, 'Verifying…');
+    try {
+      var session = await sb.verifyCode(authAddress, code);
+      /* Only now does a session exist, and only now does AURA open. */
+      await onSignedIn(session);
+    } catch (err) {
+      setAuthError(mapAuthError(err, 'code'));
+      setCodeValue('');
+      focusCodeBox(0);
+    } finally {
+      authBusy = false;
+      setAuthBusy(false);
+    }
+  }
+
+  async function handleResend() {
+    if (authBusy || !authAddress) return;
+    if (resendTimer) {
+      window.clearInterval(resendTimer);
+      resendTimer = 0;
+    }
+    if (!sb || typeof sb.sendCode !== 'function') {
+      setAuthError('AURA accounts are unavailable right now. Reload and try again.');
+      return;
+    }
+
+    setAuthError('');
+    setAuthMessage('');
+    authBusy = true;
+    if (els.authResend) els.authResend.disabled = true;
+    try {
+      await sb.sendCode(authAddress);
+      setAuthMessage('A new code is on its way.');
+      setCodeValue('');
+      focusCodeBox(0);
+      startResendCountdown(RESEND_SECONDS);
+    } catch (err) {
+      setAuthError(mapAuthError(err, 'email'));
+      if (els.authResend) els.authResend.disabled = false;
+    } finally {
+      authBusy = false;
+    }
+  }
+
+  function handleChangeEmail() {
+    authAddress = '';
+    if (els.authEmail) els.authEmail.value = '';
+    setAuthMessage('');
+    setAuthStep('email');
+    setAuthBusy(false);
   }
 
   async function afterUnlock() {
     hideAccessGate();
 
+    /* No account service, no way to verify, no workspace: the gate holds and
+       says why instead of quietly letting the app through. */
     if (!sb || !sb.configured()) {
-      hideAuthGate();
-      toast('Cloud sync is not configured');
+      showAuthGate('email');
+      setAuthError('AURA accounts are unavailable right now. Reload in a moment.');
       return;
     }
 
@@ -856,7 +1075,7 @@
       return;
     }
 
-    showAuthGate('signin');
+    showAuthGate('email');
   }
 
   function setAccessError(msg) {
@@ -1902,7 +2121,7 @@
     cloud.dirty = false;
     cloud.blocked = false;
     updateAccountUI();
-    showAuthGate('signin');
+    showAuthGate('email');
     toast('Signed out');
   }
 
@@ -5492,11 +5711,17 @@
   if (els.accessForm) els.accessForm.addEventListener('submit', handleAccessSubmit);
   if (els.lockBtn) els.lockBtn.addEventListener('click', lockApp);
   if (els.authForm) els.authForm.addEventListener('submit', handleAuthSubmit);
-  if (els.authModeSignIn) {
-    els.authModeSignIn.addEventListener('click', function () { setAuthMode('signin'); });
-  }
-  if (els.authModeSignUp) {
-    els.authModeSignUp.addEventListener('click', function () { setAuthMode('signup'); });
+  if (els.authResend) els.authResend.addEventListener('click', handleResend);
+  if (els.authChangeEmail) els.authChangeEmail.addEventListener('click', handleChangeEmail);
+  if (els.authCodeRow) {
+    els.authCodeRow.addEventListener('input', handleCodeInput);
+    els.authCodeRow.addEventListener('keydown', handleCodeKeydown);
+    els.authCodeRow.addEventListener('paste', handleCodePaste);
+    els.authCodeRow.addEventListener('focusin', function (event) {
+      var box = event.target;
+      if (!box || !box.classList || !box.classList.contains('code-box')) return;
+      try { box.select(); } catch (err) {}
+    });
   }
   if (els.signOutBtn) els.signOutBtn.addEventListener('click', handleSignOut);
   els.sheetDelete.addEventListener('click', deleteFromSheet);

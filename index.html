@@ -18,6 +18,10 @@
        client never stores or compares the secret code itself. -->
   <meta name="aura-access-endpoint" content="https://vxmonbjokwcsmboblupd.supabase.co/functions/v1/verify-aura-code" />
 
+  <!-- Where AURA lives. Every email link and redirect must use this address.
+       Four l's: kyrollll.github.io/AURA/ is the live project page. -->
+  <meta name="aura-app-url" content="https://kyrollll.github.io/AURA/" />
+
   <!-- iOS standalone / PWA -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -28,7 +32,7 @@
   <link rel="icon" href="./icons/favicon.png" sizes="any" type="image/png" />
   <link rel="icon" href="./icons/icon-192.png" sizes="192x192" type="image/png" />
   <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png" />
-  <link rel="stylesheet" href="./style.css?v=41" />
+  <link rel="stylesheet" href="./style.css?v=42" />
 </head>
 <body>
   <a class="skip" href="#plan">Skip to today's plan</a>
@@ -80,25 +84,22 @@
     </div>
   </div>
 
-  <!-- Account gate: shown after the access code is accepted, until Supabase
-       Auth has a signed-in user. -->
+  <!-- Account gate: shown after the access code is accepted. AURA's workspace
+       stays closed (body.is-auth hides #app) until the emailed 6-digit code has
+       been verified. Nothing here names the service behind the account. -->
   <div class="auth-gate" id="authGate" hidden>
     <div class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+      <img class="auth-mark" src="./assets/aura-mark.png" alt="AURA" width="720" height="150" />
+
       <p class="auth-kicker">AURA ACCOUNT</p>
-      <h2 class="auth-title" id="authTitle">Sign in</h2>
+      <h2 class="auth-title" id="authTitle">Enter your email</h2>
       <p class="auth-note" id="authNote">Your plan, habits and streaks, synced across your devices.</p>
 
-      <div class="auth-toggle" id="authToggle" role="tablist" aria-label="Account mode">
-        <button class="auth-tab is-active" id="authModeSignIn" type="button" role="tab" aria-selected="true">
-          Sign In
-        </button>
-        <button class="auth-tab" id="authModeSignUp" type="button" role="tab" aria-selected="false">
-          Sign Up
-        </button>
-      </div>
+      <p class="auth-message" id="authMessage" role="status" hidden></p>
+      <p class="form-error" id="authError" role="alert" hidden></p>
 
       <form class="auth-form" id="authForm" novalidate>
-        <label class="field">
+        <label class="field" id="authEmailField">
           <span class="field-label">Email</span>
           <input
             id="authEmail"
@@ -109,47 +110,38 @@
             autocapitalize="none"
             spellcheck="false"
             maxlength="254"
+            placeholder="you@example.com"
             required
           />
         </label>
 
-        <label class="field">
-          <span class="field-label">Password</span>
-          <input
-            id="authPassword"
-            name="password"
-            type="password"
-            autocomplete="current-password"
-            minlength="6"
-            maxlength="128"
-            required
-          />
-        </label>
+        <div class="auth-code" id="authCode" hidden>
+          <p class="auth-code-hint" id="authCodeHint">6-digit verification code</p>
+          <div class="auth-code-row" id="authCodeRow" role="group" aria-labelledby="authCodeHint">
+            <input class="code-box" data-code-box="0" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" aria-label="Digit 1 of 6" />
+            <input class="code-box" data-code-box="1" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" aria-label="Digit 2 of 6" />
+            <input class="code-box" data-code-box="2" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" aria-label="Digit 3 of 6" />
+            <input class="code-box" data-code-box="3" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" aria-label="Digit 4 of 6" />
+            <input class="code-box" data-code-box="4" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" aria-label="Digit 5 of 6" />
+            <input class="code-box" data-code-box="5" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" aria-label="Digit 6 of 6" />
+          </div>
+        </div>
 
-        <label class="field" id="authConfirmField" hidden>
-          <span class="field-label">Confirm password</span>
-          <input
-            id="authPasswordConfirm"
-            name="confirm-password"
-            type="password"
-            autocomplete="new-password"
-            minlength="6"
-            maxlength="128"
-          />
-        </label>
-
-        <p class="form-error" id="authError" role="alert" hidden></p>
-        <p class="auth-message" id="authMessage" role="status" hidden></p>
-
-        <button class="btn btn-primary" id="authSubmit" type="submit">Sign In</button>
+        <button class="btn btn-primary" id="authSubmit" type="submit">Send code</button>
       </form>
+
+      <div class="auth-links" id="authLinks" hidden>
+        <button class="auth-link" id="authResend" type="button">Resend code</button>
+        <span class="auth-link-sep" aria-hidden="true">·</span>
+        <button class="auth-link" id="authChangeEmail" type="button">Use a different email</button>
+      </div>
 
       <p class="auth-loading" id="authLoading" hidden>
         <span class="aura-spinner" aria-hidden="true"></span>
         <span>Checking your session…</span>
       </p>
 
-      <p class="auth-foot" id="authFoot">Your data stays private to your account.</p>
+      <p class="auth-foot" id="authFoot">No password. AURA emails you a one-time code.</p>
     </div>
   </div>
 
@@ -713,7 +705,7 @@
     <div class="noscript">AURA needs JavaScript to run your day.</div>
   </noscript>
 
-  <script src="./supabase-client.js?v=41"></script>
-  <script src="./app.js?v=41"></script>
+  <script src="./supabase-client.js?v=42"></script>
+  <script src="./app.js?v=42"></script>
 </body>
 </html>

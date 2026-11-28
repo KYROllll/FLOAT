@@ -9,6 +9,10 @@
 
   var DEFAULT_URL = 'https://vxmonbjokwcsmboblupd.supabase.co';
   var DEFAULT_KEY = 'sb_publishable_EzCAne8B3Qiq7MfRSMVFGA_qzXjC7j3';
+  /* The one place AURA's own address lives. Every link, redirect and callback
+     must land here. This is the canonical GitHub Pages project URL — the
+     three-l kyrolll.github.io/AURA does not exist and returns 404. */
+  var DEFAULT_APP_URL = 'https://kyrollll.github.io/AURA/';
   var SESSION_KEY = 'aura.supabase.session';
   var TABLE = 'aura_user_state';
   var REFRESH_MARGIN = 60;
@@ -30,6 +34,12 @@
   function configured() {
     var c = config();
     return !!(c.url && c.key);
+  }
+
+  function appUrl() {
+    var url = String(window.AURA_APP_URL || meta('aura-app-url') || DEFAULT_APP_URL || '').trim();
+    if (!url) url = DEFAULT_APP_URL;
+    return url.charAt(url.length - 1) === '/' ? url : url + '/';
   }
 
   function readSession() {
@@ -69,7 +79,7 @@
 
   async function request(path, options) {
     var c = config();
-    if (!c.url || !c.key) throw new Error('Supabase is not configured.');
+    if (!c.url || !c.key) throw new Error('AURA accounts are unavailable right now.');
 
     options = options || {};
     var headers = Object.assign({ apikey: c.key, Accept: 'application/json' }, options.headers || {});
@@ -131,7 +141,48 @@
     return !!(err && err.status >= 400 && err.status < 500);
   }
 
+  /* A link-style sign-in can hand the app its session in the URL fragment
+     (#access_token=...). Absorb it once, strip it out of the address bar, and
+     keep it as the ordinary stored session so the app never dead-ends on a
+     callback URL. AURA's own emails carry a code instead, so this is only a
+     safety net for link templates. */
+  async function absorbLinkSession() {
+    var hash = String(window.location.hash || '');
+    if (hash.indexOf('access_token=') === -1) return null;
+
+    var params = {};
+    hash.replace(/^#/, '').split('&').forEach(function (pair) {
+      var cut = pair.indexOf('=');
+      if (cut < 1) return;
+      try {
+        params[decodeURIComponent(pair.slice(0, cut))] = decodeURIComponent(pair.slice(cut + 1));
+      } catch (err) {}
+    });
+    if (!params.access_token) return null;
+
+    var session = sessionFrom(params);
+    if (!session) return null;
+
+    try {
+      var user = await request('/auth/v1/user', {
+        headers: { Authorization: 'Bearer ' + session.access_token }
+      });
+      if (user) session.user = { id: user.id || user.sub, email: user.email };
+    } catch (err) {
+      /* The token is still usable even if the profile call failed. */
+    }
+
+    writeSession(session);
+    try {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    } catch (err) {}
+    return session;
+  }
+
   async function getSession() {
+    var linked = await absorbLinkSession();
+    if (linked) return linked;
+
     var session = readSession();
     if (!session) return null;
     var now = Math.floor(Date.now() / 1000);
@@ -147,32 +198,35 @@
     }
   }
 
-  async function signIn(email, password) {
-    var data = await request('/auth/v1/token?grant_type=password', {
+  /* ------------------------- email one-time code -------------------------- */
+
+  /* Ask AURA to email a 6-digit code. A new address gets a pending account
+     here, but nothing about it is active: no session exists, no state row is
+     written, and AURA's workspace stays closed until verifyCode() succeeds. */
+  async function sendCode(email) {
+    var address = String(email || '').trim().toLowerCase();
+    if (!address) throw new Error('Enter your email address.');
+    await request('/auth/v1/otp', {
       method: 'POST',
-      body: { email: email, password: password }
+      body: { email: address, create_user: true }
     });
-    var session = sessionFrom(data);
-    if (!session) throw new Error('Sign in failed. Try again.');
-    writeSession(session);
-    return session;
+    return true;
   }
 
-  async function signUp(email, password) {
-    var data = await request('/auth/v1/signup', {
+  /* The code is the only thing that can open a session. */
+  async function verifyCode(email, token) {
+    var address = String(email || '').trim().toLowerCase();
+    var code = String(token || '').replace(/\D/g, '');
+    if (code.length !== 6) throw new Error('Enter the 6-digit code.');
+
+    var data = await request('/auth/v1/verify', {
       method: 'POST',
-      body: { email: email, password: password }
+      body: { email: address, token: code, type: 'email' }
     });
     var session = sessionFrom(data);
-    if (session) {
-      writeSession(session);
-      return { session: session, user: session.user, needsConfirmation: false };
-    }
-    return {
-      session: null,
-      user: data && (data.user || data),
-      needsConfirmation: true
-    };
+    if (!session) throw new Error('That code could not be verified. Try again.');
+    writeSession(session);
+    return session;
   }
 
   async function signOut() {
@@ -248,10 +302,11 @@
   window.AuraSupabase = {
     configured: configured,
     config: config,
+    appUrl: appUrl,
     getSession: getSession,
     getUser: getUser,
-    signIn: signIn,
-    signUp: signUp,
+    sendCode: sendCode,
+    verifyCode: verifyCode,
     signOut: signOut,
     loadState: loadState,
     saveState: saveState,

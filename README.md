@@ -4,7 +4,7 @@ A mobile-first daily discipline OS. One deep dark screen: the week, today's plan
 
 The brand comes from `AURALOGO.png`: near-black letters, a deep violet/indigo core, and a luminous golden-yellow aura. The app sits on the same near-black (`#08070b`) as the wordmark's letter core, and a slow ambient layer drifts those indigo and gold lights behind the whole UI. The in-app mark is `AURALOGO-ONLY.png` — the wordmark with its own alpha edge — so the neon rim sits straight on the dark surface in the header and again, small, above the footer line, with no plate or white fringe behind it. The daily progress scale keeps its own red → amber → green language so LOSS and WIN never lose their meaning — the progress card carries a live **WIN / LOSS** pill that flips the moment the 67% threshold is cleared, and every day in the week strip carries the same verdict. A day with nothing scheduled stays neutral: it reads **CLEAR** and gets no red dot.
 
-Built with plain **HTML, CSS and vanilla JavaScript**. No frameworks, no build step, no fonts or CDNs. The app still works from local storage, and a signed-in Supabase account keeps tasks, habits, streaks and progress in sync across devices.
+Built with plain **HTML, CSS and vanilla JavaScript**. No frameworks, no build step, no fonts or CDNs. The app still works from local storage, and a verified AURA account keeps tasks, habits, streaks and progress in sync across devices.
 
 ---
 
@@ -22,26 +22,39 @@ Open **http://localhost:8080**. The service worker and Home Screen install need 
 2. **Share → Add to Home Screen**.
 3. Launch it from the Home Screen — it runs standalone, respects the notch and home indicator, and works offline.
 
-The service worker uses cache `aura-v41` (SHELL_VERSION in `sw.js`) and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the current palette, the new app icons and the in-app mark on the next launch.
+The service worker uses cache `aura-v42` (SHELL_VERSION in `sw.js`) and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the current palette, the new app icons and the in-app mark on the next launch.
 
-**Shell updates can never mix versions.** Every script and stylesheet is requested with the shell version (`app.js?v=41`, `style.css?v=41`), and `sw.js` caches with exact matching, so a new `index.html` can never be paired with an older cached `app.js` — the failure that once left `#authGate` hidden on live installs. The worker precaches with `cache: 'reload'` (GitHub Pages sends `max-age=600`, so the HTTP cache is not trusted), `register()` uses `updateViaCache: 'none'`, and the app checks `registration.update()` on load and whenever it returns to the foreground, takes over a waiting worker immediately, and reloads once when a newer worker claims the page. Bump `SHELL_VERSION` (and the `?v=` queries) together with any shell change.
+**Shell updates can never mix versions.** Every script and stylesheet is requested with the shell version (`app.js?v=42`, `style.css?v=42`), and `sw.js` caches with exact matching, so a new `index.html` can never be paired with an older cached `app.js` — the failure that once left `#authGate` hidden on live installs. The worker precaches with `cache: 'reload'` (GitHub Pages sends `max-age=600`, so the HTTP cache is not trusted), `register()` uses `updateViaCache: 'none'`, and the app checks `registration.update()` on load and whenever it returns to the foreground, takes over a waiting worker immediately, and reloads once when a newer worker claims the page. Bump `SHELL_VERSION` (and the `?v=` queries) together with any shell change.
 
 On mobile the app's background is a fixed layer pinned to the viewport, not a fixed-attachment body gradient: iOS Safari sizes that gradient once, so switching to a shorter tab (Challenges with one track, say) used to leave a bare grey strip under the content. The canvas itself is a flat near-black, the page is at least `100dvh` tall, and a tab switch resets the scroll offset before the new view is painted — so no view, repaint or toolbar collapse can expose an empty block above the tab bar.
 
 ---
 
-## Access code + Supabase Auth
+## Access code + AURA account
 
 AURA opens in two steps:
 
 1. **Access code** — the existing server-verified gate. Nothing changes here.
-2. **AURA account** — after a valid code, Supabase Auth takes over. If there is no session, a clean Sign In / Sign Up screen appears with email and password. The session is restored on the next launch, and **Lock** only hides the app; it does not sign you out.
+2. **AURA account** — after a valid code, the branded account screen appears. The user enters an email, AURA mails a **6-digit code**, and only that code opens the workspace. There is no password and no account menu to choose from: one screen, one code. A verified session is restored on the next launch, and **Lock** only hides the app; it does not sign you out.
+
+Nothing in the UI or the emails names the account service behind AURA — every string, error and subject line is AURA's own.
 
 The account gate uses the project's **publishable/anon key** only. A `service_role` key must never be shipped to the browser. Configuration lives in one public place:
 
 - `supabase-client.js` — `DEFAULT_URL` and `DEFAULT_KEY`
 
 Both can also be overridden at runtime with `window.AURA_SUPABASE_URL` and `window.AURA_SUPABASE_ANON_KEY` before `supabase-client.js` loads.
+
+### App address (must stay in one place)
+
+The live app is **`https://kyrollll.github.io/AURA/`** — four `l`s, matching the GitHub account `KYROllll`. The three-`l` `kyrolll.github.io/AURA/` does not exist and returns **404**, so it must never be used in a redirect, a template or a mail link.
+
+The address is declared once as `<meta name="aura-app-url">` in `index.html` and as `DEFAULT_APP_URL` in `supabase-client.js` (override with `window.AURA_APP_URL`). The same address must also be set in the account project's dashboard:
+
+- **Authentication → URL Configuration → Site URL**: `https://kyrollll.github.io/AURA/`
+- **Redirect URLs**: add `https://kyrollll.github.io/AURA/**` (and `http://localhost:8080/**` for local work)
+
+The emailed template is code-only, so there is no callback page to land on. If a link-style template is ever used instead, the app also absorbs a session from the URL fragment and strips it from the address bar, so a callback can never dead-end.
 
 ### One-time database setup
 
@@ -57,10 +70,33 @@ create table public.aura_user_state (
 
 and enables row-level security with select / insert / update / delete policies for `auth.uid() = user_id`. Without those policies the anon key cannot read or write the row.
 
-### Sign up and email confirmation
+### The 6-digit code
 
-- **Confirm email off** — sign-up returns a session and the app enters AURA immediately.
-- **Confirm email on** — sign-up returns no session. The app switches back to Sign In and shows: *“Check your email to confirm your account, then sign in here.”* Signing in before confirming shows the same instruction instead of a generic failure.
+1. **Email step** — the card asks for an address. **Send code** posts to the project's one-time-code endpoint. A new address gets a pending account at that moment, but it is not active: it has no session, no `aura_user_state` row, and no way into AURA.
+2. **Code step** — six gold boxes, one digit each. Typing advances, backspace steps back, arrows move, and pasting or autofilling the whole code fills all six. A complete code verifies on its own.
+3. **Verified** — only a successful verification returns a session. That session hydrates the cloud state, opens the workspace and is kept in `localStorage`.
+
+Behaviour worth knowing:
+
+- **Wrong code** — *“That code is not right. Check the 6 digits and try again.”* The boxes clear and the first one takes focus.
+- **Expired code** — *“That code has expired. Tap Resend code to get a new one.”*
+- **Resend** — available after a 30-second countdown, so it stays inside the project's send interval instead of tripping a rate limit.
+- **Too many attempts** — mapped to a wait-a-minute message, never a raw service error.
+- **Returning users** — signed out or on a new device, the same two steps; a stored session that is still valid opens AURA directly, because a session only exists after a code was verified.
+
+### One-time email setup (Resend)
+
+AURA needs a real sender. In the account project:
+
+1. **Authentication → Emails → SMTP Settings** → enable custom SMTP:
+   - Host `smtp.resend.com`, port `465` (or `587`)
+   - Username `resend`, password = a Resend API key with sending access
+   - Sender email on a domain verified in Resend, sender name `AURA`
+2. **Authentication → Emails → Magic Link** → paste [`supabase/email-templates/aura-code.html`](./supabase/email-templates/aura-code.html), subject **“Your AURA code”**. Do the same for **Confirm signup** if that template is ever used.
+3. **Authentication → Providers → Email** → make sure email OTP is on and the **OTP length is 6**.
+4. Raise **Authentication → Rate Limits** if the project is on the default 30 emails per hour.
+
+With custom SMTP the mail is sent by Resend from AURA's own domain, so nothing about the account provider appears in the message. Until SMTP is configured the project's built-in sender is used, which is rate-limited and only meant for testing.
 
 ### State sync
 
@@ -255,8 +291,9 @@ app.js                     State, migration, per-day snapshots, verdicts, streak
                            auth gate and debounced cloud sync
 supabase-client.js         Tiny Supabase Auth + PostgREST client (publishable key only)
 supabase/aura_user_state.sql  Table + RLS policies for the per-user cloud state
+supabase/email-templates/   Branded AURA 6-digit code email (no provider branding)
 manifest.json              PWA manifest (AURA, standalone, portrait)
-sw.js                      Offline cache — aura-v41, versioned shell assets
+sw.js                      Offline cache — aura-v42, versioned shell assets
 AURALOGO.png               Official logo tile (source for every app icon)
 AURALOGO-ONLY.png          Wordmark alone, alpha cut (source for the in-app mark)
 assets/aura-mark.png       Header/footer mark, trimmed and scaled from AURALOGO-ONLY
