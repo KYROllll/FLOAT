@@ -22,7 +22,7 @@ Open **http://localhost:8080**. The service worker and Home Screen install need 
 2. **Share → Add to Home Screen**.
 3. Launch it from the Home Screen — it runs standalone, respects the notch and home indicator, and works offline.
 
-The service worker uses cache `aura-v42` (SHELL_VERSION in `sw.js`) and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the current palette, the new app icons and the in-app mark on the next launch.
+The service worker uses cache `aura-v43` (SHELL_VERSION in `sw.js`) and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the current palette, the new app icons and the in-app mark on the next launch.
 
 **Shell updates can never mix versions.** Every script and stylesheet is requested with the shell version (`app.js?v=42`, `style.css?v=42`), and `sw.js` caches with exact matching, so a new `index.html` can never be paired with an older cached `app.js` — the failure that once left `#authGate` hidden on live installs. The worker precaches with `cache: 'reload'` (GitHub Pages sends `max-age=600`, so the HTTP cache is not trusted), `register()` uses `updateViaCache: 'none'`, and the app checks `registration.update()` on load and whenever it returns to the foreground, takes over a waiting worker immediately, and reloads once when a newer worker claims the page. Bump `SHELL_VERSION` (and the `?v=` queries) together with any shell change.
 
@@ -35,7 +35,7 @@ On mobile the app's background is a fixed layer pinned to the viewport, not a fi
 AURA opens in two steps:
 
 1. **Access code** — the existing server-verified gate. Nothing changes here.
-2. **AURA account** — after a valid code, the branded account screen appears. The user enters an email, AURA mails a **6-digit code**, and only that code opens the workspace. There is no password and no account menu to choose from: one screen, one code. A verified session is restored on the next launch, and **Lock** only hides the app; it does not sign you out.
+2. **AURA account** — after a valid code, the branded account screen appears. The user enters an email, AURA mails a **one-time code**, and only that code opens the workspace. There is no password and no account menu to choose from: one screen, one code. A verified session is restored on the next launch, and **Lock** only hides the app; it does not sign you out.
 
 Nothing in the UI or the emails names the account service behind AURA — every string, error and subject line is AURA's own.
 
@@ -70,15 +70,15 @@ create table public.aura_user_state (
 
 and enables row-level security with select / insert / update / delete policies for `auth.uid() = user_id`. Without those policies the anon key cannot read or write the row.
 
-### The 6-digit code
+### The email code
 
 1. **Email step** — the card asks for an address. **Send code** posts to the project's one-time-code endpoint. A new address gets a pending account at that moment, but it is not active: it has no session, no `aura_user_state` row, and no way into AURA.
-2. **Code step** — six gold boxes, one digit each. Typing advances, backspace steps back, arrows move, and pasting or autofilling the whole code fills all six. A complete code verifies on its own.
+2. **Code step** — one gold field takes the whole code. The project decides how many digits it mails (6 to 10), so the field never assumes six: a longer code is typed or pasted in one go, spaces and dashes from the email are dropped, and nothing submits itself on a guessed digit count. **Verify & continue**, or Enter, sends whatever is there.
 3. **Verified** — only a successful verification returns a session. That session hydrates the cloud state, opens the workspace and is kept in `localStorage`.
 
 Behaviour worth knowing:
 
-- **Wrong code** — *“That code is not right. Check the 6 digits and try again.”* The boxes clear and the first one takes focus.
+- **Wrong code** — *“That code is not right. Check the email and try again.”* The field clears and takes focus.
 - **Expired code** — *“That code has expired. Tap Resend code to get a new one.”*
 - **Resend** — available after a 30-second countdown, so it stays inside the project's send interval instead of tripping a rate limit.
 - **Too many attempts** — mapped to a wait-a-minute message, never a raw service error.
@@ -93,7 +93,7 @@ AURA needs a real sender. In the account project:
    - Username `resend`, password = a Resend API key with sending access
    - Sender email on a domain verified in Resend, sender name `AURA`
 2. **Authentication → Emails** → paste [`supabase/email-templates/aura-code.html`](./supabase/email-templates/aura-code.html) with the subject **“Your AURA code”** into **both** the **Magic Link** and **Confirm signup** templates. A brand-new address is confirmed by the same code, and which of the two templates fires depends on project settings — leaving either one default would send an email with the provider's own branding. Delete the link from any template you do use; the code is the only thing AURA accepts.
-3. **Authentication → Providers → Email** → make sure email OTP is on and the **OTP length is 6**.
+3. **Authentication → Providers → Email** → make sure email OTP is on. **Email OTP Length** is the project's own setting (6 to 10); AURA accepts whatever it is set to, so there is nothing to match here. If a delivered code is longer than six digits, that setting — not the app — is why.
 4. Raise **Authentication → Rate Limits** if the project is on the default 30 emails per hour.
 
 With custom SMTP the mail is sent by Resend from AURA's own domain, so nothing about the account provider appears in the message. Until SMTP is configured the project's built-in sender is used, which is rate-limited and only meant for testing.
@@ -291,12 +291,13 @@ app.js                     State, migration, per-day snapshots, verdicts, streak
                            auth gate and debounced cloud sync
 supabase-client.js         Tiny Supabase Auth + PostgREST client (publishable key only)
 supabase/aura_user_state.sql  Table + RLS policies for the per-user cloud state
-supabase/email-templates/   Branded AURA 6-digit code email (no provider branding)
+supabase/email-templates/   Branded AURA code email (no provider branding)
 manifest.json              PWA manifest (AURA, standalone, portrait)
-sw.js                      Offline cache — aura-v42, versioned shell assets
+sw.js                      Offline cache — aura-v43, versioned shell assets
 AURALOGO.png               Official logo tile (source for every app icon)
 AURALOGO-ONLY.png          Wordmark alone, alpha cut (source for the in-app mark)
 assets/aura-mark.png       Header/footer mark, trimmed and scaled from AURALOGO-ONLY
+assets/aura-email-mark.png  Email-only mark (480px, cropped) for the code template
 icons/                     PNG icons (any + maskable), apple-touch icon and favicon
                             built from AURALOGO
 tools/make_icons.py        Icon + mark generator (Python + Pillow)

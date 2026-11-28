@@ -7,7 +7,7 @@
     <title>Your AURA code</title>
   </head>
   <!--
-    AURA // 6-digit sign-in code.
+    AURA // email sign-in code (the project issues 6 to 10 digits).
 
     Paste this into the "Magic Link" email template of the AURA project
     (Authentication → Emails → Magic Link), with the subject line
@@ -15,7 +15,13 @@
 
     It is code-only on purpose: there is no link to click, so no mail client
     can ever land the user on a dead callback URL. Every AURA address in here
-    is the live app: https://kyrollll.github.io/AURA/
+    is the live app: https://kyrollll.github.io/AURA/ (four l's — the three-l
+    spelling of the account does not resolve, and would 404).
+
+    The logo is a small, already-cropped 480px PNG served by that same site,
+    with explicit width/height so Gmail lays it out before the bytes arrive.
+    If images are blocked, the gold alt text reads AURA instead of a bare
+    broken-image icon.
   -->
   <body style="margin:0;padding:0;background:#08070b;color:#ffffff;-webkit-font-smoothing:antialiased;">
     <div style="display:none;max-height:0;overflow:hidden;opacity:0;">
@@ -30,8 +36,12 @@
             style="max-width:460px;background:#141319;border:1px solid rgba(245,201,78,0.22);border-radius:20px;overflow:hidden;">
             <tr>
               <td style="padding:32px 32px 8px 32px;text-align:center;">
-                <img src="https://kyrollll.github.io/AURA/assets/aura-mark.png" alt="AURA" width="132"
-                  style="display:block;width:132px;max-width:132px;height:auto;margin:0 auto 22px auto;border:0;outline:none;text-decoration:none;" />
+                <a href="https://kyrollll.github.io/AURA/" target="_blank"
+                  style="display:block;width:240px;margin:0 auto 22px auto;text-decoration:none;border:0;">
+                  <img src="https://kyrollll.github.io/AURA/assets/aura-email-mark.png"
+                    alt="AURA" width="240" height="81" border="0"
+                    style="display:block;width:240px;height:81px;margin:0 auto;border:0;outline:none;text-decoration:none;background:transparent;color:#f5c94e;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:19px;line-height:81px;letter-spacing:0.2em;font-weight:700;-ms-interpolation-mode:bicubic;" />
+                </a>
 
                 <p style="margin:0 0 10px 0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:11px;line-height:16px;letter-spacing:0.22em;text-transform:uppercase;color:#f5c94e;font-weight:700;">
                   AURA Account
@@ -42,7 +52,7 @@
                 </h1>
 
                 <p style="margin:0 0 24px 0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:14px;line-height:22px;color:#a8a2b4;">
-                  Enter this code in AURA to finish signing in. It works once.
+                  Type or paste this code in AURA to finish signing in. It works once.
                 </p>
               </td>
             </tr>
@@ -53,7 +63,7 @@
                   style="background:#0c0b10;border:1px solid rgba(245,201,78,0.34);border-radius:16px;">
                   <tr>
                     <td align="center" style="padding:24px 16px;">
-                      <div style="font-family:'SF Mono',Menlo,Consolas,'Courier New',monospace;font-size:38px;line-height:44px;font-weight:700;letter-spacing:0.32em;color:#ffe49a;white-space:nowrap;">
+                      <div style="font-family:'SF Mono',Menlo,Consolas,'Courier New',monospace;font-size:34px;line-height:42px;font-weight:700;letter-spacing:0.2em;color:#ffe49a;white-space:nowrap;">
                         {{ .Token }}
                       </div>
                     </td>

@@ -542,7 +542,7 @@
     authEmailField: document.getElementById('authEmailField'),
     authEmail: document.getElementById('authEmail'),
     authCode: document.getElementById('authCode'),
-    authCodeRow: document.getElementById('authCodeRow'),
+    authCodeInput: document.getElementById('authCodeInput'),
     authLinks: document.getElementById('authLinks'),
     authResend: document.getElementById('authResend'),
     authChangeEmail: document.getElementById('authChangeEmail'),
@@ -586,7 +586,11 @@
   var authAddress = '';
   var authBusy = false;
   var resendTimer = 0;
-  var CODE_LENGTH = 6;
+  /* The project issues codes of its own length (Supabase allows 6 to 10). AURA
+     accepts any of them rather than assuming six: a single field takes the
+     whole code, so the length can never leave the form stuck. */
+  var CODE_MIN = 6;
+  var CODE_MAX = 10;
   var RESEND_SECONDS = 30;
 
   var state = loadState();
@@ -689,32 +693,21 @@
     }
   }
 
-  function codeBoxes() {
-    if (!els.authCodeRow) return [];
-    return Array.prototype.slice.call(els.authCodeRow.querySelectorAll('.code-box'));
-  }
-
   function codeValue() {
-    return codeBoxes().map(function (box) {
-      return box.value || '';
-    }).join('').replace(/\D/g, '').slice(0, CODE_LENGTH);
+    if (!els.authCodeInput) return '';
+    return String(els.authCodeInput.value || '').replace(/\D/g, '').slice(0, CODE_MAX);
   }
 
   function setCodeValue(value) {
-    var digits = String(value || '').replace(/\D/g, '').slice(0, CODE_LENGTH);
-    codeBoxes().forEach(function (box, index) {
-      box.value = digits.charAt(index) || '';
-      box.classList.toggle('is-filled', !!box.value);
-    });
+    if (!els.authCodeInput) return;
+    els.authCodeInput.value = String(value || '').replace(/\D/g, '').slice(0, CODE_MAX);
   }
 
-  function focusCodeBox(index) {
-    var boxes = codeBoxes();
-    if (!boxes.length) return;
-    var box = boxes[Math.max(0, Math.min(boxes.length - 1, index))];
+  function focusCode() {
+    if (!els.authCodeInput) return;
     try {
-      box.focus();
-      box.select();
+      els.authCodeInput.focus();
+      els.authCodeInput.select();
     } catch (err) {}
   }
 
@@ -753,7 +746,7 @@
     if (els.authTitle) els.authTitle.textContent = inCode ? 'Enter your code' : 'Enter your email';
     if (els.authNote) {
       els.authNote.textContent = inCode
-        ? 'We emailed a 6-digit code to ' + authAddress + '.'
+        ? 'We emailed a sign-in code to ' + authAddress + '.'
         : 'Your plan, habits and streaks, synced across your devices.';
     }
     if (els.authEmailField) els.authEmailField.hidden = inCode;
@@ -768,7 +761,7 @@
 
     if (inCode) {
       setCodeValue('');
-      window.setTimeout(function () { focusCodeBox(0); }, 60);
+      window.setTimeout(focusCode, 60);
       return;
     }
 
@@ -786,83 +779,26 @@
     }, 60);
   }
 
+  /* One field, any code length: digits only, spaces or dashes from a pasted
+     email are dropped, and nothing auto-submits on a guessed digit count. */
   function handleCodeInput(event) {
-    var box = event.target;
-    if (!box || !box.getAttribute || box.getAttribute('data-code-box') === null) return;
-    var index = Number(box.getAttribute('data-code-box')) || 0;
-    var digits = String(box.value || '').replace(/\D/g, '');
-
-    if (!digits) {
-      box.value = '';
-      box.classList.remove('is-filled');
-      return;
-    }
-
-    if (digits.length === 1) {
-      box.value = digits;
-      box.classList.add('is-filled');
-      if (index < CODE_LENGTH - 1) focusCodeBox(index + 1);
-    } else {
-      /* Paste, autofill or a fast typist: spread the digits forward. */
-      var boxes = codeBoxes();
-      digits.split('').forEach(function (digit, offset) {
-        var target = boxes[index + offset];
-        if (!target) return;
-        target.value = digit;
-        target.classList.add('is-filled');
-      });
-      focusCodeBox(Math.min(CODE_LENGTH - 1, index + digits.length));
-    }
-
-    if (codeValue().length === CODE_LENGTH && !authBusy) {
-      window.setTimeout(function () {
-        if (!authBusy && codeValue().length === CODE_LENGTH) submitCode();
-      }, 180);
-    }
-  }
-
-  function handleCodeKeydown(event) {
-    var box = event.target;
-    if (!box || !box.getAttribute || box.getAttribute('data-code-box') === null) return;
-    var index = Number(box.getAttribute('data-code-box')) || 0;
-
-    if (event.key === 'Backspace' && !box.value) {
-      event.preventDefault();
-      var previous = codeBoxes()[index - 1];
-      if (previous) {
-        previous.value = '';
-        previous.classList.remove('is-filled');
-        focusCodeBox(index - 1);
-      }
-      return;
-    }
-    if (event.key === 'ArrowLeft' && index > 0) {
-      event.preventDefault();
-      focusCodeBox(index - 1);
-      return;
-    }
-    if (event.key === 'ArrowRight' && index < CODE_LENGTH - 1) {
-      event.preventDefault();
-      focusCodeBox(index + 1);
-      return;
-    }
-    if (event.key.length === 1 && !/[0-9]/.test(event.key)) event.preventDefault();
+    var field = event && event.target ? event.target : els.authCodeInput;
+    if (!field || field !== els.authCodeInput) return;
+    var clean = String(field.value || '').replace(/\D/g, '').slice(0, CODE_MAX);
+    if (field.value !== clean) field.value = clean;
+    if (clean) setAuthError('');
   }
 
   function handleCodePaste(event) {
-    var text = event.clipboardData && event.clipboardData.getData
-      ? event.clipboardData.getData('text')
-      : '';
-    var digits = String(text || '').replace(/\D/g, '');
+    var field = event && event.target ? event.target : null;
+    if (!field || field !== els.authCodeInput) return;
+    if (!event.clipboardData || !event.clipboardData.getData) return;
+    var text = String(event.clipboardData.getData('text') || '');
+    var digits = text.replace(/\D/g, '');
     if (!digits) return;
     event.preventDefault();
     setCodeValue(digits);
-    focusCodeBox(Math.min(digits.length, CODE_LENGTH - 1));
-    if (digits.length >= CODE_LENGTH && !authBusy) {
-      window.setTimeout(function () {
-        if (!authBusy && codeValue().length === CODE_LENGTH) submitCode();
-      }, 180);
-    }
+    setAuthError('');
   }
 
   function showAuthGate(step) {
@@ -929,7 +865,7 @@
       return 'Enter a valid email address.';
     }
     if (step === 'code') {
-      return 'That code is not right. Check the 6 digits and try again.';
+      return 'That code is not right. Check the email and try again.';
     }
     return 'AURA could not send the code. Try again in a moment.';
   }
@@ -981,9 +917,9 @@
     var code = codeValue();
     setAuthError('');
 
-    if (code.length !== CODE_LENGTH) {
-      setAuthError('Enter all 6 digits.');
-      focusCodeBox(code.length);
+    if (code.length < CODE_MIN) {
+      setAuthError('Enter the full code from the email.');
+      focusCode();
       return;
     }
     if (!sb || typeof sb.verifyCode !== 'function') {
@@ -1000,7 +936,7 @@
     } catch (err) {
       setAuthError(mapAuthError(err, 'code'));
       setCodeValue('');
-      focusCodeBox(0);
+      focusCode();
     } finally {
       authBusy = false;
       setAuthBusy(false);
@@ -1026,7 +962,7 @@
       await sb.sendCode(authAddress);
       setAuthMessage('A new code is on its way.');
       setCodeValue('');
-      focusCodeBox(0);
+      focusCode();
       startResendCountdown(RESEND_SECONDS);
     } catch (err) {
       setAuthError(mapAuthError(err, 'email'));
@@ -5713,15 +5649,9 @@
   if (els.authForm) els.authForm.addEventListener('submit', handleAuthSubmit);
   if (els.authResend) els.authResend.addEventListener('click', handleResend);
   if (els.authChangeEmail) els.authChangeEmail.addEventListener('click', handleChangeEmail);
-  if (els.authCodeRow) {
-    els.authCodeRow.addEventListener('input', handleCodeInput);
-    els.authCodeRow.addEventListener('keydown', handleCodeKeydown);
-    els.authCodeRow.addEventListener('paste', handleCodePaste);
-    els.authCodeRow.addEventListener('focusin', function (event) {
-      var box = event.target;
-      if (!box || !box.classList || !box.classList.contains('code-box')) return;
-      try { box.select(); } catch (err) {}
-    });
+  if (els.authCodeInput) {
+    els.authCodeInput.addEventListener('input', handleCodeInput);
+    els.authCodeInput.addEventListener('paste', handleCodePaste);
   }
   if (els.signOutBtn) els.signOutBtn.addEventListener('click', handleSignOut);
   els.sheetDelete.addEventListener('click', deleteFromSheet);

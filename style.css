@@ -6168,7 +6168,7 @@ body.is-auth {
 }
 
 /* Nothing of the workspace is visible or focusable while AURA waits for the
-   6-digit code, even if a stylesheet is still loading behind the gate. */
+       emailed code, even if a stylesheet is still loading behind the gate. */
 body.is-auth .app {
   visibility: hidden;
 }
@@ -6245,71 +6245,42 @@ body.is-auth .app {
 }
 
 .auth-code-hint {
-  margin: 0 0 10px;
+  margin: 10px 0 0;
   font-size: 11.5px;
-  font-weight: 650;
-  letter-spacing: 0.04em;
+  line-height: 1.5;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   color: var(--muted);
 }
 
-.auth-code-row {
-  display: flex;
-  gap: 8px;
-  justify-content: space-between;
+/* One field holds the whole code, whatever length the project issues, so a
+   pasted 8-digit code lands intact and the form can never get stuck on the
+   sixth box. The digits are spaced out to keep the code readable at a glance. */
+.field .auth-code-input {
+  height: 58px;
+  padding: 0 14px;
+  font-size: 24px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.34em;
+  text-align: center;
+  text-indent: 0.34em;
+  color: var(--gold-bright);
+  caret-color: var(--gold);
+}
+
+.field .auth-code-input::placeholder {
+  color: rgba(255, 255, 255, 0.2);
+  letter-spacing: 0.34em;
 }
 
 @media (max-width: 380px) {
-  .auth-code-row {
-    gap: 6px;
+  .field .auth-code-input {
+    height: 52px;
+    font-size: 21px;
+    letter-spacing: 0.24em;
+    text-indent: 0.24em;
   }
-
-  .code-box {
-    height: 50px;
-    font-size: 20px;
-  }
-}
-
-.code-box {
-  flex: 1 1 0;
-  min-width: 0;
-  width: 100%;
-  max-width: 54px;
-  height: 56px;
-  padding: 0;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: #0c0b10;
-  color: var(--ink);
-  font: inherit;
-  font-size: 23px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-  caret-color: var(--gold);
-  transition: border-color 0.18s var(--ease), box-shadow 0.18s var(--ease),
-    background 0.18s var(--ease), color 0.18s var(--ease);
-}
-
-.code-box::-webkit-outer-spin-button,
-.code-box::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.code-box.is-filled {
-  border-color: var(--gold-line);
-  background: rgba(245, 201, 78, 0.07);
-  color: var(--gold-bright);
-}
-
-.code-box:focus {
-  outline: none;
-  border-color: rgba(245, 201, 78, 0.75);
-  box-shadow: 0 0 0 3px rgba(245, 201, 78, 0.16);
-}
-
-.code-box:disabled {
-  opacity: 0.6;
 }
 
 .auth-links {

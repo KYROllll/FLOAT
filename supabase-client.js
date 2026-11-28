@@ -200,7 +200,7 @@
 
   /* ------------------------- email one-time code -------------------------- */
 
-  /* Ask AURA to email a 6-digit code. A new address gets a pending account
+  /* Ask AURA to email a sign-in code. A new address gets a pending account
      here, but nothing about it is active: no session exists, no state row is
      written, and AURA's workspace stays closed until verifyCode() succeeds. */
   async function sendCode(email) {
@@ -213,11 +213,13 @@
     return true;
   }
 
-  /* The code is the only thing that can open a session. */
+  /* The code is the only thing that can open a session. The project decides the
+     code length (6 to 10 digits), so any length in that range is sent through
+     untouched instead of being rejected for not being six. */
   async function verifyCode(email, token) {
     var address = String(email || '').trim().toLowerCase();
     var code = String(token || '').replace(/\D/g, '');
-    if (code.length !== 6) throw new Error('Enter the 6-digit code.');
+    if (code.length < 6 || code.length > 10) throw new Error('Enter the full code from the email.');
 
     var data = await request('/auth/v1/verify', {
       method: 'POST',

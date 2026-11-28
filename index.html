@@ -32,7 +32,7 @@
   <link rel="icon" href="./icons/favicon.png" sizes="any" type="image/png" />
   <link rel="icon" href="./icons/icon-192.png" sizes="192x192" type="image/png" />
   <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png" />
-  <link rel="stylesheet" href="./style.css?v=42" />
+  <link rel="stylesheet" href="./style.css?v=43" />
 </head>
 <body>
   <a class="skip" href="#plan">Skip to today's plan</a>
@@ -85,8 +85,10 @@
   </div>
 
   <!-- Account gate: shown after the access code is accepted. AURA's workspace
-       stays closed (body.is-auth hides #app) until the emailed 6-digit code has
-       been verified. Nothing here names the service behind the account. -->
+       stays closed (body.is-auth hides #app) until the emailed code has been
+       verified. The code field accepts whatever length the project issues
+       (6 to 10 digits), so a longer code can still be typed or pasted whole.
+       Nothing here names the service behind the account. -->
   <div class="auth-gate" id="authGate" hidden>
     <div class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
       <img class="auth-mark" src="./assets/aura-mark.png" alt="AURA" width="720" height="150" />
@@ -116,15 +118,25 @@
         </label>
 
         <div class="auth-code" id="authCode" hidden>
-          <p class="auth-code-hint" id="authCodeHint">6-digit verification code</p>
-          <div class="auth-code-row" id="authCodeRow" role="group" aria-labelledby="authCodeHint">
-            <input class="code-box" data-code-box="0" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" aria-label="Digit 1 of 6" />
-            <input class="code-box" data-code-box="1" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" aria-label="Digit 2 of 6" />
-            <input class="code-box" data-code-box="2" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" aria-label="Digit 3 of 6" />
-            <input class="code-box" data-code-box="3" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" aria-label="Digit 4 of 6" />
-            <input class="code-box" data-code-box="4" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" aria-label="Digit 5 of 6" />
-            <input class="code-box" data-code-box="5" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" aria-label="Digit 6 of 6" />
-          </div>
+          <label class="field" for="authCodeInput">
+            <span class="field-label">Verification code</span>
+            <input
+              class="auth-code-input"
+              id="authCodeInput"
+              name="code"
+              type="text"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              maxlength="10"
+              autocomplete="one-time-code"
+              autocapitalize="none"
+              autocorrect="off"
+              spellcheck="false"
+              placeholder="••••••"
+              aria-describedby="authCodeHint"
+            />
+          </label>
+          <p class="auth-code-hint" id="authCodeHint">Paste or type the code from the email.</p>
         </div>
 
         <button class="btn btn-primary" id="authSubmit" type="submit">Send code</button>
@@ -705,7 +717,7 @@
     <div class="noscript">AURA needs JavaScript to run your day.</div>
   </noscript>
 
-  <script src="./supabase-client.js?v=42"></script>
-  <script src="./app.js?v=42"></script>
+  <script src="./supabase-client.js?v=43"></script>
+  <script src="./app.js?v=43"></script>
 </body>
 </html>
