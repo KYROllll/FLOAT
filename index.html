@@ -13,6 +13,10 @@
   />
   <meta name="theme-color" content="#08070b" />
   <meta name="color-scheme" content="dark" />
+  <!-- AURA access-code verification endpoint (HTTPS). Set this to your
+       server-side verification URL (e.g. a Supabase Edge Function). The
+       client never stores or compares the secret code itself. -->
+  <meta name="aura-access-endpoint" content="" />
 
   <!-- iOS standalone / PWA -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -49,6 +53,31 @@
     <span class="aura-a"></span>
     <span class="aura-b"></span>
     <span class="aura-c"></span>
+  </div>
+
+  <!-- Access-code gate: covers the app until a server-verified code is entered. -->
+  <div class="access-gate" id="accessGate" hidden>
+    <div class="access-gate-card" role="dialog" aria-modal="true" aria-labelledby="accessGateTitle">
+      <p class="access-gate-kicker">AURA</p>
+      <h2 class="access-gate-title" id="accessGateTitle">Access code required</h2>
+      <p class="access-gate-note">Enter your current access code to continue.</p>
+      <form class="access-gate-form" id="accessForm" autocomplete="off" novalidate>
+        <label class="field">
+          <span class="field-label">Access code</span>
+          <input
+            id="accessCode"
+            type="text"
+            inputmode="text"
+            autocomplete="off"
+            autocapitalize="characters"
+            maxlength="128"
+            required
+          />
+        </label>
+        <p class="form-error" id="accessError" role="alert" hidden></p>
+        <button class="btn btn-primary" id="accessSubmit" type="submit">Unlock</button>
+      </form>
+    </div>
   </div>
 
   <div class="app" id="app">
@@ -346,6 +375,7 @@
     <footer class="foot">
       <img class="foot-logo" src="./assets/aura-mark.png" alt="AURA" width="720" height="150" />
       <p><span class="dot-live" aria-hidden="true"></span> Saved on this device</p>
+      <button class="foot-lock" id="lockBtn" type="button" aria-label="Lock AURA">Lock</button>
     </footer>
   </div>
 

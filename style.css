@@ -6067,3 +6067,95 @@ body.superfocus .tabbar {
   color: #04150b;
   box-shadow: 0 0 14px rgba(34, 197, 94, 0.32);
 }
+
+/* ==========================================================================
+   AURA access-code gate
+   ========================================================================== */
+.access-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: radial-gradient(120% 100% at 50% 0%, rgba(139, 92, 246, 0.18), transparent 60%),
+    linear-gradient(180deg, #08070b 0%, #020203 100%);
+  backdrop-filter: blur(8px);
+}
+
+.access-gate[hidden] {
+  display: none;
+}
+
+.access-gate-card {
+  width: 100%;
+  max-width: 360px;
+  padding: 28px 24px;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(27, 26, 32, 0.96), rgba(12, 11, 16, 0.98));
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  text-align: center;
+}
+
+.access-gate-kicker {
+  margin: 0 0 6px;
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.access-gate-title {
+  margin: 0 0 8px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.access-gate-note {
+  margin: 0 0 18px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.access-gate-form .field {
+  text-align: left;
+  margin-bottom: 12px;
+}
+
+.access-gate-form input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--card-3);
+  color: var(--ink);
+  font-size: 16px;
+}
+
+.access-gate-form .btn {
+  width: 100%;
+  margin-top: 6px;
+}
+
+.foot-lock {
+  margin-top: 10px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.foot-lock:hover {
+  color: var(--ink);
+  border-color: var(--gold-line);
+}
+
+body.is-locked {
+  overflow: hidden;
+}

@@ -527,7 +527,13 @@
     demoTags: document.getElementById('demoTags'),
     demoCue: document.getElementById('demoCue'),
     demoDose: document.getElementById('demoDose'),
-    toast: document.getElementById('toast')
+    toast: document.getElementById('toast'),
+    accessGate: document.getElementById('accessGate'),
+    accessForm: document.getElementById('accessForm'),
+    accessCode: document.getElementById('accessCode'),
+    accessError: document.getElementById('accessError'),
+    accessSubmit: document.getElementById('accessSubmit'),
+    lockBtn: document.getElementById('lockBtn')
   };
 
   var state = loadState();
@@ -545,6 +551,125 @@
   var sheetChallengeMode = 'habit';
   var newRecurring = false;
   var toastTimer = 0;
+
+  /* Access-code gate configuration. The secret code is NEVER stored or
+     compared here: only the verification endpoint URL is configured, and the
+     user-entered code is submitted to it over HTTPS. Wire the URL up via the
+     <meta name="aura-access-endpoint"> tag, window.AURA_ACCESS_ENDPOINT, or
+     the ACCESS_VERIFY_URL constant below. */
+  var ACCESS_VERIFY_URL = '';
+  var ACCESS_STORAGE_KEYS = ['aura.access.unlocked', 'aura.accessUnlocked', 'auraUnlocked'];
+
+  function accessEndpoint() {
+    if (window.AURA_ACCESS_ENDPOINT) return String(window.AURA_ACCESS_ENDPOINT).trim();
+    var meta = document.querySelector('meta[name="aura-access-endpoint"]');
+    if (meta && meta.content) {
+      var c = String(meta.content).trim();
+      if (c) return c;
+    }
+    return String(ACCESS_VERIFY_URL || '').trim();
+  }
+
+  function isUnlocked() {
+    try {
+      for (var i = 0; i < ACCESS_STORAGE_KEYS.length; i += 1) {
+        if (localStorage.getItem(ACCESS_STORAGE_KEYS[i]) === '1') return true;
+      }
+    } catch (e) {}
+    return false;
+  }
+
+  function setUnlocked(value) {
+    try {
+      for (var i = 0; i < ACCESS_STORAGE_KEYS.length; i += 1) {
+        if (value) localStorage.setItem(ACCESS_STORAGE_KEYS[i], '1');
+        else localStorage.removeItem(ACCESS_STORAGE_KEYS[i]);
+      }
+    } catch (e) {}
+  }
+
+  function showAccessGate() {
+    if (els.accessGate) {
+      els.accessGate.hidden = false;
+      els.accessGate.setAttribute('aria-hidden', 'false');
+    }
+    document.body.classList.add('is-locked');
+    if (els.accessCode) {
+      window.setTimeout(function () { try { els.accessCode.focus(); } catch (e) {} }, 50);
+    }
+  }
+
+  function hideAccessGate() {
+    if (els.accessGate) {
+      els.accessGate.hidden = true;
+      els.accessGate.setAttribute('aria-hidden', 'true');
+    }
+    document.body.classList.remove('is-locked');
+  }
+
+  function setAccessError(msg) {
+    if (!els.accessError) return;
+    if (msg) {
+      els.accessError.textContent = msg;
+      els.accessError.hidden = false;
+    } else {
+      els.accessError.textContent = '';
+      els.accessError.hidden = true;
+    }
+  }
+
+  async function verifyAccessCode(code) {
+    var url = accessEndpoint();
+    if (!url) {
+      throw new Error('Access verification endpoint is not configured.');
+    }
+    var response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: code })
+    });
+    if (!response.ok) throw new Error('Verification request failed.');
+    var data = await response.json().catch(function () { return {}; });
+    return !!(data && data.valid === true);
+  }
+
+  function handleAccessSubmit(event) {
+    if (event) event.preventDefault();
+    var code = els.accessCode ? String(els.accessCode.value || '').trim() : '';
+    if (!code) { setAccessError('Enter an access code.'); return; }
+    setAccessError('');
+    if (els.accessSubmit) {
+      els.accessSubmit.disabled = true;
+      els.accessSubmit.textContent = 'Checking…';
+    }
+    verifyAccessCode(code)
+      .then(function (valid) {
+        if (valid) {
+          setUnlocked(true);
+          if (els.accessCode) els.accessCode.value = '';
+          hideAccessGate();
+          if (typeof toast === 'function') toast('Unlocked');
+        } else {
+          setAccessError('Invalid or expired access code.');
+        }
+      })
+      .catch(function (err) {
+        setAccessError((err && err.message) ? err.message : 'Verification failed.');
+      })
+      .finally(function () {
+        if (els.accessSubmit) {
+          els.accessSubmit.disabled = false;
+          els.accessSubmit.textContent = 'Unlock';
+        }
+      });
+  }
+
+  function lockApp() {
+    setUnlocked(false);
+    if (els.accessCode) els.accessCode.value = '';
+    setAccessError('');
+    showAccessGate();
+  }
 
   /* Build cards remember whether their day plan is unfolded, so a repaint
      never snaps an open plan shut. */
@@ -4863,6 +4988,8 @@
   });
 
   els.taskForm.addEventListener('submit', saveSheet);
+  if (els.accessForm) els.accessForm.addEventListener('submit', handleAccessSubmit);
+  if (els.lockBtn) els.lockBtn.addEventListener('click', lockApp);
   els.sheetDelete.addEventListener('click', deleteFromSheet);
   els.sheetClose.addEventListener('click', closeSheet);
   els.sheetCancel.addEventListener('click', closeSheet);
@@ -5077,4 +5204,8 @@
   }
   renderAll();
   save();
+
+  /* Access-code gate: keep the app locked until a server-verified code is
+     entered. Persisted per browser/device via localStorage. */
+  if (isUnlocked()) hideAccessGate(); else showAccessGate();
 })();
