@@ -22,7 +22,7 @@ Open **http://localhost:8080**. The service worker and Home Screen install need 
 2. **Share → Add to Home Screen**.
 3. Launch it from the Home Screen — it runs standalone, respects the notch and home indicator, and works offline.
 
-The service worker uses cache `aura-v43` (SHELL_VERSION in `sw.js`) and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the current palette, the new app icons and the in-app mark on the next launch.
+The service worker uses cache `aura-v44` (SHELL_VERSION in `sw.js`) and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the current palette, the new app icons and the in-app mark on the next launch.
 
 **Shell updates can never mix versions.** Every script and stylesheet is requested with the shell version (`app.js?v=42`, `style.css?v=42`), and `sw.js` caches with exact matching, so a new `index.html` can never be paired with an older cached `app.js` — the failure that once left `#authGate` hidden on live installs. The worker precaches with `cache: 'reload'` (GitHub Pages sends `max-age=600`, so the HTTP cache is not trusted), `register()` uses `updateViaCache: 'none'`, and the app checks `registration.update()` on load and whenever it returns to the foreground, takes over a waiting worker immediately, and reloads once when a newer worker claims the page. Bump `SHELL_VERSION` (and the `?v=` queries) together with any shell change.
 
@@ -293,7 +293,7 @@ supabase-client.js         Tiny Supabase Auth + PostgREST client (publishable ke
 supabase/aura_user_state.sql  Table + RLS policies for the per-user cloud state
 supabase/email-templates/   Branded AURA code email (no provider branding)
 manifest.json              PWA manifest (AURA, standalone, portrait)
-sw.js                      Offline cache — aura-v43, versioned shell assets
+sw.js                      Offline cache — aura-v44, versioned shell assets
 AURALOGO.png               Official logo tile (source for every app icon)
 AURALOGO-ONLY.png          Wordmark alone, alpha cut (source for the in-app mark)
 assets/aura-mark.png       Header/footer mark, trimmed and scaled from AURALOGO-ONLY

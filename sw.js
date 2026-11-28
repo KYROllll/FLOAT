@@ -3,7 +3,7 @@
    index.html. Bump it (and those queries) whenever a shell file changes: the
    versioned URL is what guarantees a new HTML can never pair with an older
    cached app.js, which is exactly how the account gate once failed to appear. */
-const SHELL_VERSION = '43';
+const SHELL_VERSION = '44';
 const CACHE_NAME = 'aura-v' + SHELL_VERSION;
 const CORE_ASSETS = [
   './',
