@@ -22,7 +22,7 @@ Open **http://localhost:8080**. The service worker and Home Screen install need 
 2. **Share → Add to Home Screen**.
 3. Launch it from the Home Screen — it runs standalone, respects the notch and home indicator, and works offline.
 
-The service worker uses cache `aura-v38` and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the current palette, the new app icons and the in-app mark on the next launch.
+The service worker uses cache `aura-v39` and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the current palette, the new app icons and the in-app mark on the next launch.
 
 On mobile the app's background is a fixed layer pinned to the viewport, not a fixed-attachment body gradient: iOS Safari sizes that gradient once, so switching to a shorter tab (Challenges with one track, say) used to leave a bare grey strip under the content. The canvas itself is a flat near-black, the page is at least `100dvh` tall, and a tab switch resets the scroll offset before the new view is painted — so no view, repaint or toolbar collapse can expose an empty block above the tab bar.
 
@@ -198,7 +198,7 @@ style.css                  Near-black palette, ambient indigo/gold aura, header 
 app.js                     State, migration, per-day snapshots, verdicts, streaks,
                            challenges, workouts, body map, calendar, demos, Superfocus
 manifest.json              PWA manifest (AURA, standalone, portrait)
-sw.js                      Offline cache — aura-v38
+sw.js                      Offline cache — aura-v39
 AURALOGO.png               Official logo tile (source for every app icon)
 AURALOGO-ONLY.png          Wordmark alone, alpha cut (source for the in-app mark)
 assets/aura-mark.png       Header/footer mark, trimmed and scaled from AURALOGO-ONLY
