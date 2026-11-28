@@ -2037,9 +2037,8 @@
         : '';
       var metaText = rest
         ? 'Rest day · streak frozen'
-        : 'Day ' + dayNo + ' of ' + ch.duration + (build ? ' milestone' : '') +
-          ' · ' + done + ' of ' + items.length + (past ? ' done' : ' today') +
-          verdictNote;
+        : 'Day ' + dayNo + ' of ' + ch.duration +
+          ' · ' + done + ' of ' + items.length + verdictNote;
       var meta = makeEl('p', 'today-challenge-meta', metaText);
       meta.dir = dir;
       wrap.appendChild(meta);
@@ -2047,7 +2046,7 @@
       var chip = makeEl('span', 'today-challenge-chip',
         rest ? 'REST DAY'
           : !items.length ? 'NO ACTIONS'
-            : complete ? '✓ DAY WON'
+            : complete ? '✓ WON'
               : past ? 'DAY LOST' : st.won + ' WINS');
       /* Keep “0 WINS” in reading order inside a right-to-left header. */
       chip.dir = 'ltr';
@@ -2069,15 +2068,6 @@
         li.dir = dir;
         var text = makeEl('span', 'mini-text', item.title);
         text.dir = 'auto';
-
-        /* A past date is sealed: its ticks are shown, never edited, so the
-           verdict the Challenges tab already declared cannot be rewritten. */
-        if (past) {
-          li.classList.add('is-static');
-          li.appendChild(text);
-          listEl.appendChild(li);
-          return;
-        }
 
         var btn = makeEl('button', 'mini-check');
         btn.type = 'button';
@@ -2184,24 +2174,6 @@
     };
   }
 
-  function buildChallengeVerdict(ch, st) {
-    if (!st.verdict) return null;
-    var win = st.verdict === 'win';
-    /* One verdict per card: the header status pill carries WIN / LOSS, so
-       this block only explains the numbers behind it. */
-    var box = makeEl('div', 'challenge-verdict is-' + st.verdict);
-    var copy = makeEl('div', 'verdict-copy');
-    copy.appendChild(makeEl('b', 'verdict-title',
-      st.won + ' of ' + st.activeDays + ' active days won'));
-    copy.appendChild(makeEl('span', 'verdict-note', win
-      ? (st.won >= st.activeDays
-        ? 'Every active day cleared — target ' + st.threshold + ' met.'
-        : 'Target ' + st.threshold + ' days met. Window closed strong.')
-      : 'Target ' + st.threshold + ' days · ' + (st.threshold - st.won) + ' short.'));
-    box.appendChild(copy);
-    return box;
-  }
-
   function deleteButton(label, handler) {
     var btn = makeEl('button', 'track-del');
     btn.type = 'button';
@@ -2225,13 +2197,6 @@
     save();
     renderAll();
     toast('✓ Challenge deleted');
-  }
-
-  function dateChip(label, key) {
-    var chip = makeEl('span', 'track-date');
-    chip.appendChild(makeEl('span', 'track-date-k', label));
-    chip.appendChild(makeEl('b', null, shortDate(key)));
-    return chip;
   }
 
   function renderChallenges() {
@@ -2272,22 +2237,21 @@
       var statusLabel = todayRest && st.kind === 'live'
         ? 'Rest day'
         : st.verdict === 'win' ? 'WIN'
-          : st.verdict === 'loss' ? 'LOSS' : st.label;
+          : st.verdict === 'loss' ? 'LOSS'
+            : st.kind === 'live' ? 'LIVE' : st.label;
       var statusEl = makeEl('span', 'track-status is-' + statusKind, statusLabel);
       statusEl.dir = 'auto';
       top.appendChild(statusEl);
       card.appendChild(top);
 
-      /* Every challenge states its own beginning and finish. */
+      /* One quiet line states the window, start to finish. */
       var dates = makeEl('div', 'track-dates');
       dates.dir = 'ltr';
-      dates.appendChild(dateChip('Start', ch.startDate));
-      dates.appendChild(dateChip('End', ch.endDate));
+      dates.appendChild(makeEl('span', 'track-date', shortDate(ch.startDate)));
+      dates.appendChild(makeEl('span', 'track-date-sep', '→'));
+      dates.appendChild(makeEl('span', 'track-date', shortDate(ch.endDate)));
       dates.appendChild(makeEl('span', 'track-dates-len', ch.duration + ' days'));
       card.appendChild(dates);
-
-      var verdict = buildChallengeVerdict(ch, st);
-      if (verdict) card.appendChild(verdict);
 
       var meter = makeEl('div', 'track-meter');
       var fill = makeEl('span');
@@ -2299,15 +2263,16 @@
       meta.dir = 'ltr';
       meta.appendChild(makeEl('span', null,
         st.kind === 'scheduled'
-          ? 'Starts ' + shortDate(ch.startDate) + ' · ' +
-            (build ? ch.duration + ' day slots' : ch.daily.length + ' daily actions')
-          : 'Day ' + st.day + ' / ' + ch.duration));
-      var wins = makeEl('span');
-      var winsNum = makeEl('b', null, String(st.won));
-      wins.appendChild(winsNum);
-      wins.appendChild(document.createTextNode(
-        ' wins' + (st.verdict ? '' : ' · need ' + st.threshold)));
-      meta.appendChild(wins);
+          ? 'Need ' + st.threshold + ' active days'
+          : 'Day ' + st.day + ' of ' + ch.duration));
+      if (st.kind !== 'scheduled') {
+        var wins = makeEl('span');
+        wins.appendChild(makeEl('b', null, String(st.won)));
+        wins.appendChild(document.createTextNode(
+          ' / ' + st.activeDays + ' won' +
+          (st.kind === 'live' ? ' · need ' + st.threshold : '')));
+        meta.appendChild(wins);
+      }
       card.appendChild(meta);
 
       if (ch.startDate) {
@@ -2397,9 +2362,7 @@
       if (st.kind === 'scheduled') {
         var preview = makeEl('div', 'track-check');
         preview.appendChild(makeEl('p', 'track-check-label',
-          build
-            ? 'Starts ' + shortDate(ch.startDate) + ' · Day 1 milestone'
-            : 'Starts ' + shortDate(ch.startDate) + ' · daily checklist'));
+          build ? 'Day 1 milestone' : 'Daily actions'));
         var previewList = makeEl('ul', 'mini-list');
         var previewItems = build ? challengeItemsFor(ch, ch.startDate) : ch.daily;
         /* Read-only here: no check circle. Ticking happens on Today. */
@@ -2418,9 +2381,7 @@
         block.appendChild(makeEl('p', 'track-check-label',
           todayRest
             ? 'Rest day · streak frozen'
-            : build
-              ? 'Today · Day ' + st.day + ' milestone · check off on Today'
-              : 'Today · day ' + st.day + ' · check off on Today'));
+            : build ? 'Today · milestone' : 'Today · daily actions'));
         var listEl = makeEl('ul', 'mini-list');
         var doneIds = ch.log[todayKey] || [];
         /* Status only, never a control: the Challenges tab carries no check
@@ -2436,11 +2397,6 @@
         });
         block.appendChild(listEl);
         card.appendChild(block);
-      } else if (st.kind === 'won') {
-        card.appendChild(makeEl('p', 'track-check-label', 'Every day won. Run it back?'));
-      } else {
-        card.appendChild(makeEl('p', 'track-check-label',
-          'Window closed · ' + st.won + ' of ' + st.activeDays + ' active days won.'));
       }
 
       var canRestart = st.kind === 'won' || st.kind === 'over';

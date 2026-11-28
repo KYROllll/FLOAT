@@ -2295,7 +2295,73 @@ body.editing .task-del {
 }
 
 .challenge-list .track-card {
-  border-radius: 20px;
+  padding: 14px 14px 13px;
+  border-radius: 18px;
+  border-color: rgba(174, 146, 255, 0.16);
+  background:
+    radial-gradient(120% 120% at 100% 0%, rgba(139, 92, 246, 0.1), transparent 62%),
+    linear-gradient(165deg, #171a20 0%, #101216 58%, #0a0a0d 100%);
+}
+
+/* The card's own hairline is enough; the accent band would only add weight. */
+.challenge-list .track-card::before {
+  display: none;
+}
+
+.challenge-list .track-title {
+  font-size: 15.5px;
+}
+
+.challenge-list .track-why {
+  margin-top: 4px;
+  font-size: 10.5px;
+  line-height: 1.4;
+}
+
+.challenge-list .track-status {
+  padding: 4px 7px;
+  font-size: 8px;
+}
+
+.challenge-list .track-meter {
+  height: 5px;
+  margin-top: 11px;
+}
+
+.challenge-list .track-meta {
+  margin-top: 6px;
+  font-size: 9.5px;
+}
+
+.challenge-list .track-days {
+  gap: 2px;
+  margin-top: 9px;
+}
+
+.challenge-list .track-check {
+  margin-top: 11px;
+  padding-top: 10px;
+}
+
+.challenge-list .mini-list {
+  gap: 0;
+}
+
+/* Quiet rows: a hairline between actions, no stacked boxes. */
+.challenge-list .mini-item {
+  min-height: 27px;
+  padding: 3px 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 11.5px;
+}
+
+.challenge-list .mini-item + .mini-item {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+
+.challenge-list .mini-item.is-done {
+  background: transparent;
 }
 
 .track-card.is-won {
@@ -2453,31 +2519,16 @@ body.editing .task-del {
 }
 
 .track-date {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 4px;
-  padding: 4px 8px;
-  border-radius: 999px;
-  border: 1px solid rgba(139, 92, 246, 0.18);
-  background: rgba(139, 92, 246, 0.08);
-  color: var(--muted);
-  font-size: 9px;
-  line-height: 1.1;
-}
-
-.track-date-k {
-  font-size: 7.5px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--violet-bright);
-}
-
-.track-date b {
   font-size: 10px;
-  font-weight: 750;
+  font-weight: 700;
   color: var(--ink-dim);
+  line-height: 1.1;
   font-variant-numeric: tabular-nums;
+}
+
+.track-date-sep {
+  font-size: 9px;
+  color: var(--muted-dim);
 }
 
 .track-dates-len {
@@ -4685,39 +4736,6 @@ body.demo-open {
   background: linear-gradient(90deg, #ef4444, #f59e0b);
 }
 
-.challenge-verdict {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 10px;
-  padding: 10px 11px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.challenge-verdict.is-win {
-  border-color: rgba(34, 197, 94, 0.32);
-  background: linear-gradient(100deg, rgba(34, 197, 94, 0.14), rgba(34, 197, 94, 0.04));
-}
-
-.challenge-verdict.is-loss {
-  border-color: rgba(239, 68, 68, 0.3);
-  background: linear-gradient(100deg, rgba(239, 68, 68, 0.13), rgba(239, 68, 68, 0.04));
-}
-
-.verdict-copy {
-  min-width: 0;
-}
-
-.verdict-title {
-  display: block;
-  font-size: 11px;
-  font-weight: 750;
-  color: var(--ink-dim);
-  overflow-wrap: anywhere;
-}
-
 .verdict-note {
   display: block;
   margin-top: 2px;
@@ -4796,7 +4814,7 @@ body.demo-open {
   margin-inline-end: 5px;
   font-size: 9px;
   vertical-align: 1px;
-  color: #f7a6d6;
+  color: #c4b5fd;
 }
 
 .today-workout-list,
@@ -4938,9 +4956,9 @@ body.demo-open {
 }
 
 .today-challenge-chip {
-  border-color: rgba(239, 122, 192, 0.3);
-  background: rgba(239, 122, 192, 0.1);
-  color: #f7a6d6;
+  border-color: rgba(174, 146, 255, 0.28);
+  background: rgba(139, 92, 246, 0.11);
+  color: #ddd0ff;
 }
 
 .today-workout-card.is-done .today-workout-state {
@@ -5086,12 +5104,12 @@ body.demo-open {
 }
 
 .today-challenge-card {
-  padding: 13px;
+  padding: 12px 13px;
   border-radius: 18px;
-  border: 1px solid rgba(239, 122, 192, 0.22);
+  border: 1px solid rgba(174, 146, 255, 0.2);
   background:
-    radial-gradient(120% 110% at 100% 0%, rgba(239, 122, 192, 0.09), transparent 58%),
-    linear-gradient(160deg, #1c1524 0%, #141019 58%, #0b0a10 100%);
+    radial-gradient(130% 120% at 100% 0%, rgba(139, 92, 246, 0.12), transparent 62%),
+    linear-gradient(160deg, #181a22 0%, #121117 60%, #0b0a10 100%);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
@@ -5099,8 +5117,30 @@ body.demo-open {
   border-color: rgba(34, 197, 94, 0.32);
 }
 
+.today-challenge-card.is-done .today-challenge-chip {
+  border-color: transparent;
+  background: linear-gradient(180deg, var(--green-bright), var(--green));
+  color: #04150b;
+}
+
 .today-challenge-items {
-  margin-top: 9px;
+  margin-top: 8px;
+}
+
+/* Same quiet rows as the Challenges tab, so both read as one system. */
+.today-challenge-card .mini-item {
+  min-height: 30px;
+  padding: 2px 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.today-challenge-card .mini-item + .mini-item {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+
+.today-challenge-card .mini-item.is-done {
+  background: transparent;
 }
 
 /* --------------------------- studio program ---------------------------- */
@@ -5768,8 +5808,7 @@ body.rest-day .focus-card {
   color: #ddd0ff;
 }
 
-/* A date the challenge has already closed over: the day reads as sealed,
-   with its ticks shown but no control to change them. */
+/* A past date inside the window stays editable, just toned down. */
 .today-challenge-card.is-past {
   border-color: rgba(168, 162, 180, 0.16);
 }
@@ -5778,10 +5817,6 @@ body.rest-day .focus-card {
   border-color: rgba(168, 162, 180, 0.22);
   background: rgba(168, 162, 180, 0.08);
   color: var(--muted);
-}
-
-.mini-item.is-static {
-  padding-inline-start: 12px;
 }
 
 .field-hint {
