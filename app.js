@@ -428,6 +428,8 @@
     progressTotal: document.getElementById('progressTotal'),
     progressPct: document.getElementById('progressPct'),
     progressPctNum: document.getElementById('progressPctNum'),
+    winTarget: document.getElementById('winTarget'),
+    winTargetText: document.getElementById('winTargetText'),
     progressVerdict: document.getElementById('progressVerdict'),
     scale: document.getElementById('scale'),
     scaleFill: document.getElementById('scaleFill'),
@@ -1732,9 +1734,25 @@
       els.scaleStatus.textContent = 'Win zone · threshold cleared';
       els.scaleStatus.classList.add('is-win');
     } else {
-      var need = Math.max(0, winTarget(total) - done);
-      els.scaleStatus.textContent = need + ' to win · ' + WON_AT + '% threshold';
+      els.scaleStatus.textContent = 'Threshold at ' + WON_AT + '%';
       els.scaleStatus.classList.remove('is-win');
+    }
+
+    /* The finish line, spelled out: how many boxes still stand between this
+       day and a WIN. It leaves the card on a rest or empty day, which carry
+       no target at all. */
+    if (els.winTarget) {
+      var need = Math.max(0, winTarget(total) - done);
+      els.winTarget.hidden = rest || empty;
+      els.winTarget.classList.toggle('is-won', won);
+      els.winTargetText.innerHTML = won
+        ? '<b>WIN</b> cleared'
+        : '<b>' + need + '</b> ' + (need === 1 ? 'task' : 'tasks') + ' to WIN';
+      els.winTarget.setAttribute(
+        'aria-label',
+        won ? 'WIN cleared, the threshold is met'
+          : need + (need === 1 ? ' task' : ' tasks') + ' needed to reach the WIN threshold'
+      );
     }
 
     /* An empty day is neither won nor lost, and a rest day is deliberately

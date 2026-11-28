@@ -652,6 +652,56 @@ button {
   color: var(--muted);
 }
 
+/* The day's finish line, right under the count: how many boxes are still
+   missing before the WIN threshold is cleared. */
+.win-target {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 9px 0 0;
+  padding: 4px 10px 4px 8px;
+  border: 1px solid var(--gold-line);
+  border-radius: 999px;
+  background: rgba(245, 201, 78, 0.08);
+  color: #f6e9bf;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+  white-space: nowrap;
+  transition: color 0.3s var(--ease), background 0.3s var(--ease),
+    border-color 0.3s var(--ease), box-shadow 0.3s var(--ease);
+}
+
+.win-target[hidden] {
+  display: none;
+}
+
+.win-target-mark {
+  font-size: 8px;
+  line-height: 1;
+  color: var(--gold);
+}
+
+.win-target b {
+  color: var(--gold-bright);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Threshold cleared: the chip flips to solid gold, the same language as the
+   active tab and the hot streak pill. */
+.win-target.is-won {
+  border-color: transparent;
+  background: linear-gradient(180deg, var(--gold-bright), var(--gold));
+  color: var(--gold-ink);
+  box-shadow: 0 0 16px rgba(245, 201, 78, 0.28);
+}
+
+.win-target.is-won .win-target-mark {
+  color: var(--gold-ink);
+}
+
 .progress-side {
   flex: none;
   display: flex;
@@ -2509,15 +2559,16 @@ body.editing .task-del {
 }
 
 /* The timeline is a clock, not a verdict: it only ever shows how much of the
-   window has elapsed, so it keeps one gold track whether the card is live, won
-   or lost. Outcome colours belong to the status pill and the day marks. */
+   window has elapsed, so it keeps the card's own accent gradient whether the
+   card is live, won or lost. Outcome colours belong to the status pill and the
+   day marks. */
 .track-meter span {
   display: block;
   height: 100%;
   width: 0;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--gold-deep), var(--gold) 58%, var(--gold-bright));
-  box-shadow: 0 0 12px rgba(245, 201, 78, 0.4);
+  background: linear-gradient(90deg, var(--track-a, #8b5cf6), var(--track-b, #f5c94e));
+  box-shadow: 0 0 12px var(--track-b, #f5c94e);
   transition: width 0.55s var(--ease);
 }
 
@@ -5626,6 +5677,7 @@ body.rest-day .focus-card {
 }
 
 .progress-card.is-rest .progress-count,
+.progress-card.is-rest .win-target,
 .progress-card.is-rest .progress-pct,
 .progress-card.is-rest .scale,
 .progress-card.is-rest .scale-legend {
