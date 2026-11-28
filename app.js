@@ -422,6 +422,8 @@
     weekStrip: document.getElementById('weekStrip'),
     progressGlow: document.getElementById('progressGlow'),
     progressDate: document.getElementById('progressDate'),
+    progressCard: document.getElementById('progressCard'),
+    progressRest: document.getElementById('progressRest'),
     progressDone: document.getElementById('progressDone'),
     progressTotal: document.getElementById('progressTotal'),
     progressPct: document.getElementById('progressPct'),
@@ -458,13 +460,12 @@
     calPrev: document.getElementById('calPrev'),
     calNext: document.getElementById('calNext'),
     calMonth: document.getElementById('calMonth'),
-    calTally: document.getElementById('calTally'),
     calWins: document.getElementById('calWins'),
     calLosses: document.getElementById('calLosses'),
     calRest: document.getElementById('calRest'),
-    calWinWord: document.getElementById('calWinWord'),
-    calLossWord: document.getElementById('calLossWord'),
-    calRestWord: document.getElementById('calRestWord'),
+    calStreak: document.getElementById('calStreak'),
+    calBest: document.getElementById('calBest'),
+    calRate: document.getElementById('calRate'),
     calSub: document.getElementById('calSub'),
     calWeekdays: document.getElementById('calWeekdays'),
     calGrid: document.getElementById('calGrid'),
@@ -1742,6 +1743,11 @@
       'radial-gradient(circle, ' + glow + ' 0%, transparent 68%)';
 
     var won = result.won;
+
+    /* On a rest day the card drops its score, count and scale: recovery is
+       the whole state, so nothing on it reads like an unfinished day. */
+    if (els.progressCard) els.progressCard.classList.toggle('is-rest', rest);
+    if (els.progressRest) els.progressRest.hidden = !rest;
 
     if (rest) {
       els.scaleStatus.textContent = 'Rest day · streak frozen';
@@ -3958,19 +3964,74 @@
       els.calGrid.appendChild(cell);
     }
 
+    /* A clean tally of the month on screen, plus the runs that cross it. */
+    var streaks = winStreaks();
+    var decided = wins + losses;
+    var rate = decided ? Math.round((wins / decided) * 100) : null;
+
     els.calWins.textContent = String(wins);
     els.calLosses.textContent = String(losses);
-    if (els.calRest) els.calRest.textContent = String(rests);
-    if (els.calWinWord) els.calWinWord.textContent = wins === 1 ? 'win' : 'wins';
-    if (els.calLossWord) els.calLossWord.textContent = losses === 1 ? 'loss' : 'losses';
-    if (els.calRestWord) els.calRestWord.textContent = rests === 1 ? 'rest' : 'rests';
-    var decided = wins + losses;
+    els.calRest.textContent = String(rests);
+    els.calStreak.textContent = String(streaks.current);
+    els.calBest.textContent = String(streaks.best);
+    els.calRate.textContent = rate === null ? '—' : rate + '%';
     els.calSub.textContent = decided || rests
       ? wins + ' win' + (wins === 1 ? '' : 's') + ' · ' + losses + ' loss' +
         (losses === 1 ? '' : 'es') +
         (rests ? ' · ' + rests + ' rest day' + (rests === 1 ? '' : 's') : '') +
         ' in ' + title + '.'
       : 'No judged days yet in ' + title + '.';
+  }
+
+  /* A day's real outcome, with rest and empty days kept distinct from a
+     loss so neither can quietly extend or end a run. */
+  function dayTally(key) {
+    if (isRestDay(key)) return 'rest';
+    var result = dayResult(key);
+    if (!result.total) return 'empty';
+    return result.won ? 'win' : 'loss';
+  }
+
+  /* Streaks are read from the stored day records themselves: consecutive WIN
+     days, with rest days freezing the run and a lost or empty day ending it. */
+  function winStreaks() {
+    var current = 0;
+    var cursor = todayKey;
+    for (var guard = 0; guard < MAX_STREAK; guard += 1) {
+      var mark = dayTally(cursor);
+      if (mark === 'rest') {
+        cursor = shiftKey(cursor, -1);
+        continue;
+      }
+      if (mark === 'win') {
+        current += 1;
+        cursor = shiftKey(cursor, -1);
+        continue;
+      }
+      /* Today can still be won, so it never ends yesterday's run. */
+      if (cursor === todayKey) {
+        cursor = shiftKey(cursor, -1);
+        continue;
+      }
+      break;
+    }
+
+    var keys = Object.keys(state.days).concat(Object.keys(state.restDays || {})).sort();
+    var best = current;
+    if (keys.length) {
+      var run = 0;
+      for (var key = keys[0]; key <= todayKey; key = shiftKey(key, 1)) {
+        var mark = dayTally(key);
+        if (mark === 'rest') continue;
+        if (mark === 'win') {
+          run += 1;
+          if (run > best) best = run;
+        } else {
+          run = 0;
+        }
+      }
+    }
+    return { current: current, best: best };
   }
 
   function applyView() {

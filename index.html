@@ -72,7 +72,7 @@
     <div class="view" id="viewToday">
       <nav class="weekstrip" id="weekStrip" aria-label="Week selector"></nav>
 
-      <section class="progress-card" aria-labelledby="progressCount">
+      <section class="progress-card" id="progressCard" aria-labelledby="progressCount">
         <div class="progress-glow" id="progressGlow" aria-hidden="true"></div>
 
         <div class="progress-head">
@@ -96,6 +96,14 @@
               aria-live="polite"
               aria-label="Day status: LOSS"
             >LOSS</p>
+          </div>
+        </div>
+
+        <div class="progress-rest" id="progressRest" hidden>
+          <span class="progress-rest-moon" aria-hidden="true">☾</span>
+          <div class="progress-rest-copy">
+            <p class="progress-rest-title">Rest day</p>
+            <p class="progress-rest-note">No score today. Nothing to chase.</p>
           </div>
         </div>
 
@@ -288,7 +296,6 @@
           </button>
           <div class="cal-title-wrap">
             <p class="cal-month" id="calMonth">November 2026</p>
-            <p class="cal-tally" id="calTally"><b id="calWins">0</b> <span id="calWinWord">wins</span> · <b id="calLosses">0</b> <span id="calLossWord">losses</span> · <b id="calRest">0</b> <span id="calRestWord">rests</span></p>
           </div>
           <button class="cal-arrow" id="calNext" type="button" aria-label="Next month">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -299,6 +306,33 @@
 
         <div class="cal-weekdays" id="calWeekdays" aria-hidden="true"></div>
         <div class="cal-grid" id="calGrid" role="grid" aria-label="Days of the month"></div>
+
+        <div class="cal-stats" aria-label="Month and streak summary">
+          <div class="cal-stat is-win">
+            <p class="cal-stat-label">Win</p>
+            <p class="cal-stat-value" id="calWins">0</p>
+          </div>
+          <div class="cal-stat is-loss">
+            <p class="cal-stat-label">Loss</p>
+            <p class="cal-stat-value" id="calLosses">0</p>
+          </div>
+          <div class="cal-stat is-rest">
+            <p class="cal-stat-label">Rest</p>
+            <p class="cal-stat-value" id="calRest">0</p>
+          </div>
+          <div class="cal-stat is-gold">
+            <p class="cal-stat-label">Streak</p>
+            <p class="cal-stat-value" id="calStreak">0</p>
+          </div>
+          <div class="cal-stat is-gold">
+            <p class="cal-stat-label">Best</p>
+            <p class="cal-stat-value" id="calBest">0</p>
+          </div>
+          <div class="cal-stat is-rate">
+            <p class="cal-stat-label">Win rate</p>
+            <p class="cal-stat-value" id="calRate">—</p>
+          </div>
+        </div>
 
         <div class="cal-legend">
           <span class="cal-key is-win">WIN</span>
