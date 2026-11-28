@@ -424,12 +424,10 @@
     progressDate: document.getElementById('progressDate'),
     progressCard: document.getElementById('progressCard'),
     progressRest: document.getElementById('progressRest'),
-    progressDone: document.getElementById('progressDone'),
-    progressTotal: document.getElementById('progressTotal'),
+    progressCount: document.getElementById('progressCount'),
+    progressTargetText: document.getElementById('progressTargetText'),
     progressPct: document.getElementById('progressPct'),
     progressPctNum: document.getElementById('progressPctNum'),
-    winTarget: document.getElementById('winTarget'),
-    winTargetText: document.getElementById('winTargetText'),
     progressVerdict: document.getElementById('progressVerdict'),
     scale: document.getElementById('scale'),
     scaleFill: document.getElementById('scaleFill'),
@@ -1700,8 +1698,6 @@
           ? 'rgba(34, 197, 94, 0.24)'
           : pct >= 34 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)';
 
-    els.progressDone.textContent = String(done);
-    els.progressTotal.textContent = String(total);
     els.progressPctNum.textContent = String(pct);
     els.progressPct.style.color = color;
     els.progressDate.textContent =
@@ -1738,21 +1734,28 @@
       els.scaleStatus.classList.remove('is-win');
     }
 
-    /* The finish line, spelled out: how many boxes still stand between this
-       day and a WIN. It leaves the card on a rest or empty day, which carry
-       no target at all. */
-    if (els.winTarget) {
+    /* The counter line is the finish line now, not a tally: how many boxes
+       still stand between this day and a WIN. It stays green while the day
+       is winnable, then floods vivid green once the threshold is cleared. */
+    if (els.progressCount) {
       var need = Math.max(0, winTarget(total) - done);
-      els.winTarget.hidden = rest || empty;
-      els.winTarget.classList.toggle('is-won', won);
-      els.winTargetText.innerHTML = won
-        ? '<b>WIN</b> cleared'
-        : '<b>' + need + '</b> ' + (need === 1 ? 'task' : 'tasks') + ' to WIN';
-      els.winTarget.setAttribute(
-        'aria-label',
-        won ? 'WIN cleared, the threshold is met'
-          : need + (need === 1 ? ' task' : ' tasks') + ' needed to reach the WIN threshold'
-      );
+      els.progressCount.hidden = rest;
+      els.progressCount.classList.toggle('is-won', won);
+      els.progressCount.classList.toggle('is-empty', empty);
+      if (empty) {
+        els.progressTargetText.textContent = 'No tasks scheduled';
+        els.progressCount.setAttribute('aria-label', 'Nothing scheduled, no win target');
+      } else if (won) {
+        els.progressTargetText.innerHTML = '<b>WIN</b> cleared';
+        els.progressCount.setAttribute('aria-label', 'WIN cleared, the threshold is met');
+      } else {
+        els.progressTargetText.innerHTML =
+          '<b>' + need + '</b> ' + (need === 1 ? 'task' : 'tasks') + ' to WIN';
+        els.progressCount.setAttribute(
+          'aria-label',
+          need + (need === 1 ? ' task' : ' tasks') + ' needed to reach the WIN threshold'
+        );
+      }
     }
 
     /* An empty day is neither won nor lost, and a rest day is deliberately

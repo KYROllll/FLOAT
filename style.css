@@ -630,76 +630,69 @@ button {
   color: var(--muted);
 }
 
+/* The day's finish line sits where the raw count used to be: how many boxes
+   are still missing before the WIN threshold is cleared. It stays green the
+   whole time the day is still winnable, so the target itself pulls forward. */
 .progress-count {
-  margin: 0;
-  font-size: 13.5px;
-  color: var(--muted);
-  line-height: 1.2;
-}
-
-.progress-count #progressDone {
-  color: var(--ink);
-  font-weight: 750;
-  font-size: 15px;
-}
-
-.progress-count #progressTotal {
-  color: var(--ink-dim);
-  font-weight: 650;
-}
-
-.progress-word {
-  color: var(--muted);
-}
-
-/* The day's finish line, right under the count: how many boxes are still
-   missing before the WIN threshold is cleared. */
-.win-target {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin: 9px 0 0;
-  padding: 4px 10px 4px 8px;
-  border: 1px solid var(--gold-line);
+  margin: 1px 0 0;
+  padding: 4px 11px 4px 9px;
+  border: 1px solid var(--green-line);
   border-radius: 999px;
-  background: rgba(245, 201, 78, 0.08);
-  color: #f6e9bf;
-  font-size: 10.5px;
+  background: var(--green-soft);
+  color: #8ee7ab;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.015em;
   line-height: 1.3;
   white-space: nowrap;
-  transition: color 0.3s var(--ease), background 0.3s var(--ease),
-    border-color 0.3s var(--ease), box-shadow 0.3s var(--ease);
+  transition: color 0.35s var(--ease), background 0.35s var(--ease),
+    border-color 0.35s var(--ease), box-shadow 0.35s var(--ease);
 }
 
-.win-target[hidden] {
+.progress-count[hidden] {
   display: none;
 }
 
-.win-target-mark {
+.win-mark {
   font-size: 8px;
   line-height: 1;
-  color: var(--gold);
+  color: var(--green);
 }
 
-.win-target b {
-  color: var(--gold-bright);
+.progress-count b {
+  color: var(--green-bright);
   font-weight: 800;
+  font-size: 13.5px;
   font-variant-numeric: tabular-nums;
 }
 
-/* Threshold cleared: the chip flips to solid gold, the same language as the
-   active tab and the hot streak pill. */
-.win-target.is-won {
+/* Threshold cleared: the pill floods bright, vivid green and glows, so the
+   win lands as a celebration rather than another grey check. */
+.progress-count.is-won {
   border-color: transparent;
-  background: linear-gradient(180deg, var(--gold-bright), var(--gold));
-  color: var(--gold-ink);
-  box-shadow: 0 0 16px rgba(245, 201, 78, 0.28);
+  background: linear-gradient(180deg, #6ee7a0 0%, #22e06f 52%, var(--green-glow) 100%);
+  color: var(--green-ink);
+  box-shadow: 0 0 18px rgba(0, 230, 118, 0.42), 0 0 42px rgba(34, 197, 94, 0.2);
 }
 
-.win-target.is-won .win-target-mark {
-  color: var(--gold-ink);
+.progress-count.is-won b,
+.progress-count.is-won .win-mark {
+  color: var(--green-ink);
+}
+
+/* Nothing scheduled is neutral, not green: the target slot goes quiet grey
+   so an empty day never borrows the win language. */
+.progress-count.is-empty {
+  border-color: rgba(141, 135, 155, 0.22);
+  background: rgba(141, 135, 155, 0.08);
+  color: var(--muted);
+}
+
+.progress-count.is-empty .win-mark {
+  display: none;
 }
 
 .progress-side {
@@ -5677,7 +5670,6 @@ body.rest-day .focus-card {
 }
 
 .progress-card.is-rest .progress-count,
-.progress-card.is-rest .win-target,
 .progress-card.is-rest .progress-pct,
 .progress-card.is-rest .scale,
 .progress-card.is-rest .scale-legend {
