@@ -5614,91 +5614,6 @@ body.demo-open {
 
 /* =========================== IN-PAGE SUPERFOCUS ========================= */
 
-.focus-bar {
-  position: sticky;
-  top: calc(6px + var(--safe-t));
-  z-index: 24;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin: 0 0 12px;
-  padding: 12px 13px;
-  border-radius: 18px;
-  border: 1px solid rgba(174, 146, 255, 0.34);
-  background:
-    radial-gradient(120% 140% at 0% 0%, rgba(139, 92, 246, 0.26), transparent 62%),
-    rgba(14, 12, 20, 0.94);
-  box-shadow: 0 18px 38px -24px rgba(0, 0, 0, 0.95),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  -webkit-backdrop-filter: blur(18px) saturate(150%);
-  backdrop-filter: blur(18px) saturate(150%);
-  animation: focusBarIn 0.28s var(--ease);
-}
-
-.focus-bar[hidden] {
-  display: none;
-}
-
-@keyframes focusBarIn {
-  from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.focus-bar-copy {
-  min-width: 0;
-}
-
-.focus-bar-kicker {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--violet-bright);
-}
-
-.focus-bar-sub {
-  margin: 3px 0 0;
-  font-size: 10.5px;
-  line-height: 1.35;
-  color: var(--muted);
-  overflow-wrap: anywhere;
-}
-
-.focus-bar-actions {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.focus-bar-btn {
-  min-height: 32px;
-  padding: 0 11px;
-  border-radius: 999px;
-  border: 1px solid rgba(168, 162, 180, 0.2);
-  background: rgba(168, 162, 180, 0.08);
-  color: var(--ink-dim);
-  font: inherit;
-  font-size: 10.5px;
-  font-weight: 750;
-}
-
-.focus-bar-btn.is-exit {
-  border-color: rgba(245, 201, 78, 0.3);
-  background: rgba(245, 201, 78, 0.1);
-  color: var(--gold-bright);
-}
-
-.focus-bar-btn:active {
-  transform: scale(0.96);
-}
-
-
 /* The chrome — logo, week strip, scale, headers — blurs away so nothing but
    the day's tasks is left to look at. The rows themselves stay legible and
    tappable: choosing happens by tapping a task in place. */
@@ -5747,15 +5662,18 @@ body.superfocus .foot {
     0 18px 40px -26px rgba(0, 0, 0, 0.95);
 }
 
+/* Focus owns the surface: even a stale edit flag can never paint a delete ×
+   or an edit control on it. */
+body.superfocus .task-del,
+body.superfocus .edit-btn {
+  display: none;
+}
+
 body.superfocus .tabbar {
   display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .focus-bar {
-    animation: none;
-  }
-
   body.superfocus .topbar,
   body.superfocus .weekstrip,
   body.superfocus .progress-card,

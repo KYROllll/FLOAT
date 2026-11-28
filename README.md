@@ -22,7 +22,7 @@ Open **http://localhost:8080**. The service worker and Home Screen install need 
 2. **Share → Add to Home Screen**.
 3. Launch it from the Home Screen — it runs standalone, respects the notch and home indicator, and works offline.
 
-The service worker uses cache `aura-v24` and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the current palette, the new app icons and the in-app mark on the next launch.
+The service worker uses cache `aura-v25` and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the current palette, the new app icons and the in-app mark on the next launch.
 
 ---
 
@@ -51,7 +51,7 @@ Every tab has its own header action: **+** on Ideal Day and Non-Negotiables, and
 | Review an earlier day | Tap a day in the week strip — it shows that date's own tasks and ticks, and its tasks can be edited or deleted right there |
 | Enter Superfocus | Flip the switch on the **Superfocus** card. Today stays put; the logo, week strip, scale and section headers blur back |
 | Choose what stays sharp | Tap a task or challenge action on Today — it stays crisp, every other row dims. Tap it again to release it |
-| Leave Superfocus | Tap the same switch again, or **Turn off** in the focus bar (or press Escape) — the rest of Today comes back |
+| Leave Superfocus | Tap the same switch again (or press Escape) — the rest of Today comes back; there is no separate banner to dismiss |
 | Mark a rest day | Tap **Rest day** on the progress card while the day still sits at 0. Once anything is ticked it locks |
 | Expand a build plan | On a **Build / Milestone** challenge card, tap **Show all N days** to unfold every day's milestones, and tap again to fold them away |
 | Run a challenge | Set its start and end dates when you create or configure it — it starts and finishes on its own, and its daily actions appear on Today while it runs. Tick them on Today; the Challenges tab only reports |
@@ -70,7 +70,7 @@ The task sheet has four fields: **Task**, **Why it matters** (the purpose line u
 
 **Daily Progress Card** — the selected date, `X of Y completed`, a live percentage, and the progress scale. The track runs red → amber/gold → emerald/green. The filled portion and glowing marker move with each check and shift color at 34 % and 67 %. The scale is labelled **LOSS** and **WIN** at its ends, carries a physical pin at the **67 % win threshold**, and a live status pill reads either `N to win · 67% threshold` or `Win zone · threshold cleared`. An empty day is neutral: it wears a grey **CLEAR** pill, `Nothing scheduled · neutral day`, and a grey marker instead of a false LOSS. **Rest day** in the card marks the selected date as intentional recovery: the verdict becomes a violet **REST**, the scale reads `Rest day · streak frozen`, and the day is excluded from wins, losses and the perfect streak. It is only available while the day sits at **0 completed** — the moment one action is ticked the control locks (dimmed, `Rest day locked`, a lock glyph and a `aria-disabled` state), so recovery can start a day but never rescue one. Tapping an active rest day again clears it.
 
-**Superfocus** — the toggle card turns Today itself into the focus surface. There is no timer screen, no picker sheet and no corner checkmark button: flipping the switch keeps you on Today and everything except the tasks blurs away — logo, week strip, progress card, section headers and footer. Then you choose by tapping: the task or challenge action you tap stays crisp and gold-ringed, every other row dims back (readable and tappable, never blurred), and a second tap releases it. A sticky focus bar names how many tasks are sharp and carries **Turn off**. The switch itself stays live while Superfocus is on, so tapping it again ends the session instantly; Escape and **Turn off** do the same. While it is active the tab bar is hidden and tab switching is blocked, and tapping a card body picks it for focus instead of opening the task sheet — editing comes back the moment focus is turned off. Chosen tasks stay tickable through their check circle.
+**Superfocus** — the toggle card turns Today itself into the focus surface. There is no timer screen, no picker sheet and no corner checkmark button: flipping the switch keeps you on Today and everything except the tasks blurs away — logo, week strip, progress card, section headers and footer. Then you choose by tapping: the task or challenge action you tap stays crisp and gold-ringed, every other row dims back (readable and tappable, never blurred), and a second tap releases it. The switch is the only control: there is no separate **Turn off** banner, and its foot names how many tasks are sharp while it is on. It stays live, so tapping it again ends the session instantly, and Escape does the same. Entering focus also clears edit mode, so no delete × or edit control can appear while it is on, and the exact scroll position is held — the page never jumps when the switch flips. While it is active the tab bar is hidden and tab switching is blocked, and tapping a card body picks it for focus instead of opening the task sheet — editing comes back the moment focus is turned off. Chosen tasks stay tickable through their check circle.
 
 **Ideal Day** — the one-day tasks. Each belongs to the date it was created on: it is tickable there and does not follow you into tomorrow. Every card carries the tap-to-complete circle, an optional time badge, a bold title, a small "why" line, and a streak pill (`🔥 5`) once a run exists. A task shown on any day — including one added while reviewing an earlier date — can be edited from its card and deleted from its × (edit mode) or the sheet, and the change lands in that day's own record without touching the others.
 
@@ -196,7 +196,7 @@ style.css                  Near-black palette, ambient indigo/gold aura, header 
 app.js                     State, migration, per-day snapshots, verdicts, streaks,
                            challenges, workouts, body map, calendar, demos, Superfocus
 manifest.json              PWA manifest (AURA, standalone, portrait)
-sw.js                      Offline cache — aura-v24
+sw.js                      Offline cache — aura-v25
 AURALOGO.png               Official logo tile (source for every app icon)
 AURALOGO-ONLY.png          Wordmark alone, alpha cut (source for the in-app mark)
 assets/aura-mark.png       Header/footer mark, trimmed and scaled from AURALOGO-ONLY
@@ -211,7 +211,7 @@ tools/make_icons.py        Icon + mark generator (Python + Pillow)
 
 - Viewport is locked (`maximum-scale=1.0, user-scalable=no, viewport-fit=cover`), every input and textarea is at least `16px` so Safari never zooms on focus, and `touch-action: manipulation` plus `gesture*`, multi-touch and double-tap guards stop pinch and double-tap zoom.
 - Pulling down at the top of the page shows AURA's own refresh indicator (dark glass, indigo/gold glow, gold → violet spinner) instead of the browser's grey sheet; releasing past the trigger reloads. Every load is covered by a dark AURA veil with the mark and the same spinner, and `html` paints `#08070b` in the overscroll area, so no blank/grey frame is ever visible.
-- Safe-area insets pad the header, tab bar, focus bar and bottom sheet on notched iPhones.
+- Safe-area insets pad the header, tab bar and bottom sheet on notched iPhones.
 - The sheet slides up on mobile and becomes a centered dialog on wider screens; Superfocus hides the tab bar and blocks tab switching while it is on.
 - The theme color and splash background use `#08070b`, the status bar is `black-translucent` so the dark surface runs under it, and `color-scheme: dark` keeps native controls, date/time pickers and form fields dark.
 

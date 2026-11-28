@@ -438,9 +438,6 @@
     focusModeNote: document.getElementById('focusModeNote'),
     focusSwitch: document.getElementById('focusSwitch'),
     focusSwitchText: document.getElementById('focusSwitchText'),
-    focusBar: document.getElementById('focusBar'),
-    focusBarSub: document.getElementById('focusBarSub'),
-    focusBarExit: document.getElementById('focusBarExit'),
     planList: document.getElementById('planList'),
     planEmpty: document.getElementById('planEmpty'),
     planCount: document.getElementById('planCount'),
@@ -3753,9 +3750,14 @@
     state.focus.active = true;
     /* Start empty: the choosing happens on Today itself, by tapping. */
     state.focus.targets = [];
+    /* Focus is a clean surface: entering it always leaves edit mode, so no
+       delete × or edit affordance can survive on screen. */
+    editMode = false;
     save();
+    /* Hold the exact spot the switch was tapped: entering never scrolls. */
+    var keepScroll = window.scrollY || window.pageYOffset || 0;
     renderAll();
-    window.scrollTo(0, 0);
+    window.scrollTo(0, keepScroll);
     toast('Superfocus on · tap the tasks to keep sharp');
     vibrate(10);
   }
@@ -3789,11 +3791,17 @@
 
     document.body.classList.toggle('superfocus', on);
     if (els.viewToday) els.viewToday.classList.toggle('is-focusing', on);
-    if (els.focusBar) els.focusBar.hidden = !on;
     if (els.focusSub) {
       els.focusSub.textContent = on
         ? 'Tap a task on Today to keep it sharp. Tap it again to release it.'
         : 'Turn it on, then tap the tasks on Today you want to keep sharp.';
+    }
+    if (els.focusModeNote) {
+      els.focusModeNote.textContent = !on
+        ? 'Turn it on, then tap the tasks you want kept sharp'
+        : targets.length
+          ? targets.length + ' sharp · tap one to release · switch off to finish'
+          : 'Nothing sharp yet · tap a task on Today';
     }
 
     Array.prototype.forEach.call(
@@ -3809,13 +3817,6 @@
       document.querySelectorAll('#viewToday .section'),
       function (section) { section.classList.add('sf-keep'); }
     );
-
-    if (els.focusBarSub) {
-      els.focusBarSub.textContent = targets.length
-        ? targets.length + ' task' + (targets.length === 1 ? '' : 's') +
-          ' sharp · everything else blurred'
-        : 'Nothing sharp yet · tap a task on Today';
-    }
   }
 
   /* -------------------------------- render all ---------------------------- */
@@ -3928,6 +3929,9 @@
   function renderAll(flash) {
     todayKey = keyOf(new Date());
     if (selectedKey > todayKey) selectedKey = todayKey;
+
+    /* Superfocus owns the screen: edit affordances are never painted on it. */
+    if (superfocusOn()) editMode = false;
 
     renderWeek();
     renderProgress();
@@ -4783,8 +4787,6 @@
     if (els.focusSwitch.checked) startSuperfocus();
     else stopSuperfocus();
   });
-
-  if (els.focusBarExit) els.focusBarExit.addEventListener('click', stopSuperfocus);
 
   document.addEventListener('keydown', function (event) {
     if (event.key !== 'Escape') return;
