@@ -466,7 +466,6 @@
     calStreak: document.getElementById('calStreak'),
     calBest: document.getElementById('calBest'),
     calRate: document.getElementById('calRate'),
-    calSub: document.getElementById('calSub'),
     calWeekdays: document.getElementById('calWeekdays'),
     calGrid: document.getElementById('calGrid'),
     challengeList: document.getElementById('challengeList'),
@@ -3975,12 +3974,6 @@
     els.calStreak.textContent = String(streaks.current);
     els.calBest.textContent = String(streaks.best);
     els.calRate.textContent = rate === null ? '—' : rate + '%';
-    els.calSub.textContent = decided || rests
-      ? wins + ' win' + (wins === 1 ? '' : 's') + ' · ' + losses + ' loss' +
-        (losses === 1 ? '' : 'es') +
-        (rests ? ' · ' + rests + ' rest day' + (rests === 1 ? '' : 's') : '') +
-        ' in ' + title + '.'
-      : 'No judged days yet in ' + title + '.';
   }
 
   /* A day's real outcome, with rest and empty days kept distinct from a
