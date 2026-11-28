@@ -291,12 +291,13 @@ app.js                     State, migration, per-day snapshots, verdicts, streak
                            auth gate and debounced cloud sync
 supabase-client.js         Tiny Supabase Auth + PostgREST client (publishable key only)
 supabase/aura_user_state.sql  Table + RLS policies for the per-user cloud state
-supabase/email-templates/   Branded AURA code email (no provider branding)
+supabase/email-templates/   Branded AURA code email: code only, no links, no provider branding
 manifest.json              PWA manifest (AURA, standalone, portrait)
 sw.js                      Offline cache — aura-v44, versioned shell assets
 AURALOGO.png               Official logo tile (source for every app icon)
 AURALOGO-ONLY.png          Wordmark alone, alpha cut (source for the in-app mark)
 assets/aura-mark.png       Header/footer mark, trimmed and scaled from AURALOGO-ONLY
+assets/aura-email-logo.png Email wordmark: AURALOGO.png cropped to the mark, flattened onto the card colour
 icons/                     PNG icons (any + maskable), apple-touch icon and favicon
                             built from AURALOGO
 tools/make_icons.py        Icon + mark generator (Python + Pillow)

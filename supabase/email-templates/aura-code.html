@@ -13,15 +13,14 @@
     (Authentication → Emails → Magic Link), with the subject line
     "Your AURA code". The same body works for the "Confirm signup" template.
 
-    The code is the only thing that signs you in. "Open AURA" is a plain link
-    to the app; no link in this email carries a token, so no mail client can
-    land the user on a dead callback URL. Every AURA address in here is the
-    live app: https://kyrollll.github.io/AURA/ (four l's — the three-l spelling
-    of the account does not resolve, and would 404).
+    The message carries no links at all: the code is the only thing that signs
+    you in, so there is no button and no token URL for a mail client to mangle.
 
-    The wordmark is live text, not an image: there is no file to load, so no
-    client (Gmail included) can ever show a broken-image icon or a grey box.
-    It is set in a system font stack at a fixed size, so it stays crisp.
+    The artwork is the AURA wordmark, cropped out of AURALOGO.png and flattened
+    onto the card colour, served by the live app host (four l's — the three-l
+    spelling of the account does not resolve, and would 404). Explicit
+    width/height hold the layout before the bytes arrive; if a client blocks
+    images, the gold alt text reads AURA instead of a bare broken-image icon.
   -->
   <body style="margin:0;padding:0;background:#08070b;color:#ffffff;-webkit-font-smoothing:antialiased;">
     <div style="display:none;max-height:0;overflow:hidden;opacity:0;">
@@ -36,16 +35,9 @@
             style="max-width:460px;background:#141319;border:1px solid rgba(245,201,78,0.22);border-radius:20px;overflow:hidden;">
             <tr>
               <td style="padding:32px 32px 8px 32px;text-align:center;">
-                <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:32px;line-height:36px;font-weight:700;letter-spacing:0.32em;text-indent:0.32em;text-transform:uppercase;color:#ffe49a;margin:0 0 12px 0;">
-                  AURA
-                </div>
-                <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center"
-                  style="margin:0 auto 18px auto;">
-                  <tr>
-                    <td width="46" height="1" bgcolor="#6f5c22"
-                      style="width:46px;height:1px;line-height:1px;font-size:0;background:#6f5c22;">&nbsp;</td>
-                  </tr>
-                </table>
+                <img src="https://kyrollll.github.io/AURA/assets/aura-email-logo.png"
+                  alt="AURA" width="360" height="87" border="0"
+                  style="display:block;width:360px;height:87px;margin:0 auto 22px auto;border:0;outline:none;text-decoration:none;background-color:#141319;color:#f5c94e;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:20px;line-height:87px;letter-spacing:0.28em;font-weight:700;-ms-interpolation-mode:bicubic;" />
 
                 <h1 style="margin:0 0 10px 0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:24px;line-height:32px;color:#ffffff;font-weight:700;letter-spacing:-0.01em;">
                   Your verification code
@@ -74,14 +66,9 @@
 
             <tr>
               <td style="padding:20px 32px 0 32px;text-align:center;">
-                <p style="margin:0 0 18px 0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;line-height:20px;color:#a8a2b4;">
+                <p style="margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;line-height:20px;color:#a8a2b4;">
                   The code expires within the hour. If it has expired, request a new one from the sign-in screen.
                 </p>
-
-                <a href="https://kyrollll.github.io/AURA/"
-                  style="display:inline-block;padding:13px 26px;border-radius:14px;background:#f5c94e;color:#141218;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:14px;line-height:18px;font-weight:700;text-decoration:none;">
-                  Open AURA
-                </a>
               </td>
             </tr>
 
