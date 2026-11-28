@@ -92,7 +92,7 @@ AURA needs a real sender. In the account project:
    - Host `smtp.resend.com`, port `465` (or `587`)
    - Username `resend`, password = a Resend API key with sending access
    - Sender email on a domain verified in Resend, sender name `AURA`
-2. **Authentication → Emails → Magic Link** → paste [`supabase/email-templates/aura-code.html`](./supabase/email-templates/aura-code.html), subject **“Your AURA code”**. Do the same for **Confirm signup** if that template is ever used.
+2. **Authentication → Emails** → paste [`supabase/email-templates/aura-code.html`](./supabase/email-templates/aura-code.html) with the subject **“Your AURA code”** into **both** the **Magic Link** and **Confirm signup** templates. A brand-new address is confirmed by the same code, and which of the two templates fires depends on project settings — leaving either one default would send an email with the provider's own branding. Delete the link from any template you do use; the code is the only thing AURA accepts.
 3. **Authentication → Providers → Email** → make sure email OTP is on and the **OTP length is 6**.
 4. Raise **Authentication → Rate Limits** if the project is on the default 30 emails per hour.
 
