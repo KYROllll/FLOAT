@@ -2146,31 +2146,42 @@
     var won = challengeWonDays(ch);
     var activeDays = challengeActiveDays(ch);
     var threshold = challengeThreshold(ch);
-    var pct = Math.round((won / activeDays) * 100);
+
+    /* The card's bar measures time, not wins: it walks the window's own days
+       so the last day fills it, whether or not the challenge was won. */
+    var elapsedDays = todayKey < ch.startDate
+      ? 0
+      : daysBetween(ch.startDate, todayKey > ch.endDate ? ch.endDate : todayKey) + 1;
+    var elapsed = Math.max(0, Math.min(100,
+      Math.round((elapsedDays / ch.duration) * 100)));
 
     if (todayKey < ch.startDate) {
       return {
         kind: 'scheduled', label: 'Starts ' + shortDate(ch.startDate),
-        day: 0, won: 0, pct: 0, threshold: threshold, activeDays: activeDays
+        day: 0, won: 0, pct: 0, elapsed: elapsed,
+        threshold: threshold, activeDays: activeDays
       };
     }
     if (todayKey > ch.endDate) {
       var verdict = won >= threshold ? 'win' : 'loss';
       return {
         kind: 'over', label: verdict === 'win' ? 'Win' : 'Loss', day: ch.duration,
-        won: won, pct: pct, threshold: threshold, verdict: verdict, activeDays: activeDays
+        won: won, pct: 100, elapsed: 100,
+        threshold: threshold, verdict: verdict, activeDays: activeDays
       };
     }
     if (won >= activeDays) {
       return {
         kind: 'won', label: 'Win', day: ch.duration, won: won, pct: 100,
-        threshold: threshold, verdict: 'win', activeDays: activeDays
+        elapsed: elapsed, threshold: threshold, verdict: 'win',
+        activeDays: activeDays
       };
     }
     var raw = daysBetween(ch.startDate, todayKey) + 1;
     return {
       kind: 'live', label: 'Day ' + raw + ' / ' + ch.duration, day: raw, won: won,
-      pct: pct, threshold: threshold, activeDays: activeDays
+      pct: Math.round((won / activeDays) * 100), elapsed: elapsed,
+      threshold: threshold, activeDays: activeDays
     };
   }
 
@@ -2255,7 +2266,7 @@
 
       var meter = makeEl('div', 'track-meter');
       var fill = makeEl('span');
-      fill.style.width = st.pct + '%';
+      fill.style.width = st.elapsed + '%';
       meter.appendChild(fill);
       card.appendChild(meter);
 
@@ -2333,9 +2344,19 @@
             slotHead.appendChild(makeEl('span', 'track-plan-tag is-won', 'won'));
           }
           slotRow.appendChild(slotHead);
+          /* Each day states which of its own tasks were ticked, so the
+             drawer reads as a record, not just a plan. */
+          var slotLog = slotKey <= todayKey ? (ch.log[slotKey] || []) : [];
           challengeItemsFor(ch, slotKey).forEach(function (entry) {
-            var line = makeEl('p', 'track-plan-item', entry.title);
+            var done = slotLog.indexOf(entry.id) !== -1;
+            var line = makeEl('p', 'track-plan-item' + (done ? ' is-done' : ''));
             line.dir = 'auto';
+            var tick = makeEl('span', 'track-plan-tick', done ? '✓' : '');
+            tick.setAttribute('aria-hidden', 'true');
+            line.appendChild(tick);
+            var label = makeEl('span', 'track-plan-text', entry.title);
+            label.dir = 'auto';
+            line.appendChild(label);
             slotRow.appendChild(line);
           });
           planList.appendChild(slotRow);

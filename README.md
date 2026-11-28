@@ -22,7 +22,7 @@ Open **http://localhost:8080**. The service worker and Home Screen install need 
 2. **Share → Add to Home Screen**.
 3. Launch it from the Home Screen — it runs standalone, respects the notch and home indicator, and works offline.
 
-The service worker uses cache `aura-v29` and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the current palette, the new app icons and the in-app mark on the next launch.
+The service worker uses cache `aura-v30` and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the current palette, the new app icons and the in-app mark on the next launch.
 
 ---
 
@@ -78,7 +78,7 @@ The task sheet has four fields: **Task**, **Why it matters** (the purpose line u
 
 **Non-Negotiables** — the user's own recurring habits in their own section, each with a golden spine, the same completion control and its own streak. This list stays personal: program items never enter it, so starting a track cannot blur everyday habits with temporary items.
 
-**Challenges** — short, high-pressure tracks that run by their dates alone: no start button, no forgotten beginning. Each card states its own `start → end` range and length on one quiet line, a status pill (Starts … / LIVE / Win / Loss), a slim violet-to-gold progress meter, one mark per challenge day (won = emerald, missed = red, today = gold), and today's checklist as plain read-only lines — there is no check circle or other control in this tab at all; the actual check-off happens on Today. A **Build / Milestone** card also carries a **Show all N days** toggle that smoothly unfolds every day slot — day number, date, rest/won tag and its milestones — below the card, and folds it back on a second tap; the open state survives repaints. Checking every action for that day wins the day. **Habit / Streak** challenges repeat one checklist across the window; **Build / Milestone** challenges generate a day slot per date, and each slot can hold its own milestone or checklist. When the window closes, the card carries a single **WIN** or **LOSS** badge in its header, judged against the same 67% standard as the daily scale, measured over active days only: the target is at least 67% of the challenge's non-rest days won, and the meta line keeps it legible as `3 / 7 won · need 5` without a second paragraph. Clearing every active day wins early and shows the same banner. Rest days never count as a win or a loss and never break the run. Creating or configuring a challenge takes a start date and an end date (or a start date plus length), and the card always states both.
+**Challenges** — short, high-pressure tracks that run by their dates alone: no start button, no forgotten beginning. Each card states its own `start → end` range and length on one quiet line, a status pill (Starts … / LIVE / Win / Loss), a slim violet-to-gold timeline bar that fills a little more with each day of the window and sits full on the final day, one mark per challenge day (won = emerald, missed = red, today = gold), and today's checklist as plain read-only lines — there is no check circle or other control in this tab at all; the actual check-off happens on Today. A **Build / Milestone** card also carries a **Show all N days** toggle that smoothly unfolds every day slot — day number, date, rest/won tag and its milestones, with each milestone already checked off that day carrying a green tick and a strike-through — below the card, and folds it back on a second tap; the open state survives repaints. Checking every action for that day wins the day. **Habit / Streak** challenges repeat one checklist across the window; **Build / Milestone** challenges generate a day slot per date, and each slot can hold its own milestone or checklist. When the window closes, the card carries a single **WIN** or **LOSS** badge in its header, judged against the same 67% standard as the daily scale, measured over active days only: the target is at least 67% of the challenge's non-rest days won, and the meta line keeps it legible as `3 / 7 won · need 5` without a second paragraph. Clearing every active day wins early and shows the same banner. Rest days never count as a win or a loss and never break the run. Creating or configuring a challenge takes a start date and an end date (or a start date plus length), and the card always states both.
 
 Starting a challenge and every deletion confirms with a green `✓` toast. Deleting anything is deliberately slow: the **×** opens a confirmation panel whose red button fills only while you keep pressing, and releasing early cancels.
 
@@ -196,7 +196,7 @@ style.css                  Near-black palette, ambient indigo/gold aura, header 
 app.js                     State, migration, per-day snapshots, verdicts, streaks,
                            challenges, workouts, body map, calendar, demos, Superfocus
 manifest.json              PWA manifest (AURA, standalone, portrait)
-sw.js                      Offline cache — aura-v29
+sw.js                      Offline cache — aura-v30
 AURALOGO.png               Official logo tile (source for every app icon)
 AURALOGO-ONLY.png          Wordmark alone, alpha cut (source for the in-app mark)
 assets/aura-mark.png       Header/footer mark, trimmed and scaled from AURALOGO-ONLY
