@@ -434,6 +434,8 @@
     restToggle: document.getElementById('restToggle'),
     restToggleText: document.getElementById('restToggleText'),
     restToggleIcon: document.getElementById('restToggleIcon'),
+    restState: document.getElementById('restState'),
+    restStateCount: document.getElementById('restStateCount'),
     focusSub: document.getElementById('focusSub'),
     focusModeNote: document.getElementById('focusModeNote'),
     focusSwitch: document.getElementById('focusSwitch'),
@@ -1489,6 +1491,12 @@
 
   function toggleTask(id, dayKey) {
     var key = dayKey || selectedKey;
+    /* Rest is enforced here, not just by hiding the list: a concealed row or
+       a stale handler still cannot tick a rest day. */
+    if (isRestDay(key)) {
+      toast('Rest day · check-offs are paused');
+      return;
+    }
     var record = state.days[key];
     if (!record && key === todayKey) record = syncTodaySnapshot();
     if (!record) return;
@@ -1928,12 +1936,40 @@
   }
 
 
-  function renderTodayChallenges() {
-    var show = selectedKey === todayKey;
-    els.challengeTodaySection.hidden = !show;
-    if (!show) return;
+  /* Rest is a strict state on Today: the day's lists are concealed behind a
+     quiet moon panel, so there is no list — and no check-off — to work with. */
+  function pausedItemCount(key) {
+    var n = scoreTasksOn(key).length;
+    challengesOn(key).forEach(function (ch) {
+      n += challengeItemsFor(ch, key).length;
+    });
+    return n;
+  }
 
-    var list = challengesOn(todayKey);
+  function renderRestState() {
+    var rest = isRestDay(selectedKey);
+    document.body.classList.toggle('rest-day', rest);
+    if (!els.restState) return;
+    els.restState.hidden = !rest;
+    if (!rest) return;
+
+    var paused = pausedItemCount(selectedKey);
+    if (els.restStateCount) {
+      els.restStateCount.textContent = paused
+        ? paused + ' item' + (paused === 1 ? '' : 's') +
+          ' paused · nothing to win or lose'
+        : 'Nothing scheduled · nothing to win or lose';
+    }
+  }
+
+  function renderTodayChallenges() {
+    /* Follow the selected date, not only today: stepping back onto a date a
+       challenge has already closed over keeps that day's actions, ticks and
+       the challenge's verdict on screen instead of going blank. */
+    var dayKey = selectedKey;
+    var past = dayKey < todayKey;
+
+    var list = challengesOn(dayKey);
     els.challengeTodayList.textContent = '';
     if (!list.length) {
       els.challengeTodaySection.hidden = true;
@@ -1941,31 +1977,32 @@
     }
     els.challengeTodaySection.hidden = false;
 
-    var rest = isRestDay(todayKey);
+    var rest = isRestDay(dayKey);
     var total = 0;
     var doneTotal = 0;
     list.forEach(function (ch) {
-      var log = ch.log[todayKey] || [];
-      var items = challengeItemsFor(ch, todayKey);
+      var log = ch.log[dayKey] || [];
+      var items = challengeItemsFor(ch, dayKey);
       total += items.length;
       doneTotal += items.filter(function (item) {
         return log.indexOf(item.id) !== -1;
       }).length;
     });
     els.challengeTodayCount.textContent = doneTotal + ' of ' + total +
-      ' actions · ' + list.length + ' running' + (rest ? ' · rest day' : '');
+      ' actions · ' + list.length + (past ? ' on this day' : ' running') +
+      (rest ? ' · rest day' : '');
 
     list.forEach(function (ch) {
       var st = challengeStatus(ch);
-      var log = ch.log[todayKey] || [];
-      var items = challengeItemsFor(ch, todayKey);
+      var log = ch.log[dayKey] || [];
+      var items = challengeItemsFor(ch, dayKey);
       var done = items.filter(function (item) {
         return log.indexOf(item.id) !== -1;
       }).length;
       /* A rest day is never a fake win, even with every box ticked. */
       var complete = !rest && done === items.length && items.length > 0;
       var build = challengeMode(ch) === 'build';
-      var dayNo = daysBetween(ch.startDate, todayKey) + 1;
+      var dayNo = daysBetween(ch.startDate, dayKey) + 1;
       var focusTargets = focusTargetsToday();
       var cardFocus = items.some(function (item) {
         return focusTargets.indexOf('challenge:' + ch.id + ':' + item.id) !== -1;
@@ -1975,7 +2012,8 @@
          starts at the right edge and the win chip moves to the left. */
       var dir = textDir(ch.title);
       var card = makeEl('article', 'today-challenge-card' +
-        (complete ? ' is-done' : '') + (rest ? ' is-rest' : ''));
+        (complete ? ' is-done' : '') + (rest ? ' is-rest' : '') +
+        (past ? ' is-past' : ''));
       card.dir = dir;
       if (superfocusOn()) {
         card.classList.add(cardFocus ? 'is-focus-target' : 'is-focus-dim');
@@ -1986,16 +2024,26 @@
       var title = makeEl('h3', 'today-challenge-name', ch.title);
       title.dir = 'auto';
       wrap.appendChild(title);
+
+      /* A closed window states its verdict here too, so the date still reads
+         as part of the challenge the Challenges tab judged. */
+      var verdictNote = st.verdict
+        ? ' · challenge ' + (st.verdict === 'win' ? 'won' : 'lost')
+        : '';
       var metaText = rest
         ? 'Rest day · streak frozen'
-        : (build ? 'Day ' + dayNo + ' milestone · ' : '') +
-          done + ' of ' + items.length + ' today';
+        : 'Day ' + dayNo + ' of ' + ch.duration + (build ? ' milestone' : '') +
+          ' · ' + done + ' of ' + items.length + (past ? ' done' : ' today') +
+          verdictNote;
       var meta = makeEl('p', 'today-challenge-meta', metaText);
       meta.dir = dir;
       wrap.appendChild(meta);
       head.appendChild(wrap);
       var chip = makeEl('span', 'today-challenge-chip',
-        rest ? 'REST DAY' : complete ? '✓ DAY WON' : st.won + ' WINS');
+        rest ? 'REST DAY'
+          : !items.length ? 'NO ACTIONS'
+            : complete ? '✓ DAY WON'
+              : past ? 'DAY LOST' : st.won + ' WINS');
       /* Keep “0 WINS” in reading order inside a right-to-left header. */
       chip.dir = 'ltr';
       head.appendChild(chip);
@@ -2014,6 +2062,18 @@
         /* Every row in the card follows the challenge direction, so the
            check controls stay on one side even with mixed-language items. */
         li.dir = dir;
+        var text = makeEl('span', 'mini-text', item.title);
+        text.dir = 'auto';
+
+        /* A past date is sealed: its ticks are shown, never edited, so the
+           verdict the Challenges tab already declared cannot be rewritten. */
+        if (past) {
+          li.classList.add('is-static');
+          li.appendChild(text);
+          listEl.appendChild(li);
+          return;
+        }
+
         var btn = makeEl('button', 'mini-check');
         btn.type = 'button';
         btn.setAttribute('role', 'checkbox');
@@ -2022,10 +2082,8 @@
         btn.innerHTML = CHECK_SVG;
         btn.addEventListener('click', function (event) {
           event.stopPropagation();
-          toggleChallengeItem(ch, item.id, todayKey);
+          toggleChallengeItem(ch, item.id, dayKey);
         });
-        var text = makeEl('span', 'mini-text', item.title);
-        text.dir = 'auto';
         /* While Superfocus is on, the row itself is the focus switch. */
         li.addEventListener('click', function () {
           if (superfocusOn()) toggleFocusTarget(focusId);
@@ -2124,8 +2182,9 @@
   function buildChallengeVerdict(ch, st) {
     if (!st.verdict) return null;
     var win = st.verdict === 'win';
+    /* One verdict per card: the header status pill carries WIN / LOSS, so
+       this block only explains the numbers behind it. */
     var box = makeEl('div', 'challenge-verdict is-' + st.verdict);
-    box.appendChild(makeEl('span', 'verdict-badge', win ? 'WIN' : 'LOSS'));
     var copy = makeEl('div', 'verdict-copy');
     copy.appendChild(makeEl('b', 'verdict-title',
       st.won + ' of ' + st.activeDays + ' active days won'));
@@ -2205,7 +2264,10 @@
       var statusKind = todayRest && st.kind === 'live'
         ? 'rest'
         : st.verdict === 'win' ? 'win' : st.verdict === 'loss' ? 'loss' : st.kind;
-      var statusLabel = todayRest && st.kind === 'live' ? 'Rest day' : st.label;
+      var statusLabel = todayRest && st.kind === 'live'
+        ? 'Rest day'
+        : st.verdict === 'win' ? 'WIN'
+          : st.verdict === 'loss' ? 'LOSS' : st.label;
       var statusEl = makeEl('span', 'track-status is-' + statusKind, statusLabel);
       statusEl.dir = 'auto';
       top.appendChild(statusEl);
@@ -2411,8 +2473,13 @@
   }
 
   function toggleChallengeItem(ch, itemId, dayKey) {
-    if (!ch.log) ch.log = {};
     var key = dayKey || todayKey;
+    /* A rest day takes no ticks at all — not even an undo. */
+    if (isRestDay(key)) {
+      toast('Rest day · challenge check-offs are paused');
+      return;
+    }
+    if (!ch.log) ch.log = {};
     var list = (ch.log[key] || []).slice();
     var index = list.indexOf(itemId);
     var adding = index === -1;
@@ -2427,12 +2494,6 @@
     renderAll();
 
     if (!adding || key !== todayKey) return;
-
-    /* A rest day still accepts ticks, but it never announces a win. */
-    if (isRestDay(todayKey)) {
-      vibrate(8);
-      return;
-    }
 
     var all = challengeDayComplete(ch, todayKey);
 
@@ -3935,6 +3996,7 @@
 
     renderWeek();
     renderProgress();
+    renderRestState();
     renderLists(flash);
     renderTodayChallenges();
     renderChallenges();
