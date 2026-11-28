@@ -32,7 +32,7 @@
   <link rel="icon" href="./icons/favicon.png" sizes="any" type="image/png" />
   <link rel="icon" href="./icons/icon-192.png" sizes="192x192" type="image/png" />
   <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png" />
-  <link rel="stylesheet" href="./style.css?v=44" />
+  <link rel="stylesheet" href="./style.css?v=45" />
 </head>
 <body>
   <a class="skip" href="#plan">Skip to today's plan</a>
@@ -448,17 +448,64 @@
       <p class="cal-hint">Tap a day to open it on Today.</p>
     </div>
 
-    <section class="account-bar" id="accountBar" aria-label="AURA account" hidden>
-      <span class="account-avatar" id="accountAvatar" aria-hidden="true">A</span>
-      <div class="account-copy">
-        <p class="account-email" id="accountEmail"></p>
-        <p class="account-status" id="accountStatus" aria-live="polite">
+    <!-- ============================== ACCOUNT ============================ -->
+    <div class="view" id="viewAccount" hidden>
+      <header class="view-head">
+        <div>
+          <p class="view-kicker">Your AURA</p>
+          <h2>Account</h2>
+          <p class="view-sub">One address, one code, every device.</p>
+        </div>
+      </header>
+
+      <section class="account-card" aria-label="AURA account">
+        <div class="account-identity">
+          <span class="account-avatar" id="accountAvatar" aria-hidden="true">A</span>
+          <div class="account-copy">
+            <p class="account-email" id="accountEmail">—</p>
+            <p class="account-session" id="accountSession">Signed in with a one-time email code</p>
+          </div>
+        </div>
+
+        <p class="account-status" id="accountStatus" aria-live="polite" data-state="saving">
           <span class="account-dot" aria-hidden="true"></span>
-          <span id="accountStatusText">Synced to cloud</span>
+          <span id="accountStatusText">Syncing…</span>
         </p>
+
+        <button class="account-signout" id="signOutBtn" type="button">Sign out</button>
+      </section>
+
+      <div class="account-stats" aria-label="Your statistics">
+        <div class="acct-tile is-gold">
+          <p class="acct-label">Win streak</p>
+          <p class="acct-value" id="acctStreak">0</p>
+        </div>
+        <div class="acct-tile is-gold">
+          <p class="acct-label">Best streak</p>
+          <p class="acct-value" id="acctBest">0</p>
+        </div>
+        <div class="acct-tile">
+          <p class="acct-label">Win rate</p>
+          <p class="acct-value" id="acctRate">—</p>
+        </div>
+        <div class="acct-tile">
+          <p class="acct-label">Completion</p>
+          <p class="acct-value" id="acctCompletion">—</p>
+        </div>
+        <div class="acct-tile">
+          <p class="acct-label">Tasks done</p>
+          <p class="acct-value" id="acctDone">0</p>
+        </div>
+        <div class="acct-tile">
+          <p class="acct-label">Days tracked</p>
+          <p class="acct-value" id="acctDays">0</p>
+        </div>
       </div>
-      <button class="account-signout" id="signOutBtn" type="button">Sign out</button>
-    </section>
+
+      <p class="account-note">
+        AURA never stores a password. Your plan, habits and streaks sync to this account, and this device keeps a copy for offline days.
+      </p>
+    </div>
 
     <footer class="foot">
       <img class="foot-logo" src="./assets/aura-mark.png" alt="AURA" width="720" height="150" />
@@ -500,6 +547,15 @@
         </svg>
       </span>
       <span class="tab-label">Calendar</span>
+    </button>
+    <button class="tab" type="button" data-view="account">
+      <span class="tab-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="8.4" r="3.6" />
+          <path d="M5 19.6c.7-3.5 3.6-5.8 7-5.8s6.3 2.3 7 5.8" />
+        </svg>
+      </span>
+      <span class="tab-label">Account</span>
     </button>
   </nav>
 
@@ -716,7 +772,7 @@
     <div class="noscript">AURA needs JavaScript to run your day.</div>
   </noscript>
 
-  <script src="./supabase-client.js?v=44"></script>
-  <script src="./app.js?v=44"></script>
+  <script src="./supabase-client.js?v=45"></script>
+  <script src="./app.js?v=45"></script>
 </body>
 </html>

@@ -458,6 +458,7 @@
     viewToday: document.getElementById('viewToday'),
     viewChallenges: document.getElementById('viewChallenges'),
     viewCalendar: document.getElementById('viewCalendar'),
+    viewAccount: document.getElementById('viewAccount'),
     calPrev: document.getElementById('calPrev'),
     calNext: document.getElementById('calNext'),
     calMonth: document.getElementById('calMonth'),
@@ -551,11 +552,17 @@
     authSubmit: document.getElementById('authSubmit'),
     authLoading: document.getElementById('authLoading'),
     authFoot: document.getElementById('authFoot'),
-    accountBar: document.getElementById('accountBar'),
     accountAvatar: document.getElementById('accountAvatar'),
     accountEmail: document.getElementById('accountEmail'),
+    accountSession: document.getElementById('accountSession'),
     accountStatus: document.getElementById('accountStatus'),
     accountStatusText: document.getElementById('accountStatusText'),
+    acctStreak: document.getElementById('acctStreak'),
+    acctBest: document.getElementById('acctBest'),
+    acctRate: document.getElementById('acctRate'),
+    acctCompletion: document.getElementById('acctCompletion'),
+    acctDone: document.getElementById('acctDone'),
+    acctDays: document.getElementById('acctDays'),
     signOutBtn: document.getElementById('signOutBtn'),
     footStatus: document.getElementById('footStatus')
   };
@@ -572,13 +579,20 @@
     user: null,
     saveTimer: 0,
     retryTimer: 0,
+    hydrateTimer: 0,
     saving: false,
     dirty: false,
-    hydrating: false,
     blocked: false,
     savePromise: null,
     resolveSave: null
   };
+
+  /* Cloud retries back off instead of giving up: one bad read must never
+     switch sync off for the rest of the session. */
+  var CLOUD_RETRY_MIN = 4000;
+  var CLOUD_RETRY_MAX = 45000;
+  var cloudRetryStep = 0;
+  var STATE_BACKUP_KEY = 'aura.daily.v3.precloud';
 
   /* Account gate state: which step is showing, the address the code was sent
      to, and the resend cooldown. Nothing here survives a reload. */
@@ -1002,11 +1016,10 @@
     if (session && session.user) {
       cloud.user = session.user;
       updateAccountUI();
-      try {
-        await hydrateCloudState(cloud.user);
-      } catch (err) {
-        toast('Cloud state could not be loaded — using this device');
-      }
+      setSyncStatus('Syncing…', 'saving');
+      /* hydrateCloudState keeps its own retry/status handling, so a failed
+         read never blocks the workspace or pretending the session is empty. */
+      await hydrateCloudState(cloud.user);
       hideAuthGate();
       return;
     }
@@ -1761,7 +1774,9 @@
     return {
       v: 3,
       /* Older builds stored a Programs/Workouts tab; both now live on Today. */
-      view: raw.view === 'challenges' || raw.view === 'calendar' ? raw.view : 'today',
+      view: raw.view === 'challenges' || raw.view === 'calendar' || raw.view === 'account'
+        ? raw.view
+        : 'today',
       tasks: tasks,
       days: days,
       restDays: restDays,
@@ -1831,19 +1846,70 @@
     }
   }
 
+  /* Lifetime numbers for the Account tab. Only days that actually carried
+     work are counted: rest days and empty days never enter the win rate or
+     the completion figure, exactly as the Calendar treats them. */
+  function accountStats() {
+    var stats = { wins: 0, losses: 0, rests: 0, done: 0, planned: 0, days: 0 };
+    var keys = Object.keys(state.days || {}).concat(Object.keys(state.restDays || {})).sort();
+    if (!keys.length) return stats;
+
+    for (var key = keys[0]; key <= todayKey; key = shiftKey(key, 1)) {
+      var mark = dayTally(key);
+      if (mark === 'rest') {
+        stats.rests += 1;
+        continue;
+      }
+      if (mark === 'empty') continue;
+      var result = dayResult(key);
+      stats.days += 1;
+      stats.done += result.done;
+      stats.planned += result.total;
+      /* Today is still open, so it only ever counts as a win. Treating a
+         half-finished today as a loss would drag the win rate down every
+         morning — the same reason the streak walk skips it. */
+      if (mark === 'win') stats.wins += 1;
+      else if (key !== todayKey) stats.losses += 1;
+    }
+    return stats;
+  }
+
+  function renderAccount() {
+    if (!els.viewAccount) return;
+    /* The walk over every tracked day is only worth doing for a page that is
+       on screen; opening the tab renders it through renderAll. */
+    if (view !== 'account') return;
+    var streaks = winStreaks();
+    var stats = accountStats();
+    var decided = stats.wins + stats.losses;
+    var rate = decided ? Math.round((stats.wins / decided) * 100) : null;
+    var completion = stats.planned ? Math.round((stats.done / stats.planned) * 100) : null;
+
+    if (els.acctStreak) els.acctStreak.textContent = String(streaks.current);
+    if (els.acctBest) els.acctBest.textContent = String(streaks.best);
+    if (els.acctRate) els.acctRate.textContent = rate === null ? '—' : rate + '%';
+    if (els.acctCompletion) els.acctCompletion.textContent = completion === null ? '—' : completion + '%';
+    if (els.acctDone) els.acctDone.textContent = String(stats.done);
+    if (els.acctDays) els.acctDays.textContent = String(stats.days);
+  }
+
   function updateAccountUI() {
     var signedIn = !!cloud.user;
-    if (els.accountBar) els.accountBar.hidden = !signedIn;
     if (els.footStatus) {
       els.footStatus.innerHTML = signedIn
         ? '<span class="dot-live" aria-hidden="true"></span> Saved to your account'
         : '<span class="dot-live" aria-hidden="true"></span> Saved on this device';
     }
-    if (!signedIn) return;
-    var email = String(cloud.user.email || 'Signed in');
+    var email = signedIn ? String(cloud.user.email || 'Signed in') : 'Not signed in';
     if (els.accountEmail) els.accountEmail.textContent = email;
     if (els.accountAvatar) els.accountAvatar.textContent = (email.charAt(0) || 'A').toUpperCase();
-    setSyncStatus('Synced to cloud', 'synced');
+    if (els.accountSession) {
+      els.accountSession.textContent = signedIn
+        ? 'Signed in with a one-time email code'
+        : 'Signed out';
+    }
+    if (!signedIn) setSyncStatus('Saved on this device', 'idle');
+    renderAccount();
   }
 
   function scheduleCloudSave() {
@@ -1969,59 +2035,116 @@
     } catch (err) {}
   }
 
+  /* A brand-new account starts from AURA's own starting state, never from
+     whatever copy happens to sit in this browser. */
+  function freshAccountState() {
+    var fresh = seedState();
+    fresh.view = 'today';
+    return fresh;
+  }
+
+  /* Replaced local work is kept aside rather than deleted out of sight. */
+  function stashLocalState() {
+    try {
+      var raw = window.localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      window.localStorage.setItem(STATE_BACKUP_KEY, raw);
+    } catch (err) {}
+  }
+
+  function clearCloudRetry() {
+    if (cloud.hydrateTimer) window.clearTimeout(cloud.hydrateTimer);
+    cloud.hydrateTimer = 0;
+  }
+
+  /* One failed read used to switch cloud sync off for the rest of the session,
+     which left the account stuck on "saved locally" until a reload. A retry
+     keeps it moving: 4s, 8s, 16s … capped, and it stops as soon as the read
+     lands or the user signs out. */
+  function scheduleCloudRetry() {
+    if (!cloud.user || cloud.hydrateTimer) return;
+    var delay = Math.min(CLOUD_RETRY_MAX, CLOUD_RETRY_MIN * Math.pow(2, cloudRetryStep));
+    cloudRetryStep += 1;
+    cloud.hydrateTimer = window.setTimeout(function () {
+      cloud.hydrateTimer = 0;
+      if (cloud.user) hydrateCloudState(cloud.user);
+    }, delay);
+  }
+
+  /* Back online, or back in the tab: pick sync straight back up. */
+  function retryCloudNow() {
+    if (!cloud.user || !sb) return;
+    if (cloud.blocked) {
+      clearCloudRetry();
+      hydrateCloudState(cloud.user);
+      return;
+    }
+    if (cloud.dirty && !cloud.saveTimer) flushCloudSave();
+  }
+
   async function hydrateCloudState(user) {
     if (!user || !user.id || !sb) return;
+    /* A retry that fires while a read is already in flight has nothing to add. */
+    if (cloud.hydrating) return;
     cloud.hydrating = true;
-    cloud.blocked = false;
+
     var row = null;
-    var loadFailed = false;
-    var owner = readStateOwner();
-    var sameOwner = !owner || owner === user.id;
     try {
       row = await sb.loadState(user.id);
-      var cloudState = row && row.state_json ? normalizeState(row.state_json) : null;
-
-      if (!row && owner && owner !== user.id) {
-        /* A different account was last active on this device and this new
-           account has no cloud row yet. Start clean instead of uploading the
-           previous account's local copy. */
-        state = seedState();
-        save();
-        renderAll();
-        cloud.dirty = true;
-      } else if (cloudState) {
-        var localState = hadLocalState && sameOwner ? state : null;
-        state = mergeStates(localState, cloudState);
-        if (state.view !== 'challenges' && state.view !== 'calendar') state.view = 'today';
-        /* If local-only work was folded in, push the merged copy back up. */
-        if (localState) cloud.dirty = true;
-        save();
-        renderAll();
-      } else if (row) {
-        /* A row exists but its payload is not usable. Keep local data and
-           replace the bad payload on the next save. */
-        if (!sameOwner) {
-          state = seedState();
-          save();
-          renderAll();
-        }
-        cloud.dirty = true;
-      }
-
-      writeStateOwner(user.id);
     } catch (err) {
-      /* Do not overwrite a row we could not read: keep the local fallback and
-         wait for the next sign-in/reload to retry. */
-      loadFailed = true;
+      /* Nothing is written up from a read that never landed: a guess must not
+         overwrite the account's own row. The copy on screen stays usable and
+         the retry keeps working in the background. */
       cloud.blocked = true;
-      cloud.dirty = false;
-      setSyncStatus('Cloud unavailable · saved locally', 'error');
-    } finally {
       cloud.hydrating = false;
+      if (cloud.user === user) {
+        setSyncStatus('Saved locally · reconnecting', 'pending');
+        scheduleCloudRetry();
+      }
+      return;
     }
 
-    if (loadFailed) return;
-    if (!row) cloud.dirty = true;
+    /* Signed out (or switched account) while the read was in flight. */
+    if (cloud.user !== user) {
+      cloud.hydrating = false;
+      return;
+    }
+
+    cloud.blocked = false;
+    cloudRetryStep = 0;
+    clearCloudRetry();
+
+    var owner = readStateOwner();
+    var mine = !!owner && owner === user.id;
+    var cloudState = row && row.state_json ? normalizeState(row.state_json) : null;
+
+    if (cloudState) {
+      /* The account's copy leads. Local work joins it only when this device
+         already belongs to this same account — never from a device that was
+         last used by somebody else, and never from a seeded install. */
+      var joinLocal = mine && hadLocalState;
+      state = mergeStates(joinLocal ? state : null, cloudState);
+      if (state.view !== 'challenges' && state.view !== 'calendar' && state.view !== 'account') {
+        state.view = 'today';
+      }
+      cloud.dirty = joinLocal;
+      save();
+    } else {
+      /* No row for this account: it starts clean. Pre-account leftovers or a
+         previous account's tasks are stashed, not uploaded into it. */
+      if (!mine) {
+        stashLocalState();
+        state = freshAccountState();
+        view = state.view;
+        selectedKey = todayKey;
+      }
+      save();
+      cloud.dirty = true;
+    }
+
+    writeStateOwner(user.id);
+    cloud.hydrating = false;
+    renderAll();
     if (cloud.dirty) flushCloudSave();
     else setSyncStatus('Synced to cloud', 'synced');
   }
@@ -2030,6 +2153,7 @@
     if (!session || !session.user) return;
     cloud.user = session.user;
     updateAccountUI();
+    setSyncStatus('Syncing…', 'saving');
     showAuthChecking();
     try {
       await hydrateCloudState(cloud.user);
@@ -2042,6 +2166,8 @@
   async function handleSignOut() {
     if (cloud.saveTimer) window.clearTimeout(cloud.saveTimer);
     if (cloud.retryTimer) window.clearTimeout(cloud.retryTimer);
+    clearCloudRetry();
+    cloudRetryStep = 0;
     cloud.saveTimer = 0;
     cloud.retryTimer = 0;
     try {
@@ -4808,6 +4934,7 @@
     els.viewToday.hidden = view !== 'today';
     els.viewChallenges.hidden = view !== 'challenges';
     els.viewCalendar.hidden = view !== 'calendar';
+    if (els.viewAccount) els.viewAccount.hidden = view !== 'account';
 
     var tabs = els.tabbar.querySelectorAll('.tab');
     Array.prototype.forEach.call(tabs, function (tab) {
@@ -4832,6 +4959,7 @@
     renderTodayChallenges();
     renderChallenges();
     renderCalendar();
+    renderAccount();
 
     document.body.classList.toggle('editing', editMode);
     els.editBtn.classList.toggle('is-on', editMode);
@@ -4844,7 +4972,7 @@
   }
 
   function setView(next) {
-    var target = next === 'challenges' || next === 'calendar' ? next : 'today';
+    var target = next === 'challenges' || next === 'calendar' || next === 'account' ? next : 'today';
     /* Superfocus is a committed state: tabs stay locked until it is exited. */
     if (superfocusOn() && target !== 'today') {
       toast('Superfocus is on · exit to switch tabs');
@@ -5717,7 +5845,10 @@
     }
     syncFromStorage();
     rollover();
+    retryCloudNow();
   });
+
+  window.addEventListener('online', retryCloudNow);
 
   window.addEventListener('pagehide', function () {
     flushCloudSave({ keepalive: true });

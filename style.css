@@ -2224,7 +2224,7 @@ body.editing .task-del {
   display: grid;
   /* minmax(0, …) lets a column shrink below the label's min-content width, so
      "Challenges" / "Calendar" can never push past the bar and get cut. */
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 3px;
   padding: 6px 5px;
   /* Nothing in the bar may clip a label's descender. */
@@ -2316,6 +2316,17 @@ body.editing .task-del {
 .tab[data-view="calendar"].is-active .tab-icon {
   color: var(--green-bright);
   filter: drop-shadow(0 0 10px rgba(34, 197, 94, 0.55));
+}
+
+.tab[data-view="account"].is-active {
+  color: #e6ddff;
+  background: linear-gradient(180deg, rgba(167, 139, 250, 0.2), rgba(167, 139, 250, 0.05));
+  box-shadow: inset 0 0 0 1px rgba(167, 139, 250, 0.32);
+}
+
+.tab[data-view="account"].is-active .tab-icon {
+  color: #c4b5fd;
+  filter: drop-shadow(0 0 10px rgba(167, 139, 250, 0.6));
 }
 
 /* =========================== TRACK CARDS =============================== */
@@ -5999,7 +6010,6 @@ body.rest-day .focus-card {
 body.superfocus .topbar,
 body.superfocus .weekstrip,
 body.superfocus .progress-card,
-body.superfocus .account-bar,
 body.superfocus .foot {
   filter: blur(7px) saturate(75%);
   opacity: 0.2;
@@ -6054,10 +6064,9 @@ body.superfocus .tabbar {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body.superfocus .topbar,
+    body.superfocus .topbar,
   body.superfocus .weekstrip,
   body.superfocus .progress-card,
-  body.superfocus .account-bar,
   body.superfocus .foot,
   .view.is-focusing .section-head,
   .view.is-focusing .task-card.is-focus-dim,
@@ -6384,26 +6393,80 @@ body.is-auth .app {
 }
 
 /* ==========================================================================
-   Signed-in account status
+   Account tab
    ========================================================================== */
-.account-bar {
+.account-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 16px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(120% 130% at 0% 0%, rgba(167, 139, 250, 0.16), transparent 62%),
+    linear-gradient(180deg, rgba(27, 26, 32, 0.9), rgba(12, 11, 16, 0.94));
+  box-shadow: 0 18px 40px -28px rgba(0, 0, 0, 0.9);
+}
+
+.account-identity {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-top: 34px;
-  padding: 13px 14px;
-  border-radius: 16px;
+}
+
+.account-session {
+  margin: 3px 0 0;
+  overflow: hidden;
+  color: var(--muted-dim);
+  font-size: 10.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-note {
+  margin: 14px 2px 0;
+  color: var(--muted-dim);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.account-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.acct-tile {
+  padding: 12px 10px;
+  border-radius: 14px;
   border: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(27, 26, 32, 0.78), rgba(12, 11, 16, 0.88));
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.24);
+  background: linear-gradient(180deg, rgba(27, 26, 32, 0.7), rgba(12, 11, 16, 0.82));
+  text-align: center;
 }
 
-.account-bar[hidden] {
-  display: none;
+.acct-label {
+  margin: 0;
+  color: var(--muted-dim);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+  text-transform: uppercase;
 }
 
-.account-bar + .foot {
-  margin-top: 14px;
+.acct-value {
+  margin: 6px 0 0;
+  color: var(--ink);
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.acct-tile.is-gold .acct-value {
+  color: var(--gold-bright);
+  text-shadow: 0 0 16px rgba(245, 201, 78, 0.28);
 }
 
 .account-avatar {
@@ -6459,22 +6522,23 @@ body.is-auth .app {
   box-shadow: 0 0 7px rgba(245, 201, 78, 0.7);
 }
 
+.account-status[data-state="pending"] .account-dot,
 .account-status[data-state="error"] .account-dot {
-  background: #ef4444;
-  box-shadow: 0 0 7px rgba(239, 68, 68, 0.7);
+  background: var(--gold);
+  box-shadow: 0 0 7px rgba(245, 201, 78, 0.7);
 }
 
 .account-signout {
-  flex: none;
-  min-height: 34px;
-  padding: 7px 11px;
+  align-self: flex-start;
+  min-height: 36px;
+  padding: 8px 16px;
   border-radius: 999px;
   border: 1px solid var(--line);
   background: transparent;
   color: var(--muted);
   font: inherit;
-  font-size: 11.5px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 650;
   cursor: pointer;
 }
 

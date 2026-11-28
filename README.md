@@ -22,7 +22,7 @@ Open **http://localhost:8080**. The service worker and Home Screen install need 
 2. **Share → Add to Home Screen**.
 3. Launch it from the Home Screen — it runs standalone, respects the notch and home indicator, and works offline.
 
-The service worker uses cache `aura-v44` (SHELL_VERSION in `sw.js`) and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the current palette, the new app icons and the in-app mark on the next launch.
+The service worker uses cache `aura-v45` (SHELL_VERSION in `sw.js`) and calls `skipWaiting` + `clients.claim`, so an existing Home Screen install picks up the current palette, the new app icons and the in-app mark on the next launch.
 
 **Shell updates can never mix versions.** Every script and stylesheet is requested with the shell version (`app.js?v=42`, `style.css?v=42`), and `sw.js` caches with exact matching, so a new `index.html` can never be paired with an older cached `app.js` — the failure that once left `#authGate` hidden on live installs. The worker precaches with `cache: 'reload'` (GitHub Pages sends `max-age=600`, so the HTTP cache is not trusted), `register()` uses `updateViaCache: 'none'`, and the app checks `registration.update()` on load and whenever it returns to the foreground, takes over a waiting worker immediately, and reloads once when a newer worker claims the page. Bump `SHELL_VERSION` (and the `?v=` queries) together with any shell change.
 
@@ -102,8 +102,8 @@ With custom SMTP the mail is sent by Resend from AURA's own domain, so nothing a
 
 On sign-in the app reads the row for `auth.uid()`:
 
-- **No row yet** — the local AURA state is uploaded, so existing work is not lost.
-- **Row exists** — the cloud state is hydrated. If this device already had local AURA data, local-only tasks, days and completions are merged in; cloud entries win on conflicts. The merged copy is pushed back up.
+- **No row yet** — a brand-new account starts from AURA's own starting state. A local copy that belongs to nobody (pre-account leftovers) or to a **different** account is never uploaded into it; it is stashed under `aura.daily.v3.precloud` first. The one exception is a device this account already owns (`aura.state.owner` matches), whose local work is kept and uploaded.
+- **Row exists** — the cloud state is hydrated. Local work is merged in only when this device already belongs to the same account; cloud entries win on conflicts, and the merged copy is pushed back up. Signing in on someone else's device therefore shows the account's own data, not theirs.
 
 Every local save is still written to `localStorage` immediately. Cloud writes are debounced (1.2 s) and upserted with:
 
@@ -113,19 +113,24 @@ Prefer: resolution=merge-duplicates
 { "user_id": "...", "state_json": { ... }, "updated_at": "..." }
 ```
 
-Saves are also flushed when the tab is hidden or the page is closed. If the network or Supabase is unavailable, the app keeps working locally and retries the cloud write. A session whose access token has expired is refreshed before use, and if that refresh only fails because the device is offline the session is kept — an offline launch never throws a signed-in user back to the sign-in screen, it opens their local state with the account card reading **Cloud unavailable · saved locally**. Only a refresh token the server actually rejects ends the session. The footer shows **Saved on this device** when signed out and **Saved to your account** when signed in; the account card above it shows the signed-in email, a live sync status and a **Sign out** button.
+Saves are also flushed when the tab is hidden or the page is closed. If the network or Supabase is unavailable, the app keeps working locally and retries the cloud write. A session whose access token has expired is refreshed before use, and if that refresh only fails because the device is offline the session is kept — an offline launch never throws a signed-in user back to the sign-in screen, it opens their local state and says **Saved locally · reconnecting**. Only a refresh token the server actually rejects ends the session.
+
+A read that fails never overwrites the account row: nothing is written up until a read has landed, and the read is retried on a backoff (4 s, 8 s, 16 s … capped at 45 s) and again the moment the tab regains focus or the device comes back online. Sync is never switched off for the rest of the session, so the Account page cannot get stuck on a dead status until a reload.
+
+The footer shows **Saved on this device** when signed out and **Saved to your account** when signed in.
 
 The Auth session is kept in `localStorage` under `aura.supabase.session`, and `aura.state.owner` remembers which account the local copy belongs to. That owner check prevents one account's local data from being merged into a different account on a shared device.
 
 ---
 
-## The three tabs
+## The four tabs
 
 | Tab | What lives there |
 | --- | --- |
 | **Today** | Week strip, progress card with the LOSS → WIN scale and same-day verdict, in-page Superfocus, Ideal Day, Non-Negotiables, and **Active Challenges** for the selected date while a challenge covers it — or a moon rest panel when the day is a rest day. The header pill shows the same win streak the Calendar counts |
 | **Challenges** | Short, high-pressure tracks (`7-Day No Sugar`, `14-Day Deep Work`) that run automatically between their start and end dates, shown with details, dates, progress, day bar, win count and a clear **WIN / LOSS** verdict. Read-only: today's actions are checked off on Today |
 | **Calendar** | A month grid of real outcomes: green **WIN** days, red **LOSS** days, quiet grey days with nothing scheduled, and six summary tiles (win, loss, rest, current streak, best streak, win rate). Tap any day to open it on Today |
+| **Account** | The signed-in email and how you signed in, a live cloud-sync status, **Sign out**, and lifetime tiles: win streak, best streak, win rate, completion, tasks done and days tracked. Today is still open, so it only ever counts as a win here — a half-finished morning cannot drag the lifetime rate down |
 
 Every tab has its own header action: **+** on Ideal Day and Non-Negotiables, and **+** plus a pencil on Challenges. Today stays focused on what can be ticked right now.
 
@@ -293,7 +298,7 @@ supabase-client.js         Tiny Supabase Auth + PostgREST client (publishable ke
 supabase/aura_user_state.sql  Table + RLS policies for the per-user cloud state
 supabase/email-templates/   Branded AURA code email: code only, no links, no provider branding
 manifest.json              PWA manifest (AURA, standalone, portrait)
-sw.js                      Offline cache — aura-v44, versioned shell assets
+sw.js                      Offline cache — aura-v45, versioned shell assets
 AURALOGO.png               Official logo tile (source for every app icon)
 AURALOGO-ONLY.png          Wordmark alone, alpha cut (source for the in-app mark)
 assets/aura-mark.png       Header/footer mark, trimmed and scaled from AURALOGO-ONLY
